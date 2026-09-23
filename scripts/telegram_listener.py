@@ -83,6 +83,14 @@ def is_authorized(user_id, chat_id, config):
     return str(user_id) in allowed_users or str(chat_id) in allowed_chats
 
 
+def is_admin(user_id, config):
+    """Verify if user is the designated Administrator @wtalaat."""
+    tg = config.get("telegram", {})
+    admin_id = str(tg.get("admin_chat_id", "1264076025")).strip()
+    allowed_users = [str(u).strip() for u in tg.get("allowed_user_ids", ["1264076025"])]
+    return str(user_id).strip() == admin_id or str(user_id).strip() in allowed_users
+
+
 def tg_api_request(bot_token, method, data=None):
     """Dispatch HTTP request to Telegram Bot API."""
     url = f"https://api.telegram.org/bot{bot_token}/{method}"
@@ -585,18 +593,24 @@ def process_update(update, bot_token, config):
         elif data == "cb_start_5_2x":
             handle_start_session_cmd(["5", "2x"], chat_id, bot_token)
         elif data.startswith("auth_approve_"):
+            if not is_admin(user_id, config):
+                send_tg_message(bot_token, chat_id, "⛔ Permission Denied: Only Administrator @wtalaat can authorize modifications.")
+                return
             tok = data.replace("auth_approve_", "")
             from skill_integrity_guard import approve_pending_authorization
             user_info = cb.get("from", {})
             admin_label = f"Telegram Admin @{user_info.get('username', user_id)} (ID: {user_id})"
-            ok, res_msg = approve_pending_authorization(token=tok, approved_by=admin_label)
+            ok, res_msg = approve_pending_authorization(token=tok, approved_by=admin_label, notify=False)
             send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
         elif data.startswith("auth_reject_"):
+            if not is_admin(user_id, config):
+                send_tg_message(bot_token, chat_id, "⛔ Permission Denied: Only Administrator @wtalaat can reject modifications.")
+                return
             tok = data.replace("auth_reject_", "")
             from skill_integrity_guard import reject_pending_authorization
             user_info = cb.get("from", {})
             admin_label = f"Telegram Admin @{user_info.get('username', user_id)} (ID: {user_id})"
-            ok, res_msg = reject_pending_authorization(token=tok, rejected_by=admin_label)
+            ok, res_msg = reject_pending_authorization(token=tok, rejected_by=admin_label, notify=False)
             send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
         return
 
@@ -646,18 +660,24 @@ def process_update(update, bot_token, config):
         elif cmd == "/integrity":
             handle_integrity_cmd(chat_id, bot_token)
         elif cmd in ("/approve", "/authorize", "/certify"):
+            if not is_admin(user_id, config):
+                send_tg_message(bot_token, chat_id, "⛔ Permission Denied: Only Administrator @wtalaat can authorize modifications.")
+                return
             tok = args[0] if len(args) > 0 else None
             from skill_integrity_guard import approve_pending_authorization
             user_info = msg.get("from", {})
             admin_label = f"Telegram Admin @{user_info.get('username', user_id)} (ID: {user_id})"
-            ok, res_msg = approve_pending_authorization(token=tok, approved_by=admin_label)
+            ok, res_msg = approve_pending_authorization(token=tok, approved_by=admin_label, notify=False)
             send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
         elif cmd in ("/reject", "/deny"):
+            if not is_admin(user_id, config):
+                send_tg_message(bot_token, chat_id, "⛔ Permission Denied: Only Administrator @wtalaat can reject modifications.")
+                return
             tok = args[0] if len(args) > 0 else None
             from skill_integrity_guard import reject_pending_authorization
             user_info = msg.get("from", {})
             admin_label = f"Telegram Admin @{user_info.get('username', user_id)} (ID: {user_id})"
-            ok, res_msg = reject_pending_authorization(token=tok, rejected_by=admin_label)
+            ok, res_msg = reject_pending_authorization(token=tok, rejected_by=admin_label, notify=False)
             send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
         else:
             send_tg_message(bot_token, chat_id, f"❓ Unknown command: <code>{cmd}</code>\nSend /help to view all available commands.", reply_markup=make_main_keyboard())

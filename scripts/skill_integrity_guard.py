@@ -107,7 +107,7 @@ def create_pending_authorization(mismatches):
     return token
 
 
-def approve_pending_authorization(token=None, approved_by="Telegram Admin"):
+def approve_pending_authorization(token=None, approved_by="Telegram Admin", notify=True):
     """
     Approves pending modifications remotely from Telegram:
     1. Re-signs all protected files cryptographically.
@@ -152,11 +152,12 @@ def approve_pending_authorization(token=None, approved_by="Telegram Admin"):
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"<i>All execution gates cleared for active trading.</i>"
     )
-    send_admin_telegram(msg)
+    if notify:
+        send_admin_telegram(msg)
     return True, msg
 
 
-def reject_pending_authorization(token=None, rejected_by="Telegram Admin"):
+def reject_pending_authorization(token=None, rejected_by="Telegram Admin", notify=True):
     """Rejects pending modifications and maintains the Anti-Tamper Lockout."""
     auths = get_pending_authorizations()
     target_token = None
@@ -183,7 +184,8 @@ def reject_pending_authorization(token=None, rejected_by="Telegram Admin"):
         f"<b>Notice:</b> Modifications remain unauthorized. Trade execution will continue to be blocked until restored or validly certified.\n"
         f"━━━━━━━━━━━━━━━━━━━━"
     )
-    send_admin_telegram(msg)
+    if notify:
+        send_admin_telegram(msg)
     return True, msg
 
 
