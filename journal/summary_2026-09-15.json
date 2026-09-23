@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-15",
+  "timestamp": "2026-09-15T23:55:00.213147+00:00",
+  "account_balance": 92307.3,
+  "account_equity": 92307.3,
+  "total_trades": 0,
+  "wins": 0,
+  "losses": 0,
+  "breakeven": 0,
+  "total_profit": 0.0,
+  "total_loss": 0.0,
+  "net_pnl": 0.0,
+  "largest_win": 0.0,
+  "largest_loss": 0.0,
+  "win_rate": 0.0,
+  "profit_factor": 0.0,
+  "trades": [],
+  "status": "NO_TRADES"
+}

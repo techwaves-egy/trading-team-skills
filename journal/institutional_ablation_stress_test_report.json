@@ -1,0 +1,104 @@
+{
+  "gbpusd_session_ablation": {
+    "All_Hours": {
+      "trades": 264,
+      "wins": 18,
+      "losses": 246,
+      "win_rate": 6.8,
+      "net_pnl": -91107.35,
+      "pf": 0.09,
+      "expectancy": -345.1,
+      "max_consecutive_losses": 49
+    },
+    "Session_07_16_UTC": {
+      "trades": 211,
+      "wins": 11,
+      "losses": 200,
+      "win_rate": 5.2,
+      "net_pnl": -86456.2,
+      "pf": 0.07,
+      "expectancy": -409.75,
+      "max_consecutive_losses": 50
+    }
+  },
+  "eurusd_gate3_trap_ablation": {
+    "WITH_Gate_3": {
+      "trades": 298,
+      "wins": 16,
+      "losses": 282,
+      "win_rate": 5.4,
+      "net_pnl": -93623.29,
+      "pf": 0.07,
+      "expectancy": -314.17
+    },
+    "WITHOUT_Gate_3": {
+      "trades": 293,
+      "wins": 18,
+      "losses": 275,
+      "win_rate": 6.1,
+      "net_pnl": -92968.55,
+      "pf": 0.07,
+      "expectancy": -317.3
+    },
+    "REJECTED_TRADES_ONLY": {
+      "trades": 9,
+      "wins": 4,
+      "losses": 5,
+      "win_rate": 44.4,
+      "net_pnl": -1636.56,
+      "pf": 0.68,
+      "expectancy": -181.84
+    }
+  },
+  "xauusd_stress_testing": {
+    "1. Baseline (Standard Spread $0.35)": {
+      "trades": 989,
+      "win_rate": 28.7,
+      "net_pnl": -99781.25,
+      "pf": 0.42,
+      "expectancy": -100.89
+    },
+    "2. Spread Stress (+25% Spread = $0.44)": {
+      "trades": 993,
+      "win_rate": 28.1,
+      "net_pnl": -100168.05,
+      "pf": 0.4,
+      "expectancy": -100.87
+    },
+    "3. Spread Stress (+50% Spread = $0.52)": {
+      "trades": 993,
+      "win_rate": 27.6,
+      "net_pnl": -100446.95,
+      "pf": 0.39,
+      "expectancy": -101.16
+    },
+    "4. Execution Slippage (+2 Ticks = $0.20)": {
+      "trades": 994,
+      "win_rate": 27.6,
+      "net_pnl": -100624.01,
+      "pf": 0.39,
+      "expectancy": -101.23
+    },
+    "5. Extreme Slippage (+5 Ticks = $0.50)": {
+      "trades": 1008,
+      "win_rate": 27.0,
+      "net_pnl": -101578.7,
+      "pf": 0.34,
+      "expectancy": -100.77
+    },
+    "6. Outlier Jackknife (Drop Top 5 Wins)": {
+      "trades": 984,
+      "win_rate": 28.4,
+      "net_pnl": -111806.06,
+      "pf": 0.35,
+      "expectancy": -113.62
+    },
+    "7. Outlier Jackknife (Drop Top 10 Wins)": {
+      "trades": 979,
+      "win_rate": 28.0,
+      "net_pnl": -118809.58,
+      "pf": 0.31,
+      "expectancy": -121.36
+    }
+  }
+}

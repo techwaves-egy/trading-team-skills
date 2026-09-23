@@ -1,0 +1,23 @@
+{
+  "session_id": "SES-20260923-GLD891",
+  "active_market": "XAUUSD",
+  "watchlist": [
+    "XAUUSD"
+  ],
+  "risk_per_trade_dollars": 25.0,
+  "max_daily_loss_dollars": 50.0,
+  "default_lots": 0.01,
+  "leverage_multiplier": 2.0,
+  "leverage_trades_quota": 5,
+  "leverage_trades_used": 0,
+  "baseline_leverage": 1.0,
+  "gold_profit_target_base": 25.0,
+  "max_trades": 5,
+  "trades_executed": 0,
+  "trading_mode": "D",
+  "risk_manager_status": "APPROVED_BY_CRO",
+  "approved_leverage_tier": "2x",
+  "margin_stress_score": "0.10% (Institutional A+ Rating)",
+  "start_time": "2026-09-23T15:52:00.000000+00:00",
+  "is_active": true
+}

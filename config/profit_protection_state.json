@@ -1,0 +1,20 @@
+{
+  "58583999025": {
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "open_price": 4330.61,
+    "tp_price": 4305.61,
+    "armed": false,
+    "peak_progress": 0.6071999999999753,
+    "armed_at": null
+  },
+  "58588251211": {
+    "symbol": "EURUSD",
+    "direction": "BUY",
+    "open_price": 1.1409799999999999,
+    "tp_price": 1.14333,
+    "armed": false,
+    "peak_progress": 0.0,
+    "armed_at": null
+  }
+}

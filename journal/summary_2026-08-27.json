@@ -1,0 +1,59 @@
+{
+  "date": "2026-08-27",
+  "timestamp": "2026-08-27T23:55:00.750411+00:00",
+  "account_balance": 95494.07,
+  "account_equity": 95896.93,
+  "total_trades": 3,
+  "wins": 0,
+  "losses": 3,
+  "breakeven": 0,
+  "total_profit": 0.0,
+  "total_loss": 2976.54,
+  "net_pnl": -2976.54,
+  "largest_win": 0.0,
+  "largest_loss": -994.68,
+  "win_rate": 0.0,
+  "profit_factor": 0.0,
+  "trades": [
+    {
+      "ticket": 57825873011,
+      "order": 58192008368,
+      "symbol": "XAUUSD",
+      "type": "BUY",
+      "volume": 0.34,
+      "price": 4607.02,
+      "profit": -993.48,
+      "commission": 0.0,
+      "swap": 0.0,
+      "time": "18:53:22 UTC",
+      "comment": "[sl 4607.02]"
+    },
+    {
+      "ticket": 57825938766,
+      "order": 58192074506,
+      "symbol": "XAUUSD",
+      "type": "BUY",
+      "volume": 0.34,
+      "price": 4610.27,
+      "profit": -988.38,
+      "commission": 0.0,
+      "swap": 0.0,
+      "time": "18:55:12 UTC",
+      "comment": "[sl 4610.27]"
+    },
+    {
+      "ticket": 57826843984,
+      "order": 58192994754,
+      "symbol": "XAUUSD",
+      "type": "BUY",
+      "volume": 0.36,
+      "price": 4614.17,
+      "profit": -994.68,
+      "commission": 0.0,
+      "swap": 0.0,
+      "time": "19:46:01 UTC",
+      "comment": "[sl 4614.17]"
+    }
+  ],
+  "status": "LOSS"
+}

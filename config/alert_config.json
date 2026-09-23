@@ -1,0 +1,21 @@
+{
+  "telegram": {
+    "enabled": true,
+    "bot_token": "8280433763:AAELL3lv5XqRwIodJxk9CbGKquqmNNYXk-c",
+    "chat_ids": [
+      "1264076025",
+      "-1003989306390"
+    ],
+    "chat_id": "1264076025"
+  },
+  "discord": {
+    "enabled": false,
+    "webhook_url": "YOUR_DISCORD_WEBHOOK_URL_HERE"
+  },
+  "settings": {
+    "min_strategy_score_to_alert": 75,
+    "alert_on_tp_sl_updates": true,
+    "alert_on_regime_shifts": true,
+    "sound_notification": true
+  }
+}

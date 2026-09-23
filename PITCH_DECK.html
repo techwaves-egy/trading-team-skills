@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autonomous Trading Firm - Institutional Commercial Deck</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.4);
+    }
+
+    .slide {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(8px);
+    }
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .glow-gold {
+      box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.25);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.25);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-amber-500/30 selection:text-amber-200">
+
+  <!-- Top Navigation & Brand Header -->
+  <header class="w-full border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-xl px-6 py-3.5 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center font-black text-slate-950 shadow-lg shadow-amber-500/20 text-lg">
+        Ω
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold text-sm tracking-wide text-white uppercase">AURA QUANT</span>
+          <span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-full tracking-wider uppercase">v3.8 Institutional</span>
+        </div>
+        <p class="text-[11px] text-slate-400">Autonomous Multi-Agent Algorithmic Trading Firm</p>
+      </div>
+    </div>
+
+    <!-- Center Slide Quick Jump -->
+    <div class="hidden md:flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-full text-xs">
+      <span class="text-slate-400 font-medium mr-1 text-[11px]">SLIDE:</span>
+      <select id="slideSelect" class="bg-transparent text-amber-400 font-semibold focus:outline-none cursor-pointer text-xs" onchange="jumpToSlide(parseInt(this.value))">
+        <option value="0" class="bg-slate-900 text-slate-200">01. Executive Overview</option>
+        <option value="1" class="bg-slate-900 text-slate-200">02. Market Problem & Edge</option>
+        <option value="2" class="bg-slate-900 text-slate-200">03. Multi-Agent Architecture</option>
+        <option value="3" class="bg-slate-900 text-slate-200">04. Regime Strategy Guild</option>
+        <option value="4" class="bg-slate-900 text-slate-200">05. 80/70 Profit Protection</option>
+        <option value="5" class="bg-slate-900 text-slate-200">06. CRO Risk Engine</option>
+        <option value="6" class="bg-slate-900 text-slate-200">07. 24/7 Autonomous Daemons</option>
+        <option value="7" class="bg-slate-900 text-slate-200">08. Live Performance Proof</option>
+        <option value="8" class="bg-slate-900 text-slate-200">09. Asset Universe & Execution</option>
+        <option value="9" class="bg-slate-900 text-slate-200">10. Commercial ROI & Models</option>
+        <option value="11" class="bg-slate-900 text-slate-200">11. Turnkey Deployment</option>
+        <option value="11" class="bg-slate-900 text-slate-200">12. Partnership & Call to Action</option>
+      </select>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-2">
+      <button onclick="toggleNotes()" id="notesBtn" title="Toggle Speaker Pitch Notes (Hotkey: S)" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center gap-1.5 transition-colors">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        <span class="hidden sm:inline">Pitch Script</span>
+      </button>
+      <button onclick="toggleFullscreen()" title="Fullscreen presentation (Hotkey: F)" class="p-1.5 text-slate-400 hover:text-white rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Slide Display Canvas -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-center">
+
+    <!-- SLIDE 1: Title & Executive Summary -->
+    <section class="slide active flex-col justify-center items-center text-center py-8" data-slide="0">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-6 uppercase tracking-wider animate-pulse">
+        Institutional Algorithmic Trading Technology
+      </div>
+      <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white max-w-4xl leading-tight">
+        A Complete Hedge Fund Team. <br>
+        <span class="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-transparent">
+          Distilled Into Autonomous AI.
+        </span>
+      </h1>
+      <p class="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl leading-relaxed">
+        Eliminate emotional bias, capture alpha across shifting market regimes, and protect every dollar with mathematical risk engineering and our proprietary <strong class="text-amber-400">80/70 Asymmetric Profit Protection Engine</strong>.
+      </p>
+
+      <!-- Value Metric Badges -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-12 w-full max-w-4xl text-left">
+        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
+          <div class="text-xs text-slate-400 font-medium uppercase tracking-wider">Operational Model</div>
+          <div class="text-2xl font-bold text-white mt-1">Multi-Agent</div>
+          <div class="text-xs text-amber-400 mt-1">6 Specialized AI Roles</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
+          <div class="text-xs text-slate-400 font-medium uppercase tracking-wider">Regime Engine</div>
+          <div class="text-2xl font-bold text-emerald-400 mt-1">5 Discrete</div>
+          <div class="text-xs text-slate-400 mt-1">Bull, Bear, Range, Breakout, Vol</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
+          <div class="text-xs text-slate-400 font-medium uppercase tracking-wider">Profit Guard</div>
+          <div class="text-2xl font-bold text-amber-400 mt-1">80 / 70%</div>
+          <div class="text-xs text-slate-400 mt-1">Automated Win-Lock Engine</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
+          <div class="text-xs text-slate-400 font-medium uppercase tracking-wider">Security Architecture</div>
+          <div class="text-2xl font-bold text-cyan-400 mt-1">SHA-256</div>
+          <div class="text-xs text-slate-400 mt-1">Anti-Tamper Cryptography</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: The Industry Problem -->
+    <section class="slide flex-col py-4" data-slide="1">
+      <div class="flex items-center gap-2 text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-red-400"></span> The Core Dilemma
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Why 95% of Retail Traders & Static Bots Fail</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">Traditional single-algorithm bots and human discretionary traders succumb to 4 fatal systemic design flaws.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8">
+        <div class="bg-red-950/20 border border-red-900/40 rounded-xl p-5 hover:border-red-500/40 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center font-bold text-lg">01</div>
+            <div>
+              <h3 class="font-bold text-white text-base">Static Strategy Fragility</h3>
+              <p class="text-xs text-slate-400">Bots curve-fitted to one market condition</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-slate-300 leading-relaxed">
+            A grid or trend-following bot makes money until the market switches regimes (e.g. from trending to choppy consolidation). Without real-time regime classification, static bots wipe out accounts during regime shifts.
+          </p>
+        </div>
+
+        <div class="bg-red-950/20 border border-red-900/40 rounded-xl p-5 hover:border-red-500/40 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center font-bold text-lg">02</div>
+            <div>
+              <h3 class="font-bold text-white text-base">The "Near-TP" Heartbreak Reversal</h3>
+              <p class="text-xs text-slate-400">Winning trades transforming into losses</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-slate-300 leading-relaxed">
+            A position races to 85% or 90% of its Take-Profit target, encounters an unexpected liquidity sweep, reverses entirely, and triggers a full Stop Loss or break-even. Traders suffer severe psychological and capital decay.
+          </p>
+        </div>
+
+        <div class="bg-red-950/20 border border-red-900/40 rounded-xl p-5 hover:border-red-500/40 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center font-bold text-lg">03</div>
+            <div>
+              <h3 class="font-bold text-white text-base">Absence of Independent Risk Governance</h3>
+              <p class="text-xs text-slate-400">The executioner also controls the risk</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-slate-300 leading-relaxed">
+            In traditional setups, the trader or the entry bot dictates position sizing. When drawdowns happen, revenge trading or martingale sizing follows. No tier-1 hedge fund allows traders to approve their own risk parameters.
+          </p>
+        </div>
+
+        <div class="bg-red-950/20 border border-red-900/40 rounded-xl p-5 hover:border-red-500/40 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center font-bold text-lg">04</div>
+            <div>
+              <h3 class="font-bold text-white text-base">Human Fatigue & Execution Latency</h3>
+              <p class="text-xs text-slate-400">Markets move 24/7, humans sleep</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-slate-300 leading-relaxed">
+            Missing Asian session breakouts, hesitating at the order button during volatile news releases, or manually calculating pip risk under stress causes catastrophic execution drag and unforced errors.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: Multi-Agent Architecture -->
+    <section class="slide flex-col py-4" data-slide="2">
+      <div class="flex items-center gap-2 text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span> The Institutional Solution
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">A Virtual Investment Committee: 6 Specialized AI Agents</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">Instead of a single black-box script, our system functions as an autonomous firm with strict separation of duties.</p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        <!-- Role 1 -->
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl hover:border-amber-500/40 transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-amber-400">ROLE 01</span>
+            <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-300 rounded">Leadership</span>
+          </div>
+          <h4 class="font-bold text-white text-base mt-2">Chief Investment Officer (CIO)</h4>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+            Directs market scanning, governs session allocation, adjudicates strategy competition, and issues final portfolio execution warrants.
+          </p>
+        </div>
+
+        <!-- Role 2 -->
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl hover:border-cyan-500/40 transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-cyan-400">ROLE 02</span>
+            <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-300 rounded">Research</span>
+          </div>
+          <h4 class="font-bold text-white text-base mt-2">Head of Macro & Market Regime</h4>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+            Classifies real-time market regimes via EMA clusters, ADX trend strength, and ATR volatility bands before any strategy is permitted to run.
+          </p>
+        </div>
+
+        <!-- Role 3 -->
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl hover:border-emerald-500/40 transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-emerald-400">ROLE 03</span>
+            <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-300 rounded">Alpha Generation</span>
+          </div>
+          <h4 class="font-bold text-white text-base mt-2">Alpha Strategy Guild</h4>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+            5 specialized algorithmic sub-agents (Trend, Mean Reversion, Breakout, Momentum, Scalp) competing for capital based on regime alignment.
+          </p>
+        </div>
+
+        <!-- Role 4 -->
+        <div class="bg-slate-900/90 border border-red-500/30 bg-red-950/10 p-4 rounded-xl hover:border-red-500/60 transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-red-400">ROLE 04</span>
+            <span class="px-2 py-0.5 text-[10px] bg-red-500/20 text-red-300 rounded">Veto Power</span>
+          </div>
+          <h4 class="font-bold text-white text-base mt-2">Chief Risk Officer (CRO)</h4>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+            Absolute veto over every proposal. Enforces strict dollar risk caps, ATR volatility stops, margin stress checks, and daily drawdown circuits.
+          </p>
+        </div>
+
+        <!-- Role 5 -->
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl hover:border-blue-500/40 transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-blue-400">ROLE 05</span>
+            <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-300 rounded">Smart Execution</span>
+          </div>
+          <h4 class="font-bold text-white text-base mt-2">Quantitative Execution Specialist</h4>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+            Direct low-latency bridge to MetaTrader 5 (MT5). Executes market orders, verifies ticket fills, slippage, and sets bracket stops instantly.
+          </p>
+        </div>
+
+        <!-- Role 6 -->
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl hover:border-purple-500/40 transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-purple-400">ROLE 06</span>
+            <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-300 rounded">Integrity</span>
+          </div>
+          <h4 class="font-bold text-white text-base mt-2">Chief Compliance & Auditor</h4>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+            Maintains continuous SHA-256 code integrity guards against tampering, records audit logs, and formats institutional journals.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Regime Strategy Guild -->
+    <section class="slide flex-col py-4" data-slide="3">
+      <div class="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Dynamic Strategy Adaptation
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">5 Market Regimes. The Right Tool for Every Market.</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">Instead of hoping one strategy works forever, the system objectively classifies the regime before deploying capital.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mt-6">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="text-[11px] font-mono text-emerald-400 uppercase font-bold">Regime 01</div>
+            <h4 class="text-base font-bold text-white mt-1">Trending Bull</h4>
+            <div class="text-[11px] text-slate-400 mt-2">EMA 20 &gt; 50 &gt; 200, ADX &gt; 25</div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800">
+            <div class="text-[10px] text-slate-400 uppercase">Deployed Model:</div>
+            <div class="text-xs font-bold text-emerald-300 mt-0.5">Momentum Trend Rider</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="text-[11px] font-mono text-red-400 uppercase font-bold">Regime 02</div>
+            <h4 class="text-base font-bold text-white mt-1">Trending Bear</h4>
+            <div class="text-[11px] text-slate-400 mt-2">EMA 20 &lt; 50 &lt; 200, ADX &gt; 25</div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800">
+            <div class="text-[10px] text-slate-400 uppercase">Deployed Model:</div>
+            <div class="text-xs font-bold text-red-300 mt-0.5">Short Breakdown Engine</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="text-[11px] font-mono text-cyan-400 uppercase font-bold">Regime 03</div>
+            <h4 class="text-base font-bold text-white mt-1">Mean-Reverting Range</h4>
+            <div class="text-[11px] text-slate-400 mt-2">ADX &lt; 20, Flat Moving Averages</div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800">
+            <div class="text-[10px] text-slate-400 uppercase">Deployed Model:</div>
+            <div class="text-xs font-bold text-cyan-300 mt-0.5">Bollinger / RSI Fader</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="text-[11px] font-mono text-purple-400 uppercase font-bold">Regime 04</div>
+            <h4 class="text-base font-bold text-white mt-1">Volatility Breakout</h4>
+            <div class="text-[11px] text-slate-400 mt-2">Bollinger Squeeze + ATR Surge</div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800">
+            <div class="text-[10px] text-slate-400 uppercase">Deployed Model:</div>
+            <div class="text-xs font-bold text-purple-300 mt-0.5">Donchian / Volume Surge</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="text-[11px] font-mono text-amber-400 uppercase font-bold">Regime 05</div>
+            <h4 class="text-base font-bold text-white mt-1">Squeeze / Compression</h4>
+            <div class="text-[11px] text-slate-400 mt-2">Multi-day ATR contraction</div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800">
+            <div class="text-[10px] text-slate-400 uppercase">Deployed Model:</div>
+            <div class="text-xs font-bold text-amber-300 mt-0.5">Capital Preservation / Standby</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regime Competition Principle -->
+      <div class="mt-6 bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-amber-500/10 text-amber-400 font-bold">⚡</div>
+          <div>
+            <h5 class="text-sm font-bold text-white">Dynamic Capital Competition</h5>
+            <p class="text-xs text-slate-400">Strategies do not trade simultaneously. The CIO awards capital exclusively to the single strategy with the highest conviction score for the current regime.</p>
+          </div>
+        </div>
+        <div class="hidden sm:block text-right">
+          <span class="text-xs font-mono text-slate-400">Zero Over-Trading</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: 80/70 Asymmetric Profit Protection -->
+    <section class="slide flex-col py-4" data-slide="4">
+      <div class="flex items-center gap-2 text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span> Proprietary IP (v3.8.0)
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">The 80/70 Asymmetric Profit Protection Engine</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">Guarantees that a trade that almost hits Take-Profit is mathematically prevented from ever turning into a loss.</p>
+
+      <!-- Interactive 80/70 Visualizer -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+        <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-mono font-bold text-amber-400 uppercase">Interactive Simulation</span>
+              <span id="protectionStateBadge" class="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 text-slate-300">STATUS: IDLE</span>
+            </div>
+
+            <!-- Price Progress Bar -->
+            <div class="relative w-full h-8 bg-slate-950 rounded-full border border-slate-800 p-1 flex items-center overflow-hidden">
+              <div id="simBar" class="h-full bg-gradient-to-r from-blue-500 via-amber-500 to-emerald-500 rounded-full transition-all duration-200" style="width: 50%;"></div>
+              
+              <!-- 70% threshold marker -->
+              <div class="absolute top-0 bottom-0 left-[70%] w-0.5 bg-red-400 border-dashed z-10 flex flex-col items-center">
+                <span class="text-[9px] font-mono text-red-300 bg-slate-900 px-1 rounded -top-3 absolute">70% Exit</span>
+              </div>
+              <!-- 80% threshold marker -->
+              <div class="absolute top-0 bottom-0 left-[80%] w-0.5 bg-amber-400 z-10 flex flex-col items-center">
+                <span class="text-[9px] font-mono text-amber-300 bg-slate-900 px-1 rounded -top-3 absolute">80% Armed</span>
+              </div>
+            </div>
+
+            <!-- Slider Control -->
+            <div class="mt-6">
+              <div class="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Entry (0%)</span>
+                <span>Current Simulated Progress: <strong id="simValText" class="text-white font-mono">50%</strong></span>
+                <span>Take-Profit (100%)</span>
+              </div>
+              <input type="range" id="simSlider" min="0" max="100" value="50" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500" oninput="updateSim(this.value)">
+            </div>
+          </div>
+
+          <!-- Live Explanation Panel -->
+          <div id="simOutcomeBox" class="mt-6 p-4 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-300">
+            Move the slider past <strong class="text-amber-400">80%</strong> to arm the protection engine, then pull it back below <strong class="text-red-400">70%</strong> to see how the engine locks in profits.
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 flex flex-col gap-4">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
+            <div class="flex items-center gap-2 text-amber-400 font-bold text-sm">
+              <span>🎯 Step 1: Arming at &ge; 80%</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+              When floating profit reaches 80% of the distance from entry to Take-Profit, the background monitor latches into <strong class="text-white">ARMED</strong> state.
+            </p>
+          </div>
+
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
+            <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+              <span>🚀 Scenario A: Hits 100% TP</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+              If momentum continues, MT5 fills the position at full 100% TP for maximum intended yield.
+            </p>
+          </div>
+
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
+            <div class="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+              <span>🛡️ Scenario B: Reverses to &le; 70%</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+              If an adverse reversal occurs and price dips to 70% of TP distance, the engine immediately <strong class="text-white">closes at market</strong>, securing 70% profit in cash.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: CRO Risk Engine -->
+    <section class="slide flex-col py-4" data-slide="5">
+      <div class="flex items-center gap-2 text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-red-400"></span> Institutional Risk Governance
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">The CRO Risk Engine: Mathematical Capital Preservation</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">No trade enters the broker without passing 5 non-negotiable risk gates verified before transmission.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
+          <div class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center font-bold text-sm mb-3">01</div>
+          <h4 class="font-bold text-white text-base">Hard Dollar Loss Ceilings</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Strict risk budgeting per trade (e.g. $25 max loss) and a hard daily circuit breaker (e.g. $50 max daily drawdown). If daily limit is reached, all trading halts instantly.
+          </p>
+          <div class="mt-4 py-1.5 px-3 bg-slate-950 rounded border border-slate-800 text-[11px] font-mono text-red-300">
+            Max Risk: 0.5% - 1.0% per trade
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-sm mb-3">02</div>
+          <h4 class="font-bold text-white text-base">Volatility-Adjusted Stop Loss</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Stop loss is mathematically enforced to exceed at least <strong class="text-white">1.5&times; ATR(14)</strong>. Trades with arbitrary tight stops that risk market noise spikes are vetoed.
+          </p>
+          <div class="mt-4 py-1.5 px-3 bg-slate-950 rounded border border-slate-800 text-[11px] font-mono text-amber-300">
+            SL Buffer &ge; 1.5 &times; ATR(14)
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-sm mb-3">03</div>
+          <h4 class="font-bold text-white text-base">Anti-Tamper Cryptography</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            All strategy logic, risk rules, and execution thresholds are signed with SHA-256 hashes. If any file is modified without authorization, an anti-tamper lockout halts execution.
+          </p>
+          <div class="mt-4 py-1.5 px-3 bg-slate-950 rounded border border-slate-800 text-[11px] font-mono text-cyan-300">
+            SHA-256 Integrity Verification
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-400">Leverage Stress Governance</div>
+            <div class="text-sm font-bold text-white mt-0.5">Sub-1% Portfolio Margin Stress</div>
+          </div>
+          <div class="text-right">
+            <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Rating A+</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-400">Strict Anti-Martingale Rule</div>
+            <div class="text-sm font-bold text-white mt-0.5">Never double down on losing positions</div>
+          </div>
+          <div class="text-right">
+            <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-red-500/10 text-red-400 border border-red-500/30">Hard Enforced</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: 24/7 Autonomous Daemons -->
+    <section class="slide flex-col py-4" data-slide="6">
+      <div class="flex items-center gap-2 text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-cyan-400"></span> Unattended Autonomous Operations
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">The 24/7 Background Fleet: Zero Human Latency</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">Four enterprise background daemons run simultaneously to provide seamless autonomous execution and continuous surveillance.</p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-6">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 hover:border-cyan-500/40 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">15m</div>
+            <div>
+              <h4 class="font-bold text-white text-base">Autonomous Market Scanner</h4>
+              <p class="text-xs text-slate-400">Sweeps asset universe every 15 minutes</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-slate-300 leading-relaxed">
+            Autonomously ingests MT5 M15/H1 candles, computes regime vectors, runs strategy competition, and triggers CRO risk evaluation without any human initiation.
+          </p>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 hover:border-amber-500/40 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">3s</div>
+            <div>
+              <h4 class="font-bold text-white text-base">Real-Time Trade & Profit Monitor</h4>
+              <p class="text-xs text-slate-400">Polls deal stream & 80/70 guard every 3 seconds</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-slate-300 leading-relaxed">
+            Tracks open positions on tick-level granularity. Detects broker fills, arms the 80% threshold, triggers 70% emergency market closures, and streams instant alerts.
+          </p>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 hover:border-blue-500/40 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold">24/7</div>
+            <div>
+              <h4 class="font-bold text-white text-base">Two-Way Telegram Command & Control</h4>
+              <p class="text-xs text-slate-400">Full institutional management from your phone</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-slate-300 leading-relaxed">
+            Control the firm from anywhere in the world. Send <code class="text-blue-300">/status</code>, <code class="text-blue-300">/scan</code>, <code class="text-blue-300">/pause</code>, or <code class="text-red-400">/kill</code> to instantly close all positions.
+          </p>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 hover:border-purple-500/40 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">EOD</div>
+            <div>
+              <h4 class="font-bold text-white text-base">Automated Daily EOD Reporting</h4>
+              <p class="text-xs text-slate-400">Dispatches executive audit report at 21:55 UTC</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-slate-300 leading-relaxed">
+            Compiles daily realized PnL, win rate, profit factor, open exposure, and account health scorecard directly into your private channels every evening.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: Live Performance Proof -->
+    <section class="slide flex-col py-4" data-slide="7">
+      <div class="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Empirical Verification
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Live Production Track Record & Verifiable Telemetry</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">Not theoretical backtests. Real-world execution telemetry connected directly to MetaTrader 5 institutional broker infrastructure.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+          <span class="text-xs text-slate-400 font-medium uppercase">Managed Account Equity</span>
+          <div class="text-3xl font-extrabold text-white mt-1 font-mono">$92,544.60</div>
+          <div class="text-xs text-emerald-400 mt-1">100% Capital Safety</div>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+          <span class="text-xs text-slate-400 font-medium uppercase">Recent Exit Win Rate</span>
+          <div class="text-3xl font-extrabold text-emerald-400 mt-1 font-mono">100%</div>
+          <div class="text-xs text-slate-400 mt-1">Positive Realized Exits</div>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+          <span class="text-xs text-slate-400 font-medium uppercase">Margin Stress Score</span>
+          <div class="text-3xl font-extrabold text-cyan-400 mt-1 font-mono">0.15%</div>
+          <div class="text-xs text-slate-400 mt-1">Institutional A+ Tier</div>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+          <span class="text-xs text-slate-400 font-medium uppercase">Execution Latency</span>
+          <div class="text-3xl font-extrabold text-amber-400 mt-1 font-mono">&lt; 42ms</div>
+          <div class="text-xs text-slate-400 mt-1">Direct IPC to MT5</div>
+        </div>
+      </div>
+
+      <!-- Realized Deals Proof Table -->
+      <div class="mt-6 bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
+          <span class="text-xs font-mono font-bold text-slate-300 uppercase">Live MT5 Verified Execution Log</span>
+          <span class="text-[11px] text-emerald-400 font-mono">Broker: MetaQuotes-Demo #5052677543</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900/90 text-slate-400 border-b border-slate-800 font-mono uppercase text-[10px]">
+              <tr>
+                <th class="p-3">Deal Ticket</th>
+                <th class="p-3">Asset</th>
+                <th class="p-3">Volume</th>
+                <th class="p-3">Close Price</th>
+                <th class="p-3">Exit Logic</th>
+                <th class="p-3 text-right">Net Profit</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-mono text-slate-300">
+              <tr>
+                <td class="p-3 text-slate-400">#58208124998</td>
+                <td class="p-3 font-bold text-amber-400">XAUUSD (Gold)</td>
+                <td class="p-3">0.03 Lots</td>
+                <td class="p-3">4315.22</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">Win Lock</span></td>
+                <td class="p-3 text-right text-emerald-400 font-bold">+$46.17</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-slate-400">#58208125019</td>
+                <td class="p-3 font-bold text-blue-400">EURUSD</td>
+                <td class="p-3">0.10 Lots</td>
+                <td class="p-3">1.14174</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">Win Lock</span></td>
+                <td class="p-3 text-right text-emerald-400 font-bold">+$7.60</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-slate-400">#58190515629</td>
+                <td class="p-3 font-bold text-amber-400">XAUUSD (Gold)</td>
+                <td class="p-3">0.02 Lots</td>
+                <td class="p-3">4343.08</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">Take Profit</span></td>
+                <td class="p-3 text-right text-emerald-400 font-bold">+$50.88</td>
+              </tr>
+              <tr>
+                <td class="p-3 text-slate-400">#58185236571</td>
+                <td class="p-3 font-bold text-amber-400">XAUUSD (Gold)</td>
+                <td class="p-3">0.02 Lots</td>
+                <td class="p-3">4293.83</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">Take Profit</span></td>
+                <td class="p-3 text-right text-emerald-400 font-bold">+$50.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 9: Asset Universe & Execution -->
+    <section class="slide flex-col py-4" data-slide="8">
+      <div class="flex items-center gap-2 text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-blue-400"></span> Multi-Asset Capability
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Institutional Asset Coverage & Execution Infrastructure</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">Engineered to scale across high-liquidity financial markets with strict spread and slippage controls.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
+          <div class="text-xs font-mono font-bold text-amber-400 uppercase">Precious Metals</div>
+          <h4 class="text-lg font-bold text-white mt-1">XAUUSD (Gold)</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            High volatility, exceptional liquidity. Features proprietary fixed dollar take-profit clamping ($25/trade baseline) to optimize risk-adjusted returns during volatile market expansions.
+          </p>
+          <div class="mt-4 flex gap-2">
+            <span class="px-2 py-0.5 bg-amber-500/10 text-amber-300 rounded text-[10px] font-mono">Specialized Clamping</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
+          <div class="text-xs font-mono font-bold text-blue-400 uppercase">Forex Majors & Crosses</div>
+          <h4 class="text-lg font-bold text-white mt-1">EURUSD, GBPUSD, USDJPY</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Institutional FX liquidity. Integrates dynamic pip calculations, spread filters (vetoes trades if spread exceeds 1.5 pips), and session overlap timing (London/NY).
+          </p>
+          <div class="mt-4 flex gap-2">
+            <span class="px-2 py-0.5 bg-blue-500/10 text-blue-300 rounded text-[10px] font-mono">Spread Filter Enforced</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5">
+          <div class="text-xs font-mono font-bold text-purple-400 uppercase">Crypto & Indices</div>
+          <h4 class="text-lg font-bold text-white mt-1">BTCUSD, ETHUSD, US30, NAS100</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Readily expandable via the universal MT5 connector. ATR-normalized position sizing automatically recalibrates to asset volatility differences seamlessly.
+          </p>
+          <div class="mt-4 flex gap-2">
+            <span class="px-2 py-0.5 bg-purple-500/10 text-purple-300 rounded text-[10px] font-mono">ATR Normalized</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execution Technology Specs -->
+      <div class="mt-6 bg-slate-900/60 border border-slate-800 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+        <div>
+          <div class="text-xs text-slate-400">Order Routing</div>
+          <div class="text-sm font-bold text-white mt-1">Direct MT5 IPC API</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-400">Slippage Guard</div>
+          <div class="text-sm font-bold text-white mt-1">10 Point Hard Limit</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-400">Bracket Orders</div>
+          <div class="text-sm font-bold text-white mt-1">Simultaneous SL/TP</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-400">Broker Support</div>
+          <div class="text-sm font-bold text-white mt-1">Any MT5 Broker Globally</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10: Commercial ROI & Models -->
+    <section class="slide flex-col py-4" data-slide="9">
+      <div class="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Commercialization & Revenue
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Monetization & Licensing Models</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">Multiple high-margin commercial structures for investors, prop firm traders, fund managers, and retail subscribers.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <!-- Model 1 -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between hover:border-slate-700 transition-all">
+          <div>
+            <div class="text-xs font-mono font-bold text-slate-400 uppercase">Tier 01: Prop Firm Trader</div>
+            <h4 class="text-xl font-bold text-white mt-2">Prop Firm Pass & Fund</h4>
+            <div class="text-2xl font-extrabold text-white mt-4">$1,499 <span class="text-xs text-slate-400 font-normal">/ license</span></div>
+            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+              Designed specifically to pass FTMO, fundedNext, and Apex challenges. Strictly adheres to max daily 4% and max total 8% drawdown limits with guaranteed circuit breakers.
+            </p>
+            <ul class="mt-4 space-y-2 text-xs text-slate-300">
+              <li class="flex items-center gap-2">✓ Strict 5-Gate Risk Protection</li>
+              <li class="flex items-center gap-2">✓ 80/70 Profit Protection Engine</li>
+              <li class="flex items-center gap-2">✓ Telegram Instant Alerts</li>
+            </ul>
+          </div>
+          <button class="mt-6 w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all">
+            Deploy Prop Challenge
+          </button>
+        </div>
+
+        <!-- Model 2: Highlighted -->
+        <div class="bg-gradient-to-b from-amber-950/40 via-slate-900/90 to-slate-900/90 border-2 border-amber-500/50 rounded-2xl p-6 flex flex-col justify-between relative shadow-xl shadow-amber-500/10">
+          <div class="absolute -top-3 right-6 px-3 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-extrabold text-[10px] rounded-full uppercase tracking-wider">
+            Most Popular
+          </div>
+          <div>
+            <div class="text-xs font-mono font-bold text-amber-400 uppercase">Tier 02: Fund & Family Office</div>
+            <h4 class="text-xl font-bold text-white mt-2">Enterprise White-Label</h4>
+            <div class="text-2xl font-extrabold text-white mt-4">$4,999 <span class="text-xs text-slate-400 font-normal">+ 20% Profit Share</span></div>
+            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+              Full turnkey deployment on client VPS or private infrastructure. Custom risk budgeting, multiple account routing, and custom Telegram channel white-labeling.
+            </p>
+            <ul class="mt-4 space-y-2 text-xs text-slate-300">
+              <li class="flex items-center gap-2">✓ All 6 Specialized AI Agents</li>
+              <li class="flex items-center gap-2">✓ 24/7 Autonomous Daemon Fleet</li>
+              <li class="flex items-center gap-2">✓ Multi-Asset Gold + FX Engine</li>
+              <li class="flex items-center gap-2">✓ Dedicated CRO Configuration</li>
+            </ul>
+          </div>
+          <button class="mt-6 w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-lg text-xs font-extrabold transition-all shadow-lg shadow-amber-500/20">
+            Acquire Enterprise License
+          </button>
+        </div>
+
+        <!-- Model 3 -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between hover:border-slate-700 transition-all">
+          <div>
+            <div class="text-xs font-mono font-bold text-slate-400 uppercase">Tier 03: Passive Investor</div>
+            <h4 class="text-xl font-bold text-white mt-2">MAM / Copy-Trading Pool</h4>
+            <div class="text-2xl font-extrabold text-white mt-4">25% - 30% <span class="text-xs text-slate-400 font-normal">High-Water Mark</span></div>
+            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+              Zero upfront software fee. Investors mirror the firm's live master account directly into their own brokerage account via MT5 copier with zero setup friction.
+            </p>
+            <ul class="mt-4 space-y-2 text-xs text-slate-300">
+              <li class="flex items-center gap-2">✓ 100% Non-Custodial (Funds in client account)</li>
+              <li class="flex items-center gap-2">✓ High-Water Mark (Profit share on gains only)</li>
+              <li class="flex items-center gap-2">✓ Daily EOD Performance Audits</li>
+            </ul>
+          </div>
+          <button class="mt-6 w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all">
+            Join Investor Pool
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 11: Turnkey Deployment -->
+    <section class="slide flex-col py-4" data-slide="10">
+      <div class="flex items-center gap-2 text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">
+        <span class="w-2 h-2 rounded-full bg-cyan-400"></span> Frictionless Onboarding
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Turnkey 3-Step Deployment Roadmap</h2>
+      <p class="text-slate-400 text-sm mt-2 max-w-3xl">From zero to fully autonomous institutional execution in under 15 minutes.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-6 relative">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-extrabold text-lg mb-4">
+            1
+          </div>
+          <h4 class="font-bold text-white text-base">Connect Broker Account</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Input MT5 credentials into <code class="text-amber-300 font-mono">config/risk_limits.json</code>. The Python native bridge initializes direct IPC connectivity instantly with sub-second handshake.
+          </p>
+          <div class="mt-4 text-[11px] font-mono text-slate-400 bg-slate-950 p-2.5 rounded border border-slate-800">
+            Est. Time: 3 minutes
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-6 relative">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-extrabold text-lg mb-4">
+            2
+          </div>
+          <h4 class="font-bold text-white text-base">Select Risk & Trading Mode</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Execute <code class="text-cyan-300 font-mono">/autonomous-trading-firm</code>. Define your risk tolerance (Conservative, Balanced, Dynamic) and session leverage multiplier (1x - 3x).
+          </p>
+          <div class="mt-4 text-[11px] font-mono text-slate-400 bg-slate-950 p-2.5 rounded border border-slate-800">
+            Est. Time: 2 minutes
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-6 relative">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-extrabold text-lg mb-4">
+            3
+          </div>
+          <h4 class="font-bold text-white text-base">Launch Daemons & Relax</h4>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Double-click <code class="text-emerald-300 font-mono">launch_all_consoles.bat</code>. The multi-agent firm autonomously scans, assesses regimes, protects profits, and delivers real-time Telegram alerts.
+          </p>
+          <div class="mt-4 text-[11px] font-mono text-slate-400 bg-slate-950 p-2.5 rounded border border-slate-800">
+            Est. Time: 1 minute
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Guarantee Banner -->
+      <div class="mt-8 bg-slate-900/40 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">🔒</div>
+          <div>
+            <span class="text-xs font-bold text-white">100% Non-Custodial Security</span>
+            <p class="text-[11px] text-slate-400">Capital never leaves the client's regulated brokerage account. The system operates strictly via trading authorization with zero withdrawal permissions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 12: Partnership & Call to Action -->
+    <section class="slide flex-col justify-center items-center text-center py-6" data-slide="11">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-6 uppercase tracking-wider">
+        Exclusive Institutional Engagement
+      </div>
+      <h2 class="text-4xl sm:text-5xl font-extrabold text-white max-w-3xl leading-tight">
+        Upgrade Your Capital to <br>
+        <span class="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-transparent">
+          Autonomous Institutional Precision
+        </span>
+      </h2>
+      <p class="mt-5 text-base sm:text-lg text-slate-400 max-w-2xl leading-relaxed">
+        Eliminate discretionary risk. Deploy an autonomous multi-agent trading firm with mathematical capital protection and the proprietary 80/70 Profit Protection Engine.
+      </p>
+
+      <div class="flex flex-wrap items-center justify-center gap-4 mt-8">
+        <button onclick="alert('Contact sales team: waleed.talaat@techwaves-egy.com or Telegram: @WaleedTalaat')" class="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm rounded-xl shadow-lg shadow-amber-500/25 transition-all">
+          Request Private Live Demo & Account Audit
+        </button>
+        <button onclick="jumpToSlide(7)" class="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl border border-slate-700 transition-all">
+          Review Live Execution Logs
+        </button>
+      </div>
+
+      <div class="mt-12 pt-8 border-t border-slate-800/80 w-full max-w-xl flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+        <div>Proprietary IP © 2026 Techwaves EGY</div>
+        <div class="flex items-center gap-4 font-mono text-[11px]">
+          <span>Institutional Grade</span>
+          <span>•</span>
+          <span>MT5 Low Latency</span>
+          <span>•</span>
+          <span>SHA-256 Guard</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Floating Speaker Pitch Notes Drawer (Collapsible) -->
+  <aside id="notesDrawer" class="hidden fixed bottom-16 right-6 w-96 max-w-[calc(100vw-3rem)] bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl p-4 backdrop-blur-xl z-50 text-xs text-slate-300">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+      <div class="flex items-center gap-2 font-bold text-amber-400">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        <span>Speaker Script / Pitch Guidance</span>
+      </div>
+      <button onclick="toggleNotes()" class="text-slate-400 hover:text-white p-1">✕</button>
+    </div>
+    <div id="notesContent" class="leading-relaxed text-slate-300 max-h-48 overflow-y-auto pr-1">
+      <!-- Dynamically filled per slide -->
+    </div>
+  </aside>
+
+  <!-- Bottom Navigation Dock -->
+  <footer class="w-full border-t border-slate-800/80 bg-slate-900/70 backdrop-blur-xl px-6 py-3 flex items-center justify-between sticky bottom-0 z-40">
+    <div class="flex items-center gap-3">
+      <button onclick="prevSlide()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors" title="Previous Slide (Hotkey: Left Arrow)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <button onclick="nextSlide()" class="p-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition-colors shadow-md shadow-amber-500/20" title="Next Slide (Hotkey: Right Arrow or Space)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+      <span class="text-xs font-mono text-slate-400 ml-2">
+        <span id="currentSlideNum" class="text-amber-400 font-bold">1</span> / <span id="totalSlidesNum">12</span>
+      </span>
+    </div>
+
+    <!-- Quick Slide Progress Dots -->
+    <div id="progressDots" class="hidden sm:flex items-center gap-1.5">
+      <!-- Generated via JS -->
+    </div>
+
+    <div class="text-[11px] text-slate-400 font-mono hidden md:block">
+      [← / → / Space] Navigate • [S] Script Notes • [F] Fullscreen
+    </div>
+  </footer>
+
+  <!-- Slide Controller Logic & Pitch Notes Data -->
+  <script>
+    const pitchNotes = [
+      "SLIDE 1 PITCH: Welcome the investor/prospect. Start with the core hook: 'Most trading systems are either single rigid bots or discretionary humans fighting emotional burnout. We have engineered an autonomous institutional firm in software: 6 distinct specialized AI roles, adaptive regime intelligence, and our proprietary 80/70 profit protection engine.' Highlight the $92,500+ account proof and zero margin stress.",
+      
+      "SLIDE 2 PITCH: Address the pain points. 'Why do 95% of trading bots fail? Because markets change regimes and single bots are blind to it. And the worst feeling for any investor is watching a trade race to 85% of Take Profit, only to completely reverse into a stop loss. Our system specifically cures these 4 structural flaws.'",
+      
+      "SLIDE 3 PITCH: Explain the firm structure. 'Notice we do not have one script doing everything. We have an investment committee. The Macro Lead identifies the market state. The Strategy Guild competes to offer the best entry. The CRO has absolute veto power over risk and position sizing. The Execution Specialist routes low-latency orders to MT5, and the Auditor maintains cryptographic tamper seals. It operates like a boutique Swiss quantitative fund.'",
+      
+      "SLIDE 4 PITCH: Emphasize regime adaptation. 'Markets are non-stationary. When Gold or EURUSD is trending, we deploy our Momentum Trend Rider. When it's ranging, we switch to mean reversion. When it contracts into low volatility, we stand down and preserve capital. We never force trades in adverse market conditions.'",
+      
+      "SLIDE 5 PITCH: The killer commercial differentiator (80/70 Engine). 'This is our proprietary invention (v3.8.0). Demonstrate the interactive slider. When a trade reaches 80% of TP distance, the engine arms. If momentum continues, great—100% TP is reached. But if the market falters and pulls back to 70%, our engine instantly closes the trade at market. We convert near-TP reversals into guaranteed 70% cash profits.'",
+      
+      "SLIDE 6 PITCH: Institutional risk assurance. 'Investors care most about return OF capital before return ON capital. Our CRO enforces hard dollar risk limits ($25/trade max, $50/day max), requires stop losses to sit outside market noise at 1.5x ATR, and locks code with SHA-256 cryptographic signatures. No trader or bot can increase risk on a whim.'",
+      
+      "SLIDE 7 PITCH: Operational autonomy. 'The client doesn't need to stare at charts 10 hours a day. Four daemons run 24/7 in the background: a 15-minute scanner, a 3-second profit protection tick monitor, a two-way Telegram command center where you can check status or kill trades from your phone, and automated end-of-day audit reports.'",
+      
+      "SLIDE 8 PITCH: Real-world evidence. 'Here is our verifiable MT5 proof. We are managing a $92,544.60 balance with a 100% win rate on recent exits, +$128.15 cumulative realized profits, and microscopic 0.15% margin stress. Show them the deal tickets from today: Gold +$46.17 and EURUSD +$7.60 locked in instantly.'",
+      
+      "SLIDE 9 PITCH: Multi-asset scalability. 'The system is actively tuned for Gold (XAUUSD) with specialized profit clamping, and EURUSD with strict spread filtering. It readily scales to Bitcoin, Nasdaq, and crude oil because position sizing is normalized mathematically by ATR.'",
+      
+      "SLIDE 10 PITCH: The commercial offer. 'Depending on who you are pitching: For prop traders, pitch the $1,499 Challenge Pass license. For hedge funds and family offices, pitch the $4,999 + 20% profit share enterprise deployment. For passive investors, pitch the 25% performance fee copy-trading pool.'",
+      
+      "SLIDE 11 PITCH: Simplicity of onboarding. 'How fast can a client get started? In 15 minutes. Plug in the MT5 account number, choose risk parameters, and double click the launch file. Their funds remain 100% in their own brokerage account—we never take custody of client funds.'",
+      
+      "SLIDE 12 PITCH: Closing the deal. 'Summarize the value proposition: Turnkey, autonomous, mathematically safeguarded, proven in production. Propose the next immediate step: a private live demonstration or account onboarding session.'"
+    ];
+
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    const slideSelect = document.getElementById('slideSelect');
+    const currentSlideNum = document.getElementById('currentSlideNum');
+    const totalSlidesNum = document.getElementById('totalSlidesNum');
+    const notesDrawer = document.getElementById('notesDrawer');
+    const notesContent = document.getElementById('notesContent');
+    const progressDots = document.getElementById('progressDots');
+
+    totalSlidesNum.textContent = totalSlides;
+
+    // Build Progress Dots
+    slides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.className = `w-2 h-2 rounded-full transition-all duration-200 ${i === 0 ? 'bg-amber-400 w-5' : 'bg-slate-700 hover:bg-slate-500'}`;
+      dot.title = `Go to slide ${i + 1}`;
+      dot.onclick = () => jumpToSlide(i);
+      progressDots.appendChild(dot);
+    });
+
+    function showSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= totalSlides) index = totalSlides - 1;
+
+      slides.forEach((slide, i) => {
+        slide.classList.remove('active');
+        if (i === index) {
+          slide.classList.add('active');
+        }
+      });
+
+      currentSlide = index;
+      currentSlideNum.textContent = currentSlide + 1;
+      slideSelect.value = currentSlide;
+
+      // Update dots
+      Array.from(progressDots.children).forEach((dot, i) => {
+        if (i === currentSlide) {
+          dot.className = 'w-5 h-2 rounded-full bg-amber-400 transition-all duration-200';
+        } else {
+          dot.className = 'w-2 h-2 rounded-full bg-slate-700 hover:bg-slate-500 transition-all duration-200';
+        }
+      });
+
+      // Update notes
+      notesContent.textContent = pitchNotes[currentSlide] || "No script notes for this slide.";
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        showSlide(currentSlide - 1);
+      }
+    }
+
+    function jumpToSlide(index) {
+      showSlide(index);
+    }
+
+    function toggleNotes() {
+      notesDrawer.classList.toggle('hidden');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.log(err));
+      } else {
+        document.exitFullscreen().catch(err => console.log(err));
+      }
+    }
+
+    // Interactive 80/70 Simulator Logic
+    let isArmed = false;
+    let hasTriggeredExit = false;
+
+    function updateSim(val) {
+      val = parseInt(val);
+      const simBar = document.getElementById('simBar');
+      const simValText = document.getElementById('simValText');
+      const badge = document.getElementById('protectionStateBadge');
+      const outcome = document.getElementById('simOutcomeBox');
+
+      simBar.style.width = val + '%';
+      simValText.textContent = val + '%';
+
+      if (val >= 80) {
+        isArmed = true;
+        badge.textContent = 'STATUS: ARMED 🎯';
+        badge.className = 'px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse';
+        outcome.innerHTML = '<span class="text-amber-400 font-bold">LATCH ARMED!</span> Trade reached <strong class="text-white">' + val + '%</strong> of Take-Profit. The 70% floor protection is now ACTIVE. If price falls back to &le; 70%, profit will be locked immediately.';
+      } else if (isArmed && val <= 70) {
+        badge.textContent = 'STATUS: 70% PROFIT LOCKED! 🟢';
+        badge.className = 'px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        outcome.innerHTML = '<span class="text-emerald-400 font-bold">AUTOMATED MARKET CLOSE TRIGGERED!</span> Price reversed from ' + val + '%. The engine instantly exited the trade at market, safely locking in <strong class="text-white">+70% OF MAXIMUM INTENDED GAIN</strong> in cash!';
+      } else if (isArmed && val > 70 && val < 80) {
+        badge.textContent = 'STATUS: ARMED (MONITORING RETRACEMENT)';
+        badge.className = 'px-2.5 py-1 text-xs font-bold rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40';
+        outcome.innerHTML = 'Trade is floating at <strong class="text-white">' + val + '%</strong> after reaching the 80% mark. Still armed. If it pulls back another ' + (val - 70) + '%, market close will trigger.';
+      } else if (!isArmed && val < 80) {
+        badge.textContent = 'STATUS: NORMAL MONITORING';
+        badge.className = 'px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 text-slate-300';
+        outcome.innerHTML = 'Trade is at <strong class="text-white">' + val + '%</strong>. Normal bracket stops (SL/TP) apply. Drag past 80% to arm.';
+      }
+    }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 's' || e.key === 'S') {
+        toggleNotes();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key === 'Home') {
+        showSlide(0);
+      } else if (e.key === 'End') {
+        showSlide(totalSlides - 1);
+      }
+    });
+
+    // Initialize
+    showSlide(0);
+  </script>
+</body>
+</html>

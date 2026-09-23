@@ -1,0 +1,850 @@
+{
+  "2025_in_sample": {
+    "EURUSD": {
+      "symbol": "EURUSD",
+      "model": "breakout",
+      "trades": 16,
+      "wins": 7,
+      "losses": 9,
+      "breakeven": 0,
+      "win_rate": 43.75,
+      "net_pnl": 49.21,
+      "gross_profit": 9452.08,
+      "gross_loss": 9402.87,
+      "pf": 1.01,
+      "expectancy": 3.08,
+      "avg_r": 0.01,
+      "sharpe": -0.07,
+      "sortino": -0.59,
+      "max_dd_pct": 3.58,
+      "max_consecutive_losses": 3,
+      "exposure_pct": 11.35,
+      "trade_list": [
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1736328600",
+          "exit_time": "1736523000",
+          "pnl": 2241.5,
+          "r_multiple": 2.24,
+          "exit_reason": "FULL_TP3_RUNNER",
+          "balance": 102241.5
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1737036900",
+          "exit_time": "1737046800",
+          "pnl": -1084.32,
+          "r_multiple": -1.06,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101157.18
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1737099000",
+          "exit_time": "1737117900",
+          "pnl": -934.49,
+          "r_multiple": -0.92,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100222.69
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1738854000",
+          "exit_time": "1738942200",
+          "pnl": -1034.15,
+          "r_multiple": -1.03,
+          "exit_reason": "STOP_LOSS",
+          "balance": 99188.54
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1738948500",
+          "exit_time": "1739185200",
+          "pnl": 1831.31,
+          "r_multiple": 1.85,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101019.85
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1739310300",
+          "exit_time": "1740415500",
+          "pnl": 1898.31,
+          "r_multiple": 1.88,
+          "exit_reason": "STOP_LOSS",
+          "balance": 102918.16
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1743512400",
+          "exit_time": "1743610500",
+          "pnl": -1084.26,
+          "r_multiple": -1.05,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101833.9
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1745870400",
+          "exit_time": "1746036900",
+          "pnl": -1036.33,
+          "r_multiple": -1.02,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100797.57
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1747400400",
+          "exit_time": "1747617300",
+          "pnl": 542.29,
+          "r_multiple": 0.54,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101339.86
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1749559500",
+          "exit_time": "1749657600",
+          "pnl": 1861.86,
+          "r_multiple": 1.84,
+          "exit_reason": "STOP_LOSS",
+          "balance": 103201.72
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1750401000",
+          "exit_time": "1750636800",
+          "pnl": -1057.04,
+          "r_multiple": -1.02,
+          "exit_reason": "STOP_LOSS",
+          "balance": 102144.68
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1754406000",
+          "exit_time": "1754416800",
+          "pnl": -1075.36,
+          "r_multiple": -1.05,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101069.32
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1758582000",
+          "exit_time": "1758718800",
+          "pnl": -1048.05,
+          "r_multiple": -1.04,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100021.27
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1759422600",
+          "exit_time": "1759442400",
+          "pnl": 529.81,
+          "r_multiple": 0.53,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100551.08
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1761319800",
+          "exit_time": "1761769800",
+          "pnl": -1048.87,
+          "r_multiple": -1.04,
+          "exit_reason": "STOP_LOSS",
+          "balance": 99502.21
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1766413800",
+          "exit_time": "1767153600",
+          "pnl": 547.0,
+          "r_multiple": 0.55,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100049.21
+        }
+      ]
+    },
+    "GBPUSD": {
+      "symbol": "GBPUSD",
+      "model": "pullback_50",
+      "trades": 9,
+      "wins": 3,
+      "losses": 6,
+      "breakeven": 0,
+      "win_rate": 33.33,
+      "net_pnl": -2810.39,
+      "gross_profit": 4032.06,
+      "gross_loss": 6842.45,
+      "pf": 0.59,
+      "expectancy": -312.35,
+      "avg_r": -0.31,
+      "sharpe": -0.73,
+      "sortino": -5.2,
+      "max_dd_pct": 4.47,
+      "max_consecutive_losses": 4,
+      "exposure_pct": 1.77,
+      "trade_list": [
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1737096300",
+          "exit_time": "1737108000",
+          "pnl": 1734.68,
+          "r_multiple": 1.73,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101734.68
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1738915200",
+          "exit_time": "1738922400",
+          "pnl": -1185.86,
+          "r_multiple": -1.17,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100548.82
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1738952100",
+          "exit_time": "1739296800",
+          "pnl": 531.27,
+          "r_multiple": 0.53,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101080.09
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1745589600",
+          "exit_time": "1745815500",
+          "pnl": -1151.9,
+          "r_multiple": -1.14,
+          "exit_reason": "STOP_LOSS",
+          "balance": 99928.19
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1746532800",
+          "exit_time": "1746557100",
+          "pnl": 1766.11,
+          "r_multiple": 1.77,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101694.3
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1747331100",
+          "exit_time": "1747348200",
+          "pnl": -1137.78,
+          "r_multiple": -1.12,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100556.52
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1748619000",
+          "exit_time": "1748623500",
+          "pnl": -1164.45,
+          "r_multiple": -1.16,
+          "exit_reason": "STOP_LOSS",
+          "balance": 99392.07
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1749026700",
+          "exit_time": "1749032100",
+          "pnl": -1151.08,
+          "r_multiple": -1.16,
+          "exit_reason": "STOP_LOSS",
+          "balance": 98240.99
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1762955100",
+          "exit_time": "1763055000",
+          "pnl": -1051.38,
+          "r_multiple": -1.07,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97189.61
+        }
+      ]
+    },
+    "XAUUSD": {
+      "symbol": "XAUUSD",
+      "model": "pullback_50",
+      "trades": 8,
+      "wins": 3,
+      "losses": 5,
+      "breakeven": 0,
+      "win_rate": 37.5,
+      "net_pnl": -275.66,
+      "gross_profit": 4985.82,
+      "gross_loss": 5261.48,
+      "pf": 0.95,
+      "expectancy": -34.46,
+      "avg_r": -0.02,
+      "sharpe": -0.04,
+      "sortino": -0.02,
+      "max_dd_pct": 3.18,
+      "max_consecutive_losses": 3,
+      "exposure_pct": 2.62,
+      "trade_list": [
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1741313700",
+          "exit_time": "1741361400",
+          "pnl": -1044.63,
+          "r_multiple": -1.04,
+          "exit_reason": "STOP_LOSS",
+          "balance": 98955.37
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1742965200",
+          "exit_time": "1742972400",
+          "pnl": -1076.06,
+          "r_multiple": -1.09,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97879.31
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1742985900",
+          "exit_time": "1743003900",
+          "pnl": -1059.02,
+          "r_multiple": -1.08,
+          "exit_reason": "STOP_LOSS",
+          "balance": 96820.29
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1743042600",
+          "exit_time": "1743077700",
+          "pnl": 2135.72,
+          "r_multiple": 2.21,
+          "exit_reason": "FULL_TP3_RUNNER",
+          "balance": 98956.01
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1749574800",
+          "exit_time": "1749788100",
+          "pnl": 2255.13,
+          "r_multiple": 2.28,
+          "exit_reason": "FULL_TP3_RUNNER",
+          "balance": 101211.14
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1762172100",
+          "exit_time": "1762420500",
+          "pnl": 594.97,
+          "r_multiple": 0.59,
+          "exit_reason": "STOP_LOSS",
+          "balance": 101806.11
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1763569800",
+          "exit_time": "1763576100",
+          "pnl": -1030.68,
+          "r_multiple": -1.01,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100775.43
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1765401300",
+          "exit_time": "1765402200",
+          "pnl": -1051.09,
+          "r_multiple": -1.04,
+          "exit_reason": "STOP_LOSS",
+          "balance": 99724.34
+        }
+      ]
+    },
+    "USDJPY": {
+      "symbol": "USDJPY",
+      "model": "disabled",
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "breakeven": 0,
+      "net_pnl": 0.0,
+      "gross_profit": 0.0,
+      "gross_loss": 0.0,
+      "win_rate": 0.0,
+      "pf": 0.0,
+      "expectancy": 0.0,
+      "avg_r": 0.0,
+      "sharpe": 0.0,
+      "sortino": 0.0,
+      "max_dd_pct": 0.0,
+      "max_consecutive_losses": 0,
+      "exposure_pct": 0.0,
+      "trade_list": []
+    }
+  },
+  "2024_out_of_sample": {
+    "EURUSD": {
+      "symbol": "EURUSD",
+      "model": "breakout",
+      "trades": 10,
+      "wins": 6,
+      "losses": 4,
+      "breakeven": 0,
+      "win_rate": 60.0,
+      "net_pnl": 5460.43,
+      "gross_profit": 9318.09,
+      "gross_loss": 3857.66,
+      "pf": 2.42,
+      "expectancy": 546.04,
+      "avg_r": 0.54,
+      "sharpe": 1.22,
+      "sortino": 2.04,
+      "max_dd_pct": 2.06,
+      "max_consecutive_losses": 2,
+      "exposure_pct": 5.71,
+      "trade_list": [
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1706721300",
+          "exit_time": "1706734800",
+          "pnl": -1046.03,
+          "r_multiple": -1.05,
+          "exit_reason": "STOP_LOSS",
+          "balance": 98953.97
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1712335500",
+          "exit_time": "1712593800",
+          "pnl": -1018.85,
+          "r_multiple": -1.03,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97935.12
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1716969600",
+          "exit_time": "1717021800",
+          "pnl": 1403.94,
+          "r_multiple": 1.43,
+          "exit_reason": "FULL_TP3_RUNNER",
+          "balance": 99339.06
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1720701000",
+          "exit_time": "1720715400",
+          "pnl": 1551.8,
+          "r_multiple": 1.56,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100890.86
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1721715300",
+          "exit_time": "1721725200",
+          "pnl": -679.76,
+          "r_multiple": -0.67,
+          "exit_reason": "STOP_LOSS",
+          "balance": 100211.1
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1723467600",
+          "exit_time": "1723584600",
+          "pnl": 1951.64,
+          "r_multiple": 1.95,
+          "exit_reason": "FULL_TP3_RUNNER",
+          "balance": 102162.74
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1726178400",
+          "exit_time": "1727288100",
+          "pnl": 1919.18,
+          "r_multiple": 1.88,
+          "exit_reason": "STOP_LOSS",
+          "balance": 104081.92
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "SELL",
+          "entry_time": "1733137200",
+          "exit_time": "1733177700",
+          "pnl": 571.24,
+          "r_multiple": 0.55,
+          "exit_reason": "STOP_LOSS",
+          "balance": 104653.16
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1733296500",
+          "exit_time": "1733309100",
+          "pnl": -1113.02,
+          "r_multiple": -1.06,
+          "exit_reason": "STOP_LOSS",
+          "balance": 103540.14
+        },
+        {
+          "symbol": "EURUSD",
+          "direction": "BUY",
+          "entry_time": "1733331600",
+          "exit_time": "1733500800",
+          "pnl": 1920.29,
+          "r_multiple": 1.85,
+          "exit_reason": "STOP_LOSS",
+          "balance": 105460.43
+        }
+      ]
+    },
+    "GBPUSD": {
+      "symbol": "GBPUSD",
+      "model": "pullback_50",
+      "trades": 9,
+      "wins": 2,
+      "losses": 7,
+      "breakeven": 0,
+      "win_rate": 22.22,
+      "net_pnl": -5735.19,
+      "gross_profit": 2168.07,
+      "gross_loss": 7903.26,
+      "pf": 0.27,
+      "expectancy": -637.29,
+      "avg_r": -0.65,
+      "sharpe": -1.63,
+      "sortino": -9.13,
+      "max_dd_pct": 5.74,
+      "max_consecutive_losses": 3,
+      "exposure_pct": 3.45,
+      "trade_list": [
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1704375900",
+          "exit_time": "1704456900",
+          "pnl": -1097.15,
+          "r_multiple": -1.1,
+          "exit_reason": "STOP_LOSS",
+          "balance": 98902.85
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1704879000",
+          "exit_time": "1704884400",
+          "pnl": -1189.2,
+          "r_multiple": -1.2,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97713.65
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1708050600",
+          "exit_time": "1708097400",
+          "pnl": -1099.57,
+          "r_multiple": -1.13,
+          "exit_reason": "STOP_LOSS",
+          "balance": 96614.08
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1708124400",
+          "exit_time": "1708455600",
+          "pnl": 1672.61,
+          "r_multiple": 1.73,
+          "exit_reason": "STOP_LOSS",
+          "balance": 98286.69
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1712339100",
+          "exit_time": "1712593800",
+          "pnl": -1135.05,
+          "r_multiple": -1.15,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97151.64
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1715317200",
+          "exit_time": "1715685300",
+          "pnl": 495.46,
+          "r_multiple": 0.51,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97647.1
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1717177500",
+          "exit_time": "1717412400",
+          "pnl": -1171.51,
+          "r_multiple": -1.2,
+          "exit_reason": "STOP_LOSS",
+          "balance": 96475.59
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "BUY",
+          "entry_time": "1718811000",
+          "exit_time": "1718883000",
+          "pnl": -1143.75,
+          "r_multiple": -1.19,
+          "exit_reason": "STOP_LOSS",
+          "balance": 95331.84
+        },
+        {
+          "symbol": "GBPUSD",
+          "direction": "SELL",
+          "entry_time": "1730149200",
+          "exit_time": "1730218500",
+          "pnl": -1067.03,
+          "r_multiple": -1.12,
+          "exit_reason": "STOP_LOSS",
+          "balance": 94264.81
+        }
+      ]
+    },
+    "XAUUSD": {
+      "symbol": "XAUUSD",
+      "model": "pullback_50",
+      "trades": 15,
+      "wins": 2,
+      "losses": 13,
+      "breakeven": 0,
+      "win_rate": 13.33,
+      "net_pnl": -10721.06,
+      "gross_profit": 2653.18,
+      "gross_loss": 13374.24,
+      "pf": 0.2,
+      "expectancy": -714.82,
+      "avg_r": -0.75,
+      "sharpe": -2.25,
+      "sortino": -1.63,
+      "max_dd_pct": 10.72,
+      "max_consecutive_losses": 10,
+      "exposure_pct": 1.79,
+      "trade_list": [
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1705681800",
+          "exit_time": "1705914000",
+          "pnl": -1083.06,
+          "r_multiple": -1.08,
+          "exit_reason": "STOP_LOSS",
+          "balance": 98916.94
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1706278500",
+          "exit_time": "1706288400",
+          "pnl": -1121.58,
+          "r_multiple": -1.13,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97795.36
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1707322500",
+          "exit_time": "1707326100",
+          "pnl": 501.37,
+          "r_multiple": 0.51,
+          "exit_reason": "STOP_LOSS",
+          "balance": 98296.73
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1707332400",
+          "exit_time": "1707388200",
+          "pnl": -1079.77,
+          "r_multiple": -1.1,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97216.96
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1714447800",
+          "exit_time": "1714492800",
+          "pnl": 2151.81,
+          "r_multiple": 2.21,
+          "exit_reason": "FULL_TP3_RUNNER",
+          "balance": 99368.77
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1715146200",
+          "exit_time": "1715157000",
+          "pnl": -1090.41,
+          "r_multiple": -1.1,
+          "exit_reason": "STOP_LOSS",
+          "balance": 98278.36
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1715171400",
+          "exit_time": "1715180400",
+          "pnl": -1068.6,
+          "r_multiple": -1.09,
+          "exit_reason": "STOP_LOSS",
+          "balance": 97209.76
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1715260500",
+          "exit_time": "1715268600",
+          "pnl": -1042.17,
+          "r_multiple": -1.07,
+          "exit_reason": "STOP_LOSS",
+          "balance": 96167.59
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1718210700",
+          "exit_time": "1718253000",
+          "pnl": -1004.09,
+          "r_multiple": -1.04,
+          "exit_reason": "STOP_LOSS",
+          "balance": 95163.5
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1721847600",
+          "exit_time": "1721854800",
+          "pnl": -1001.47,
+          "r_multiple": -1.05,
+          "exit_reason": "STOP_LOSS",
+          "balance": 94162.03
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1724861700",
+          "exit_time": "1724913000",
+          "pnl": -1018.81,
+          "r_multiple": -1.08,
+          "exit_reason": "STOP_LOSS",
+          "balance": 93143.22
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1724946300",
+          "exit_time": "1724949900",
+          "pnl": -1008.41,
+          "r_multiple": -1.08,
+          "exit_reason": "STOP_LOSS",
+          "balance": 92134.81
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "SELL",
+          "entry_time": "1728983700",
+          "exit_time": "1728990000",
+          "pnl": -982.34,
+          "r_multiple": -1.07,
+          "exit_reason": "STOP_LOSS",
+          "balance": 91152.47
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1732720500",
+          "exit_time": "1732762800",
+          "pnl": -939.46,
+          "r_multiple": -1.03,
+          "exit_reason": "STOP_LOSS",
+          "balance": 90213.01
+        },
+        {
+          "symbol": "XAUUSD",
+          "direction": "BUY",
+          "entry_time": "1732877100",
+          "exit_time": "1733106600",
+          "pnl": -934.07,
+          "r_multiple": -1.04,
+          "exit_reason": "STOP_LOSS",
+          "balance": 89278.94
+        }
+      ]
+    },
+    "USDJPY": {
+      "symbol": "USDJPY",
+      "model": "disabled",
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "breakeven": 0,
+      "net_pnl": 0.0,
+      "gross_profit": 0.0,
+      "gross_loss": 0.0,
+      "win_rate": 0.0,
+      "pf": 0.0,
+      "expectancy": 0.0,
+      "avg_r": 0.0,
+      "sharpe": 0.0,
+      "sortino": 0.0,
+      "max_dd_pct": 0.0,
+      "max_consecutive_losses": 0,
+      "exposure_pct": 0.0,
+      "trade_list": []
+    }
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "gbpusd_ablation": {
+    "all_hours": {
+      "trades": 264,
+      "wins": 18,
+      "losses": 246,
+      "win_rate": 6.82,
+      "net_pnl": -91107.35,
+      "gross_profit": 8682.14,
+      "gross_loss": 99789.49,
+      "pf": 0.09,
+      "expectancy": -345.1,
+      "max_dd_pct": 91.11,
+      "max_consecutive_losses": 49
+    },
+    "session_hours": {
+      "trades": 211,
+      "wins": 11,
+      "losses": 200,
+      "win_rate": 5.21,
+      "net_pnl": -86456.2,
+      "gross_profit": 6822.04,
+      "gross_loss": 93278.24,
+      "pf": 0.07,
+      "expectancy": -409.75,
+      "max_dd_pct": 86.46,
+      "max_consecutive_losses": 50
+    }
+  },
+  "eurusd_gate3_ablation": {
+    "with_gate3": {
+      "trades": 298,
+      "wins": 16,
+      "losses": 282,
+      "win_rate": 5.37,
+      "net_pnl": -93623.29,
+      "gross_profit": 6948.83,
+      "gross_loss": 100572.12,
+      "pf": 0.07,
+      "expectancy": -314.17,
+      "max_dd_pct": 93.74,
+      "max_consecutive_losses": 45
+    },
+    "without_gate3": {
+      "trades": 293,
+      "wins": 18,
+      "losses": 275,
+      "win_rate": 6.14,
+      "net_pnl": -92968.55,
+      "gross_profit": 7328.44,
+      "gross_loss": 100296.99,
+      "pf": 0.07,
+      "expectancy": -317.3,
+      "max_dd_pct": 93.1,
+      "max_consecutive_losses": 45
+    },
+    "rejected_only": {
+      "trades": 293,
+      "wins": 18,
+      "losses": 275,
+      "win_rate": 6.14,
+      "net_pnl": -92968.55,
+      "gross_profit": 7328.44,
+      "gross_loss": 100296.99,
+      "pf": 0.07,
+      "expectancy": -317.3,
+      "max_dd_pct": 93.1,
+      "max_consecutive_losses": 45
+    }
+  },
+  "gold_stress_tests": {
+    "1. Baseline (Standard Spread $0.35)": {
+      "trades": 989,
+      "wins": 284,
+      "losses": 705,
+      "win_rate": 28.72,
+      "net_pnl": -99781.25,
+      "gross_profit": 72488.49,
+      "gross_loss": 172269.74,
+      "pf": 0.42,
+      "expectancy": -100.89,
+      "max_dd_pct": 99.86,
+      "max_consecutive_losses": 15
+    },
+    "2. Spread Stress (+25% Spread = $0.44)": {
+      "trades": 993,
+      "wins": 279,
+      "losses": 714,
+      "win_rate": 28.1,
+      "net_pnl": -100170.34,
+      "gross_profit": 67432.35,
+      "gross_loss": 167602.69,
+      "pf": 0.4,
+      "expectancy": -100.88,
+      "max_dd_pct": 100.24,
+      "max_consecutive_losses": 15
+    },
+    "3. Spread Stress (+50% Spread = $0.52)": {
+      "trades": 993,
+      "wins": 274,
+      "losses": 719,
+      "win_rate": 27.59,
+      "net_pnl": -100446.1,
+      "gross_profit": 64846.61,
+      "gross_loss": 165292.71,
+      "pf": 0.39,
+      "expectancy": -101.15,
+      "max_dd_pct": 100.5,
+      "max_consecutive_losses": 15
+    },
+    "4. Execution Slippage (+2 Ticks = $0.20)": {
+      "trades": 994,
+      "wins": 274,
+      "losses": 720,
+      "win_rate": 27.57,
+      "net_pnl": -100624.01,
+      "gross_profit": 63963.15,
+      "gross_loss": 164587.16,
+      "pf": 0.39,
+      "expectancy": -101.23,
+      "max_dd_pct": 100.67,
+      "max_consecutive_losses": 15
+    },
+    "5. Extreme Slippage (+5 Ticks = $0.50)": {
+      "trades": 1008,
+      "wins": 272,
+      "losses": 736,
+      "win_rate": 26.98,
+      "net_pnl": -101578.7,
+      "gross_profit": 52797.42,
+      "gross_loss": 154376.12,
+      "pf": 0.34,
+      "expectancy": -100.77,
+      "max_dd_pct": 101.59,
+      "max_consecutive_losses": 15
+    },
+    "6. Outlier Jackknife (Drop Top 5 Wins)": {
+      "trades": 984,
+      "wins": 279,
+      "losses": 705,
+      "win_rate": 28.35,
+      "net_pnl": -111806.06,
+      "gross_profit": 60463.68,
+      "gross_loss": 172269.74,
+      "pf": 0.35,
+      "expectancy": -113.62,
+      "max_dd_pct": 172.27,
+      "max_consecutive_losses": 15
+    },
+    "7. Outlier Jackknife (Drop Top 10 Wins)": {
+      "trades": 979,
+      "wins": 274,
+      "losses": 705,
+      "win_rate": 27.99,
+      "net_pnl": -118809.58,
+      "gross_profit": 53460.16,
+      "gross_loss": 172269.74,
+      "pf": 0.31,
+      "expectancy": -121.36,
+      "max_dd_pct": 172.27,
+      "max_consecutive_losses": 15
+    }
+  }
+}

@@ -1,0 +1,938 @@
+{
+  "Strategy_A_Breakout": {
+    "assets": {
+      "XAUUSD": {
+        "symbol": "XAUUSD",
+        "strategy": "Strategy_A_Breakout",
+        "trades": 60,
+        "wins": 22,
+        "losses": 38,
+        "breakeven": 0,
+        "win_rate": 36.67,
+        "net_pnl": -3592.83,
+        "gross_profit": 34424.68,
+        "gross_loss": 38017.51,
+        "pf": 0.91,
+        "expectancy": -59.79,
+        "avg_r": -0.05,
+        "sharpe": -0.11,
+        "max_dd_pct": 10.21,
+        "max_consecutive_losses": 5,
+        "exposure_pct": 5.72,
+        "yearly": {
+          "2020": {
+            "trades": 9,
+            "pnl": -1580.54,
+            "win_rate": 33.3
+          },
+          "2021": {
+            "trades": 12,
+            "pnl": -3442.55,
+            "win_rate": 33.3
+          },
+          "2022": {
+            "trades": 7,
+            "pnl": 728.08,
+            "win_rate": 42.9
+          },
+          "2023": {
+            "trades": 6,
+            "pnl": -153.25,
+            "win_rate": 33.3
+          },
+          "2024": {
+            "trades": 13,
+            "pnl": -2272.72,
+            "win_rate": 30.8
+          },
+          "2025": {
+            "trades": 8,
+            "pnl": -694.61,
+            "win_rate": 37.5
+          },
+          "2026": {
+            "trades": 5,
+            "pnl": 3822.76,
+            "win_rate": 60.0
+          }
+        }
+      },
+      "EURUSD": {
+        "symbol": "EURUSD",
+        "strategy": "Strategy_A_Breakout",
+        "trades": 66,
+        "wins": 30,
+        "losses": 36,
+        "breakeven": 0,
+        "win_rate": 45.45,
+        "net_pnl": 10962.45,
+        "gross_profit": 50346.34,
+        "gross_loss": 39383.89,
+        "pf": 1.28,
+        "expectancy": 165.97,
+        "avg_r": 0.17,
+        "sharpe": 0.4,
+        "max_dd_pct": 5.47,
+        "max_consecutive_losses": 5,
+        "exposure_pct": 5.47,
+        "yearly": {
+          "2020": {
+            "trades": 6,
+            "pnl": 1865.12,
+            "win_rate": 50.0
+          },
+          "2021": {
+            "trades": 9,
+            "pnl": 1022.18,
+            "win_rate": 44.4
+          },
+          "2022": {
+            "trades": 12,
+            "pnl": 1973.86,
+            "win_rate": 41.7
+          },
+          "2023": {
+            "trades": 11,
+            "pnl": 4123.52,
+            "win_rate": 54.5
+          },
+          "2024": {
+            "trades": 6,
+            "pnl": 3244.64,
+            "win_rate": 66.7
+          },
+          "2025": {
+            "trades": 16,
+            "pnl": -1646.29,
+            "win_rate": 37.5
+          },
+          "2026": {
+            "trades": 6,
+            "pnl": 379.42,
+            "win_rate": 33.3
+          }
+        }
+      },
+      "GBPUSD": {
+        "symbol": "GBPUSD",
+        "strategy": "Strategy_A_Breakout",
+        "trades": 62,
+        "wins": 20,
+        "losses": 42,
+        "breakeven": 0,
+        "win_rate": 32.26,
+        "net_pnl": -14262.35,
+        "gross_profit": 28020.93,
+        "gross_loss": 42283.28,
+        "pf": 0.66,
+        "expectancy": -229.99,
+        "avg_r": -0.24,
+        "sharpe": -0.56,
+        "max_dd_pct": 16.43,
+        "max_consecutive_losses": 9,
+        "exposure_pct": 4.18,
+        "yearly": {
+          "2020": {
+            "trades": 8,
+            "pnl": -582.55,
+            "win_rate": 37.5
+          },
+          "2021": {
+            "trades": 6,
+            "pnl": 1446.07,
+            "win_rate": 50.0
+          },
+          "2022": {
+            "trades": 13,
+            "pnl": -5813.0,
+            "win_rate": 23.1
+          },
+          "2023": {
+            "trades": 11,
+            "pnl": -314.51,
+            "win_rate": 45.5
+          },
+          "2024": {
+            "trades": 10,
+            "pnl": -2676.87,
+            "win_rate": 30.0
+          },
+          "2025": {
+            "trades": 9,
+            "pnl": -1656.09,
+            "win_rate": 33.3
+          },
+          "2026": {
+            "trades": 5,
+            "pnl": -4665.4,
+            "win_rate": 0.0
+          }
+        }
+      },
+      "USDJPY": {
+        "symbol": "USDJPY",
+        "strategy": "Strategy_A_Breakout",
+        "trades": 60,
+        "wins": 24,
+        "losses": 36,
+        "breakeven": 0,
+        "win_rate": 40.0,
+        "net_pnl": -9596.07,
+        "gross_profit": 28366.92,
+        "gross_loss": 37962.99,
+        "pf": 0.75,
+        "expectancy": -159.93,
+        "avg_r": -0.16,
+        "sharpe": -0.36,
+        "max_dd_pct": 11.68,
+        "max_consecutive_losses": 6,
+        "exposure_pct": 6.27,
+        "yearly": {
+          "2020": {
+            "trades": 8,
+            "pnl": -7218.61,
+            "win_rate": 12.5
+          },
+          "2021": {
+            "trades": 12,
+            "pnl": -632.92,
+            "win_rate": 50.0
+          },
+          "2022": {
+            "trades": 9,
+            "pnl": -2221.87,
+            "win_rate": 33.3
+          },
+          "2023": {
+            "trades": 11,
+            "pnl": 8394.5,
+            "win_rate": 63.6
+          },
+          "2024": {
+            "trades": 4,
+            "pnl": -2491.79,
+            "win_rate": 25.0
+          },
+          "2025": {
+            "trades": 7,
+            "pnl": -3655.85,
+            "win_rate": 28.6
+          },
+          "2026": {
+            "trades": 9,
+            "pnl": -1769.53,
+            "win_rate": 44.4
+          }
+        }
+      }
+    },
+    "total_trades": 248,
+    "win_rate": 38.71,
+    "net_pnl": -16488.8,
+    "profit_factor": 0.9,
+    "gross_profit": 141158.87,
+    "gross_loss": 157647.67
+  },
+  "Strategy_B_Pullback_50": {
+    "assets": {
+      "XAUUSD": {
+        "symbol": "XAUUSD",
+        "strategy": "Strategy_B_Pullback_50",
+        "trades": 112,
+        "wins": 43,
+        "losses": 69,
+        "breakeven": 0,
+        "win_rate": 38.39,
+        "net_pnl": -13195.23,
+        "gross_profit": 53792.91,
+        "gross_loss": 66988.14,
+        "pf": 0.8,
+        "expectancy": -117.88,
+        "avg_r": -0.12,
+        "sharpe": -0.37,
+        "max_dd_pct": 21.2,
+        "max_consecutive_losses": 13,
+        "exposure_pct": 6.59,
+        "yearly": {
+          "2020": {
+            "trades": 13,
+            "pnl": -7825.46,
+            "win_rate": 15.4
+          },
+          "2021": {
+            "trades": 21,
+            "pnl": -3025.06,
+            "win_rate": 42.9
+          },
+          "2022": {
+            "trades": 21,
+            "pnl": 3933.84,
+            "win_rate": 52.4
+          },
+          "2023": {
+            "trades": 12,
+            "pnl": -2348.73,
+            "win_rate": 33.3
+          },
+          "2024": {
+            "trades": 16,
+            "pnl": -8274.16,
+            "win_rate": 18.8
+          },
+          "2025": {
+            "trades": 18,
+            "pnl": 3731.51,
+            "win_rate": 50.0
+          },
+          "2026": {
+            "trades": 11,
+            "pnl": 612.83,
+            "win_rate": 45.5
+          }
+        }
+      },
+      "EURUSD": {
+        "symbol": "EURUSD",
+        "strategy": "Strategy_B_Pullback_50",
+        "trades": 152,
+        "wins": 63,
+        "losses": 89,
+        "breakeven": 0,
+        "win_rate": 41.45,
+        "net_pnl": -8497.13,
+        "gross_profit": 78582.1,
+        "gross_loss": 87079.23,
+        "pf": 0.9,
+        "expectancy": -55.84,
+        "avg_r": -0.05,
+        "sharpe": -0.17,
+        "max_dd_pct": 19.85,
+        "max_consecutive_losses": 7,
+        "exposure_pct": 6.32,
+        "yearly": {
+          "2020": {
+            "trades": 19,
+            "pnl": 1610.4,
+            "win_rate": 42.1
+          },
+          "2021": {
+            "trades": 30,
+            "pnl": -4887.53,
+            "win_rate": 40.0
+          },
+          "2022": {
+            "trades": 23,
+            "pnl": -11867.05,
+            "win_rate": 26.1
+          },
+          "2023": {
+            "trades": 20,
+            "pnl": 6625.62,
+            "win_rate": 55.0
+          },
+          "2024": {
+            "trades": 21,
+            "pnl": -568.44,
+            "win_rate": 42.9
+          },
+          "2025": {
+            "trades": 27,
+            "pnl": -1258.46,
+            "win_rate": 37.0
+          },
+          "2026": {
+            "trades": 12,
+            "pnl": 1848.33,
+            "win_rate": 58.3
+          }
+        }
+      },
+      "GBPUSD": {
+        "symbol": "GBPUSD",
+        "strategy": "Strategy_B_Pullback_50",
+        "trades": 146,
+        "wins": 62,
+        "losses": 84,
+        "breakeven": 0,
+        "win_rate": 42.47,
+        "net_pnl": -18204.89,
+        "gross_profit": 66543.67,
+        "gross_loss": 84748.56,
+        "pf": 0.79,
+        "expectancy": -124.6,
+        "avg_r": -0.13,
+        "sharpe": -0.47,
+        "max_dd_pct": 22.32,
+        "max_consecutive_losses": 8,
+        "exposure_pct": 4.74,
+        "yearly": {
+          "2020": {
+            "trades": 24,
+            "pnl": -15999.76,
+            "win_rate": 16.7
+          },
+          "2021": {
+            "trades": 24,
+            "pnl": 1689.15,
+            "win_rate": 50.0
+          },
+          "2022": {
+            "trades": 22,
+            "pnl": 1287.87,
+            "win_rate": 54.5
+          },
+          "2023": {
+            "trades": 19,
+            "pnl": 7432.13,
+            "win_rate": 63.2
+          },
+          "2024": {
+            "trades": 21,
+            "pnl": -4696.57,
+            "win_rate": 38.1
+          },
+          "2025": {
+            "trades": 22,
+            "pnl": -8539.21,
+            "win_rate": 27.3
+          },
+          "2026": {
+            "trades": 14,
+            "pnl": 621.5,
+            "win_rate": 57.1
+          }
+        }
+      },
+      "USDJPY": {
+        "symbol": "USDJPY",
+        "strategy": "Strategy_B_Pullback_50",
+        "trades": 125,
+        "wins": 53,
+        "losses": 72,
+        "breakeven": 0,
+        "win_rate": 42.4,
+        "net_pnl": -11825.67,
+        "gross_profit": 66356.36,
+        "gross_loss": 78182.03,
+        "pf": 0.85,
+        "expectancy": -94.61,
+        "avg_r": -0.09,
+        "sharpe": -0.27,
+        "max_dd_pct": 26.01,
+        "max_consecutive_losses": 9,
+        "exposure_pct": 6.79,
+        "yearly": {
+          "2020": {
+            "trades": 18,
+            "pnl": -12518.74,
+            "win_rate": 22.2
+          },
+          "2021": {
+            "trades": 25,
+            "pnl": -6492.3,
+            "win_rate": 44.0
+          },
+          "2022": {
+            "trades": 16,
+            "pnl": 3798.85,
+            "win_rate": 56.2
+          },
+          "2023": {
+            "trades": 19,
+            "pnl": 10598.82,
+            "win_rate": 63.2
+          },
+          "2024": {
+            "trades": 14,
+            "pnl": -3676.33,
+            "win_rate": 28.6
+          },
+          "2025": {
+            "trades": 21,
+            "pnl": 2528.84,
+            "win_rate": 47.6
+          },
+          "2026": {
+            "trades": 12,
+            "pnl": -6064.81,
+            "win_rate": 25.0
+          }
+        }
+      }
+    },
+    "total_trades": 535,
+    "win_rate": 41.31,
+    "net_pnl": -51722.92,
+    "profit_factor": 0.84,
+    "gross_profit": 265275.04,
+    "gross_loss": 316997.96
+  },
+  "Strategy_C_4H_Trend_Rider": {
+    "assets": {
+      "XAUUSD": {
+        "symbol": "XAUUSD",
+        "strategy": "Strategy_C_4H_Trend_Rider",
+        "trades": 530,
+        "wins": 212,
+        "losses": 318,
+        "breakeven": 0,
+        "win_rate": 40.0,
+        "net_pnl": 40469.69,
+        "gross_profit": 429095.94,
+        "gross_loss": 388626.25,
+        "pf": 1.1,
+        "expectancy": 76.36,
+        "avg_r": 0.07,
+        "sharpe": 0.45,
+        "max_dd_pct": 15.76,
+        "max_consecutive_losses": 9,
+        "exposure_pct": 49.79,
+        "yearly": {
+          "2020": {
+            "trades": 74,
+            "pnl": -7187.27,
+            "win_rate": 35.1
+          },
+          "2021": {
+            "trades": 74,
+            "pnl": 2211.68,
+            "win_rate": 40.5
+          },
+          "2022": {
+            "trades": 83,
+            "pnl": 14376.99,
+            "win_rate": 45.8
+          },
+          "2023": {
+            "trades": 70,
+            "pnl": 33837.94,
+            "win_rate": 50.0
+          },
+          "2024": {
+            "trades": 89,
+            "pnl": -20314.77,
+            "win_rate": 30.3
+          },
+          "2025": {
+            "trades": 81,
+            "pnl": 28231.33,
+            "win_rate": 44.4
+          },
+          "2026": {
+            "trades": 59,
+            "pnl": -10686.21,
+            "win_rate": 33.9
+          }
+        }
+      },
+      "EURUSD": {
+        "symbol": "EURUSD",
+        "strategy": "Strategy_C_4H_Trend_Rider",
+        "trades": 535,
+        "wins": 214,
+        "losses": 321,
+        "breakeven": 0,
+        "win_rate": 40.0,
+        "net_pnl": -27140.91,
+        "gross_profit": 247656.58,
+        "gross_loss": 274797.49,
+        "pf": 0.9,
+        "expectancy": -50.73,
+        "avg_r": -0.05,
+        "sharpe": -0.33,
+        "max_dd_pct": 38.02,
+        "max_consecutive_losses": 13,
+        "exposure_pct": 51.41,
+        "yearly": {
+          "2020": {
+            "trades": 81,
+            "pnl": -9177.14,
+            "win_rate": 39.5
+          },
+          "2021": {
+            "trades": 83,
+            "pnl": -11467.0,
+            "win_rate": 33.7
+          },
+          "2022": {
+            "trades": 86,
+            "pnl": -8510.65,
+            "win_rate": 36.0
+          },
+          "2023": {
+            "trades": 72,
+            "pnl": 1614.59,
+            "win_rate": 43.1
+          },
+          "2024": {
+            "trades": 81,
+            "pnl": 6298.75,
+            "win_rate": 46.9
+          },
+          "2025": {
+            "trades": 75,
+            "pnl": -2330.49,
+            "win_rate": 40.0
+          },
+          "2026": {
+            "trades": 57,
+            "pnl": -3568.97,
+            "win_rate": 42.1
+          }
+        }
+      },
+      "GBPUSD": {
+        "symbol": "GBPUSD",
+        "strategy": "Strategy_C_4H_Trend_Rider",
+        "trades": 539,
+        "wins": 220,
+        "losses": 319,
+        "breakeven": 0,
+        "win_rate": 40.82,
+        "net_pnl": -16641.98,
+        "gross_profit": 305130.67,
+        "gross_loss": 321772.65,
+        "pf": 0.95,
+        "expectancy": -30.79,
+        "avg_r": -0.02,
+        "sharpe": -0.16,
+        "max_dd_pct": 32.68,
+        "max_consecutive_losses": 11,
+        "exposure_pct": 50.59,
+        "yearly": {
+          "2020": {
+            "trades": 81,
+            "pnl": 3946.39,
+            "win_rate": 44.4
+          },
+          "2021": {
+            "trades": 92,
+            "pnl": -13877.43,
+            "win_rate": 37.0
+          },
+          "2022": {
+            "trades": 77,
+            "pnl": 8404.5,
+            "win_rate": 45.5
+          },
+          "2023": {
+            "trades": 83,
+            "pnl": 4947.63,
+            "win_rate": 44.6
+          },
+          "2024": {
+            "trades": 89,
+            "pnl": -5806.73,
+            "win_rate": 40.4
+          },
+          "2025": {
+            "trades": 69,
+            "pnl": -1156.1,
+            "win_rate": 39.1
+          },
+          "2026": {
+            "trades": 48,
+            "pnl": -13100.24,
+            "win_rate": 31.2
+          }
+        }
+      },
+      "USDJPY": {
+        "symbol": "USDJPY",
+        "strategy": "Strategy_C_4H_Trend_Rider",
+        "trades": 510,
+        "wins": 180,
+        "losses": 330,
+        "breakeven": 0,
+        "win_rate": 35.29,
+        "net_pnl": -41279.54,
+        "gross_profit": 203578.8,
+        "gross_loss": 244858.34,
+        "pf": 0.83,
+        "expectancy": -81.02,
+        "avg_r": -0.09,
+        "sharpe": -0.53,
+        "max_dd_pct": 48.66,
+        "max_consecutive_losses": 9,
+        "exposure_pct": 49.2,
+        "yearly": {
+          "2020": {
+            "trades": 78,
+            "pnl": -25456.57,
+            "win_rate": 28.2
+          },
+          "2021": {
+            "trades": 84,
+            "pnl": -10298.08,
+            "win_rate": 35.7
+          },
+          "2022": {
+            "trades": 72,
+            "pnl": -927.45,
+            "win_rate": 38.9
+          },
+          "2023": {
+            "trades": 78,
+            "pnl": -7527.15,
+            "win_rate": 30.8
+          },
+          "2024": {
+            "trades": 68,
+            "pnl": 15022.87,
+            "win_rate": 45.6
+          },
+          "2025": {
+            "trades": 83,
+            "pnl": -6617.56,
+            "win_rate": 34.9
+          },
+          "2026": {
+            "trades": 47,
+            "pnl": -5475.6,
+            "win_rate": 34.0
+          }
+        }
+      }
+    },
+    "total_trades": 2114,
+    "win_rate": 39.07,
+    "net_pnl": -44592.74,
+    "profit_factor": 0.96,
+    "gross_profit": 1185461.99,
+    "gross_loss": 1230054.73
+  },
+  "Strategy_D_SMC_Sweep_Reversal": {
+    "assets": {
+      "XAUUSD": {
+        "symbol": "XAUUSD",
+        "strategy": "Strategy_D_SMC_Sweep_Reversal",
+        "trades": 0,
+        "wins": 0,
+        "losses": 0,
+        "breakeven": 0,
+        "win_rate": 0.0,
+        "net_pnl": 0.0,
+        "gross_profit": 0,
+        "gross_loss": 0,
+        "pf": 0.0,
+        "expectancy": 0.0,
+        "avg_r": 0.0,
+        "sharpe": 0.0,
+        "max_dd_pct": 0.0,
+        "max_consecutive_losses": 0,
+        "exposure_pct": 0.0,
+        "yearly": {
+          "2020": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2021": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2022": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2023": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2024": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2025": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2026": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          }
+        }
+      },
+      "EURUSD": {
+        "symbol": "EURUSD",
+        "strategy": "Strategy_D_SMC_Sweep_Reversal",
+        "trades": 0,
+        "wins": 0,
+        "losses": 0,
+        "breakeven": 0,
+        "win_rate": 0.0,
+        "net_pnl": 0.0,
+        "gross_profit": 0,
+        "gross_loss": 0,
+        "pf": 0.0,
+        "expectancy": 0.0,
+        "avg_r": 0.0,
+        "sharpe": 0.0,
+        "max_dd_pct": 0.0,
+        "max_consecutive_losses": 0,
+        "exposure_pct": 0.0,
+        "yearly": {
+          "2020": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2021": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2022": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2023": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2024": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2025": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2026": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          }
+        }
+      },
+      "GBPUSD": {
+        "symbol": "GBPUSD",
+        "strategy": "Strategy_D_SMC_Sweep_Reversal",
+        "trades": 0,
+        "wins": 0,
+        "losses": 0,
+        "breakeven": 0,
+        "win_rate": 0.0,
+        "net_pnl": 0.0,
+        "gross_profit": 0,
+        "gross_loss": 0,
+        "pf": 0.0,
+        "expectancy": 0.0,
+        "avg_r": 0.0,
+        "sharpe": 0.0,
+        "max_dd_pct": 0.0,
+        "max_consecutive_losses": 0,
+        "exposure_pct": 0.0,
+        "yearly": {
+          "2020": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2021": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2022": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2023": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2024": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2025": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2026": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          }
+        }
+      },
+      "USDJPY": {
+        "symbol": "USDJPY",
+        "strategy": "Strategy_D_SMC_Sweep_Reversal",
+        "trades": 0,
+        "wins": 0,
+        "losses": 0,
+        "breakeven": 0,
+        "win_rate": 0.0,
+        "net_pnl": 0.0,
+        "gross_profit": 0,
+        "gross_loss": 0,
+        "pf": 0.0,
+        "expectancy": 0.0,
+        "avg_r": 0.0,
+        "sharpe": 0.0,
+        "max_dd_pct": 0.0,
+        "max_consecutive_losses": 0,
+        "exposure_pct": 0.0,
+        "yearly": {
+          "2020": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2021": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2022": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2023": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2024": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2025": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          },
+          "2026": {
+            "trades": 0,
+            "pnl": 0,
+            "win_rate": 0.0
+          }
+        }
+      }
+    },
+    "total_trades": 0,
+    "win_rate": 0.0,
+    "net_pnl": 0.0,
+    "profit_factor": 0.0,
+    "gross_profit": 0.0,
+    "gross_loss": 0.0
+  }
+}
