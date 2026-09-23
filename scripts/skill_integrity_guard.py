@@ -12,6 +12,7 @@ import os
 import hashlib
 import json
 import logging
+import time
 from datetime import datetime, timezone
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -39,6 +40,10 @@ PROTECTED_FILES = [
     os.path.join(BASE_DIR, "docs", "02_REGIME_STRATEGY_ENGINE.md"),
 ]
 
+PENDING_AUTH_FILE = os.path.join(BASE_DIR, "config", "pending_authorizations.json")
+_last_alert_telemetry = {"time": 0.0, "hash_signature": ""}
+
+
 def calculate_sha256(filepath):
     """Compute SHA-256 hash of a file."""
     if not os.path.exists(filepath):
@@ -48,6 +53,7 @@ def calculate_sha256(filepath):
         while chunk := f.read(8192):
             sha.update(chunk)
     return sha.hexdigest()
+
 
 def generate_signed_manifest(authorized_by="Admin / Lead Architect"):
     """Generates and saves the authorized SHA-256 checksum manifest."""
@@ -67,7 +73,121 @@ def generate_signed_manifest(authorized_by="Admin / Lead Architect"):
         json.dump(manifest, f, indent=2)
     return manifest
 
-def verify_skill_integrity(silent=False):
+
+def get_pending_authorizations():
+    """Retrieve active pending authorization requests."""
+    if not os.path.exists(PENDING_AUTH_FILE):
+        return {}
+    try:
+        with open(PENDING_AUTH_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_pending_authorizations(data):
+    """Save pending authorization requests."""
+    os.makedirs(os.path.dirname(PENDING_AUTH_FILE), exist_ok=True)
+    with open(PENDING_AUTH_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def create_pending_authorization(mismatches):
+    """Creates a new pending authorization request with a unique 4-character token."""
+    import secrets
+    token = secrets.token_hex(2).upper()
+    auths = get_pending_authorizations()
+    auths[token] = {
+        "token": token,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "mismatches": mismatches,
+        "status": "PENDING"
+    }
+    save_pending_authorizations(auths)
+    return token
+
+
+def approve_pending_authorization(token=None, approved_by="Telegram Admin"):
+    """
+    Approves pending modifications remotely from Telegram:
+    1. Re-signs all protected files cryptographically.
+    2. Marks authorization approved.
+    3. Broadcasts clearance alert to Telegram.
+    """
+    auths = get_pending_authorizations()
+    target_token = None
+    if token:
+        cleaned = str(token).upper().strip().replace("#", "")
+        if cleaned in auths:
+            target_token = cleaned
+    else:
+        pending_tokens = [k for k, v in auths.items() if v.get("status") == "PENDING"]
+        if pending_tokens:
+            target_token = pending_tokens[-1]
+
+    manifest = generate_signed_manifest(authorized_by=approved_by)
+
+    if target_token and target_token in auths:
+        auths[target_token]["status"] = "APPROVED"
+        auths[target_token]["approved_by"] = approved_by
+        auths[target_token]["approved_at"] = datetime.now(timezone.utc).isoformat()
+        save_pending_authorizations(auths)
+    else:
+        auths["LATEST"] = {
+            "token": target_token or "DIRECT",
+            "status": "APPROVED",
+            "approved_by": approved_by,
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        }
+        save_pending_authorizations(auths)
+
+    msg = (
+        f"<b>🔒 SKILL MODIFICATION APPROVED VIA TELEGRAM</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"<b>Status:</b> 🟢 <b>Cryptographically Verified &amp; Certified</b>\n"
+        f"<b>Authorized By:</b> <code>{approved_by}</code>\n"
+        f"<b>Timestamp:</b> <code>{manifest['authorized_at']}</code>\n"
+        f"<b>Protected Files:</b> {len(manifest['files'])} signed\n"
+        f"<b>Anti-Tamper Lockout:</b> 🟢 <b>LIFTED — System Resumed</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"<i>All execution gates cleared for active trading.</i>"
+    )
+    broadcast_telegram(msg)
+    return True, msg
+
+
+def reject_pending_authorization(token=None, rejected_by="Telegram Admin"):
+    """Rejects pending modifications and maintains the Anti-Tamper Lockout."""
+    auths = get_pending_authorizations()
+    target_token = None
+    if token:
+        cleaned = str(token).upper().strip().replace("#", "")
+        if cleaned in auths:
+            target_token = cleaned
+            auths[target_token]["status"] = "REJECTED"
+            auths[target_token]["rejected_by"] = rejected_by
+            auths[target_token]["rejected_at"] = datetime.now(timezone.utc).isoformat()
+    else:
+        for k, v in auths.items():
+            if v.get("status") == "PENDING":
+                v["status"] = "REJECTED"
+                v["rejected_by"] = rejected_by
+                v["rejected_at"] = datetime.now(timezone.utc).isoformat()
+    save_pending_authorizations(auths)
+
+    msg = (
+        f"<b>🛑 SKILL MODIFICATION REJECTED VIA TELEGRAM</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"<b>Status:</b> 🔒 <b>Anti-Tamper Lockout Maintained</b>\n"
+        f"<b>Action By:</b> <code>{rejected_by}</code>\n"
+        f"<b>Notice:</b> Modifications remain unauthorized. Trade execution will continue to be blocked until restored or validly certified.\n"
+        f"━━━━━━━━━━━━━━━━━━━━"
+    )
+    broadcast_telegram(msg)
+    return True, msg
+
+
+def verify_skill_integrity(silent=False, force_alert=False):
     """
     Verifies all protected files against skill_checksums.json.
     Returns: (is_valid: bool, mismatch_details: list)
@@ -97,18 +217,41 @@ def verify_skill_integrity(silent=False):
 
     if mismatches:
         if not silent:
-            msg = f"""<b>🚨 SECURITY ALERT: UNAUTHORIZED SKILL MODIFICATION DETECTED</b>
+            now = time.time()
+            sig = "|".join(mismatches)
+            # Throttle alerts to avoid spamming if called repeatedly in loop
+            if force_alert or (now - _last_alert_telemetry["time"] > 90) or (_last_alert_telemetry["hash_signature"] != sig):
+                _last_alert_telemetry["time"] = now
+                _last_alert_telemetry["hash_signature"] = sig
+                token = create_pending_authorization(mismatches)
+                reply_markup = {
+                    "inline_keyboard": [
+                        [
+                            {"text": f"✅ Approve Modification ({token})", "callback_data": f"auth_approve_{token}"},
+                            {"text": "❌ Reject", "callback_data": f"auth_reject_{token}"}
+                        ]
+                    ]
+                }
+                msg = f"""<b>🚨 SECURITY ALERT: UNAUTHORIZED SKILL MODIFICATION DETECTED</b>
 ━━━━━━━━━━━━━━━━━━━━
 <b>Anti-Tamper Lockout Activated:</b> Trade execution has been frozen to protect account capital.
 
 <b>Detected Discrepancies:</b>
 """ + "\n\n".join(mismatches) + f"""
 ━━━━━━━━━━━━━━━━━━━━
-<b>Action Required:</b> Inspect files or run authorization script to certify legitimate changes."""
-            broadcast_telegram(msg)
+🔑 <b>Authorization Token:</b> <code>{token}</code>
+
+👉 <b>Tap the button below</b> to approve or reject, or reply:
+• <code>/approve {token}</code> (or simply <code>/approve</code>)
+• <code>/reject {token}</code>"""
+                broadcast_telegram(msg, reply_markup=reply_markup)
         return False, mismatches
 
     return True, []
+
+
+verify_integrity = verify_skill_integrity
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--authorize":
@@ -122,6 +265,10 @@ if __name__ == "__main__":
             f"<b>Timestamp:</b> {m['authorized_at']}\n"
             f"<b>Status:</b> 🟢 Cryptographically Verified"
         )
+    elif len(sys.argv) > 1 and sys.argv[1] == "--approve":
+        tok = sys.argv[2] if len(sys.argv) > 2 else None
+        ok, res = approve_pending_authorization(tok, approved_by="CLI Admin")
+        print(res)
     else:
         valid, errs = verify_skill_integrity()
         if valid:

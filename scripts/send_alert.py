@@ -65,7 +65,7 @@ def load_config():
     return config
 
 
-def send_telegram(bot_token: str, chat_id: str, text: str, ticket_id: str = None, retries: int = 2) -> bool:
+def send_telegram(bot_token: str, chat_id: str, text: str, ticket_id: str = None, retries: int = 2, reply_markup: dict = None) -> bool:
     """Send formatted markdown message to a specific Telegram chat_id with retry logic."""
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {
@@ -75,8 +75,10 @@ def send_telegram(bot_token: str, chat_id: str, text: str, ticket_id: str = None
         "disable_web_page_preview": True
     }
     
-    # Add interactive inline buttons for Mode C Approval
-    if ticket_id:
+    # Add interactive inline buttons
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    elif ticket_id:
         payload["reply_markup"] = {
             "inline_keyboard": [
                 [
@@ -112,8 +114,8 @@ def send_telegram(bot_token: str, chat_id: str, text: str, ticket_id: str = None
     return False
 
 
-def broadcast_telegram(text: str, ticket_id: str = None) -> int:
-    """Broadcasts a message to all configured Telegram destinations."""
+def broadcast_telegram(text: str, ticket_id: str = None, reply_markup: dict = None) -> int:
+    """Broadcasts a message to all configured Telegram destinations with optional inline markup."""
     config = load_config()
     delivered = 0
     tg = config.get("telegram", {})
@@ -121,7 +123,7 @@ def broadcast_telegram(text: str, ticket_id: str = None) -> int:
         bot_token = tg.get("bot_token")
         for cid in tg.get("chat_ids", []):
             if cid and str(cid).strip():
-                if send_telegram(bot_token, str(cid).strip(), text, ticket_id=ticket_id):
+                if send_telegram(bot_token, str(cid).strip(), text, ticket_id=ticket_id, reply_markup=reply_markup):
                     delivered += 1
     return delivered
 

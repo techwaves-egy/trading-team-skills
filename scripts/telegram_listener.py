@@ -543,6 +543,8 @@ def handle_help_cmd(chat_id, bot_token):
         f"  • <code>/summary</code> — Today's performance summary\n"
         f"  • <code>/weekly</code> — Full weekly audit report\n"
         f"  • <code>/integrity</code> — Verify SHA-256 anti-tamper status\n"
+        f"  • <code>/approve [token]</code> — Authorize pending code/skill modifications\n"
+        f"  • <code>/reject [token]</code> — Reject modifications &amp; maintain lockout\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"<i>Tap any quick button below for instant action:</i>"
     )
@@ -582,6 +584,20 @@ def process_update(update, bot_token, config):
             handle_integrity_cmd(chat_id, bot_token)
         elif data == "cb_start_5_2x":
             handle_start_session_cmd(["5", "2x"], chat_id, bot_token)
+        elif data.startswith("auth_approve_"):
+            tok = data.replace("auth_approve_", "")
+            from skill_integrity_guard import approve_pending_authorization
+            user_info = cb.get("from", {})
+            admin_label = f"Telegram Admin @{user_info.get('username', user_id)} (ID: {user_id})"
+            ok, res_msg = approve_pending_authorization(token=tok, approved_by=admin_label)
+            send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
+        elif data.startswith("auth_reject_"):
+            tok = data.replace("auth_reject_", "")
+            from skill_integrity_guard import reject_pending_authorization
+            user_info = cb.get("from", {})
+            admin_label = f"Telegram Admin @{user_info.get('username', user_id)} (ID: {user_id})"
+            ok, res_msg = reject_pending_authorization(token=tok, rejected_by=admin_label)
+            send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
         return
 
     # Handle Text Messages
@@ -629,6 +645,20 @@ def process_update(update, bot_token, config):
             send_market_close_summary(is_weekend=True, kill_processes=False)
         elif cmd == "/integrity":
             handle_integrity_cmd(chat_id, bot_token)
+        elif cmd in ("/approve", "/authorize", "/certify"):
+            tok = args[0] if len(args) > 0 else None
+            from skill_integrity_guard import approve_pending_authorization
+            user_info = msg.get("from", {})
+            admin_label = f"Telegram Admin @{user_info.get('username', user_id)} (ID: {user_id})"
+            ok, res_msg = approve_pending_authorization(token=tok, approved_by=admin_label)
+            send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
+        elif cmd in ("/reject", "/deny"):
+            tok = args[0] if len(args) > 0 else None
+            from skill_integrity_guard import reject_pending_authorization
+            user_info = msg.get("from", {})
+            admin_label = f"Telegram Admin @{user_info.get('username', user_id)} (ID: {user_id})"
+            ok, res_msg = reject_pending_authorization(token=tok, rejected_by=admin_label)
+            send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
         else:
             send_tg_message(bot_token, chat_id, f"❓ Unknown command: <code>{cmd}</code>\nSend /help to view all available commands.", reply_markup=make_main_keyboard())
 
