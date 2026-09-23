@@ -1,13 +1,13 @@
 {
   "version": "3.5.2",
   "authorized_by": "Admin / Lead Architect",
-  "authorized_at": "2026-09-23T20:38:50.234198+00:00",
+  "authorized_at": "2026-09-23T20:42:44.517179+00:00",
   "files": {
     "SKILL.md": "5f1d25ea9a3c9401d6b7ae94509d8b83b461caba8fd06f07c114aaac1f8d05b1",
     "scripts\\auto_scanner.py": "29279c21be940df1c2efefdaf2e50411bc87e2465fa01bd768032f6e19f5e4bc",
     "scripts\\mt5_connector.py": "8ea223e3a4bbf95d910ebf4b576a6d0ef6379b5aee6f56c889d2d6b5b0be679f",
     "scripts\\trade_monitor.py": "d0c99e1667f0c35602d338c6a80c6a0d6375c60147a90efd7592ad6d338b2ae4",
-    "scripts\\send_alert.py": "ba6d9a95f7f3351c1c50216b7b16cd95486b7bf08a8fc51571665bd8568c5297",
+    "scripts\\send_alert.py": "1d8136639f0efef345ef99d343667ba57f1142ecca567657b38040c6fd44e232",
     "scripts\\daily_summary.py": "24801808d4a9eba90f7ceab28102d560aa64d1310ee4760c412cea3ab8bcdb84",
     "scripts\\telegram_listener.py": "cf41a672698a32040bbb062f7fbea267dbf0e16d4ededf2ec5ad48d0379b2898",
     "scripts\\start_session.py": "f4426aaa632dca1b8fd3791cd137a0113a3b6fd6b271da6b5ca2b42e69c5ce5c",

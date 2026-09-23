@@ -22,7 +22,7 @@ if hasattr(sys.stderr, "reconfigure"):
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from send_alert import broadcast_telegram
+from send_alert import broadcast_telegram, send_admin_telegram
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHECKSUM_FILE = os.path.join(BASE_DIR, "config", "skill_checksums.json")
@@ -152,7 +152,7 @@ def approve_pending_authorization(token=None, approved_by="Telegram Admin"):
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"<i>All execution gates cleared for active trading.</i>"
     )
-    broadcast_telegram(msg)
+    send_admin_telegram(msg)
     return True, msg
 
 
@@ -183,7 +183,7 @@ def reject_pending_authorization(token=None, rejected_by="Telegram Admin"):
         f"<b>Notice:</b> Modifications remain unauthorized. Trade execution will continue to be blocked until restored or validly certified.\n"
         f"━━━━━━━━━━━━━━━━━━━━"
     )
-    broadcast_telegram(msg)
+    send_admin_telegram(msg)
     return True, msg
 
 
@@ -244,7 +244,7 @@ def verify_skill_integrity(silent=False, force_alert=False):
 👉 <b>Tap the button below</b> to approve or reject, or reply:
 • <code>/approve {token}</code> (or simply <code>/approve</code>)
 • <code>/reject {token}</code>"""
-                broadcast_telegram(msg, reply_markup=reply_markup)
+                send_admin_telegram(msg, reply_markup=reply_markup)
         return False, mismatches
 
     return True, []
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--authorize":
         m = generate_signed_manifest()
         print(f"[OK] Signed checksum manifest generated for {len(m['files'])} protected files.")
-        broadcast_telegram(
+        send_admin_telegram(
             f"<b>🔒 SKILL SECURITY MANIFEST UPDATED & SIGNED</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"<b>Version:</b> <code>3.5.2 Anti-Tamper Standard</code>\n"

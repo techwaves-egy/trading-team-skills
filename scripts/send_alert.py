@@ -114,8 +114,22 @@ def send_telegram(bot_token: str, chat_id: str, text: str, ticket_id: str = None
     return False
 
 
-def broadcast_telegram(text: str, ticket_id: str = None, reply_markup: dict = None) -> int:
-    """Broadcasts a message to all configured Telegram destinations with optional inline markup."""
+def send_admin_telegram(text: str, reply_markup: dict = None) -> bool:
+    """Sends an alert strictly and exclusively to Administrator @wtalaat."""
+    config = load_config()
+    tg = config.get("telegram", {})
+    if not (tg.get("enabled") and tg.get("bot_token") and not tg.get("bot_token").startswith("YOUR_")):
+        return False
+    bot_token = tg.get("bot_token")
+    admin_id = str(tg.get("admin_chat_id", "1264076025")).strip()
+    return send_telegram(bot_token, admin_id, text, reply_markup=reply_markup)
+
+
+def broadcast_telegram(text: str, ticket_id: str = None, reply_markup: dict = None, admin_only: bool = False) -> int:
+    """Broadcasts a message to Telegram destinations (or exclusively to Admin @wtalaat if admin_only=True)."""
+    if admin_only:
+        return 1 if send_admin_telegram(text, reply_markup=reply_markup) else 0
+
     config = load_config()
     delivered = 0
     tg = config.get("telegram", {})

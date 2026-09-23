@@ -2,6 +2,8 @@
   "telegram": {
     "enabled": true,
     "bot_token": "8280433763:AAELL3lv5XqRwIodJxk9CbGKquqmNNYXk-c",
+    "admin_username": "wtalaat",
+    "admin_chat_id": "1264076025",
     "chat_ids": [
       "1264076025",
       "-1003989306390"
