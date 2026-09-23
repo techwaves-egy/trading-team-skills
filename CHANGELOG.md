@@ -1,6 +1,39 @@
 # Changelog — AI Autonomous Trading Firm Skill
 
-All notable changes and architectural upgrades to the AI Autonomous Trading Firm skill are documented in this file.
+All notable changes, architectural upgrades, and version tags of the AI Autonomous Trading Firm are recorded in this file.
+
+---
+
+## [v3.8.1] — 2026-09-24
+
+### 🔒 Remote Telegram Approval & Security Isolation
+* **Remote File Modification Approval Engine (`scripts/telegram_listener.py`, `scripts/skill_integrity_guard.py`)**:
+  * Added two-way interactive remote approval for code alterations. When an uncertified file change is detected, an emergency alert with an authorization token and inline `[ Approve ]` / `[ Reject ]` buttons is dispatched.
+  * Enforced strict administrator identity gating (`is_admin`): only `@wtalaat` (`1264076025`) can authorize code modifications or lift the execution lockout.
+* **Isolated Admin Security Routing (`config/alert_config.json`, `scripts/send_alert.py`)**:
+  * Created `send_admin_telegram()` routing all security alerts, authorization tokens, and approval confirmations strictly to `@wtalaat`, isolating them completely from public channels/supergroups.
+* **Executive Market Close Forensic Audit (`scripts/daily_summary.py`)**:
+  * Upgraded `daily_summary.py` to compile forensic market close reports with all closed trades, entry/exit prices, durations, exit triggers (TP, SL, 80/70 Asymmetric), win/loss streaks, ROI %, and overnight open exposure checks.
+  * Dispatched directly to Telegram Admin at market close (21:55 UTC) and on-demand via `/summary`.
+* **Installation & Deployment Standard (`README.md`, `requirements.txt`)**:
+  * Added production-ready `requirements.txt` and complete end-to-end installation, terminal setup, and daemon configuration documentation.
+
+---
+
+## [v3.8.0] — 2026-09-23
+
+### 🛡️ 80/70 Asymmetric Profit Protection & Multi-Console Infrastructure
+* **80/70 Asymmetric Profit Protection Engine (`scripts/trade_monitor.py`)**:
+  * Monitors live open position floating profit against target.
+  * When a trade reaches 80% of its profit target, tightens the profit floor to guarantee capturing at least 70% of peak gains if momentum falters.
+* **Real-Time MT5 Deal Streamer**:
+  * Continuously polls MT5 deal history and streams instantaneous closed-trade notifications to Telegram.
+* **Two-Way Interactive Mobile Controller (`scripts/telegram_listener.py`)**:
+  * 24/7 background listener supporting remote session launches (`/start_session`), live telemetry (`/status`), instant execution (`/buy`, `/sell`), and emergency liquidation (`/close`).
+* **Cryptographic Anti-Tamper Security Guard (`scripts/skill_integrity_guard.py`)**:
+  * Implements SHA-256 integrity validation on all protected skill and engine components, preventing unauthorized modifications from running against live accounts.
+* **One-Click Multi-Console Launchers**:
+  * Created `launch_all_consoles.bat` and `stop_all_consoles.bat` for Windows daemon management.
 
 ---
 

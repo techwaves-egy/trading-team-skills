@@ -227,6 +227,64 @@ d:/Techwaves-egy/Trading Team Skills/
 
 ---
 
+## ⏪ Version Control & Rollback Guide
+
+The firm strictly adheres to Git version control. Every modification is cryptographically signed, committed, tagged, and pushed to the private GitHub repository.
+
+### 1. View All Version Milestones & History
+```bash
+# List all release tags and descriptions
+git tag -l -n
+
+# View recent commit history with hashes
+git log --oneline -n 10
+```
+
+### 2. Available Stable Version Checkpoints
+| Tag | Release Date | Description |
+| :--- | :--- | :--- |
+| `v3.8.1` | 2026-09-24 | Remote Telegram Admin Approval, Security Isolation, Market Close Forensic Audit. |
+| `v3.8.0-stable` | 2026-09-23 | Baseline stable release with 80/70 Asymmetric Profit Protection & MT5 deal streamer. |
+
+### 3. How to Revert or Roll Back Anytime
+
+#### A. Inspect / Test an Older Version (Detached HEAD)
+To temporarily explore or run an older version without altering current branch history:
+```bash
+git checkout v3.8.0-stable
+```
+To return back to the latest version:
+```bash
+git checkout master
+```
+
+#### B. Roll Back to a Previous Version on a New Branch
+```bash
+# Create and switch to a rollback branch based on a stable tag
+git checkout -b rollback-v3.8.0 v3.8.0-stable
+```
+
+#### C. Fully Reset Master Branch to a Previous Version
+If you want to forcefully reset `master` back to a previous tag:
+```bash
+# Hard reset working directory to stable checkpoint
+git reset --hard v3.8.0-stable
+
+# Re-sign the cryptographic security manifest for the restored state
+python scripts/skill_integrity_guard.py --authorize
+
+# Force push to private GitHub (if replacing remote master)
+git push origin master --force
+```
+
+#### D. Safely Undo a Specific Commit
+```bash
+git revert <commit_hash>
+git push origin master
+```
+
+---
+
 ## ⚖️ License & Confidentiality
 Proprietary & Confidential. All rights reserved &copy; TechWaves EGY.
 Unauthorized copying, decompiling, redistribution, or modification without cryptographic administrative authorization is strictly prohibited.
