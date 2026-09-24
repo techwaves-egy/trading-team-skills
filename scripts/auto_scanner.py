@@ -164,11 +164,15 @@ def run_scan_and_execute(symbol_override=None):
                 logger.info(f"[SESSION FILTER] GBPUSD restricted outside London/NY active window (Current: {cur_hour}:00 UTC). Skipping.")
                 return "OFF_SESSION"
 
-        # === v3.5.2 GATE 0.1: Anti-Stacking Position Check ===
-        open_pos = mt5.positions_get(symbol=symbol)
-        if open_pos and len(open_pos) > 0:
-            logger.info(f"[ANTI-STACKING] Position #{open_pos[0].ticket} already open on {symbol}. Skipping duplicate entry.")
-            return "POSITION_ALREADY_OPEN"
+        # === v3.8.3 GATE 0.1: Strict Sequential Anti-Stacking Engine ===
+        all_open_pos = mt5.positions_get()
+        if all_open_pos and len(all_open_pos) > 0:
+            active_p = all_open_pos[0]
+            logger.info(
+                f"[SEQUENTIAL PIPELINE] Active trade #{active_p.ticket} ({active_p.symbol} {active_p.volume}L) "
+                f"is running. Waiting for trade to exit before opening next sequential round."
+            )
+            return "ACTIVE_TRADE_IN_PROGRESS"
 
         # === v3.3.0 GATE 1: Lockout Check ===
         locked, locked_until = check_asset_lockout(symbol)
@@ -253,9 +257,38 @@ def run_scan_and_execute(symbol_override=None):
 
         digits = symbol_info.digits if symbol_info else (5 if "USD" in symbol and "XAU" not in symbol else 2)
 
-        # === Gold-Specific $20 - $30 Target Clamping Rule ===
+        # === v3.8.3 Sizing & Target Engine ($25.00 Fixed Profit / Trade) ===
         is_gold = "XAU" in symbol or "GOLD" in symbol
-        contract_size = symbol_info.trade_contract_size if symbol_info.trade_contract_size > 0 else 100.0
+        contract_size = symbol_info.trade_contract_size if symbol_info.trade_contract_size > 0 else (100.0 if is_gold else 100000.0)
+
+        quota = int(session.get("leverage_trades_quota", 9999))
+        used = int(session.get("leverage_trades_used", 0))
+        baseline_lev = float(session.get("baseline_leverage", 1.0))
+
+        if used < quota:
+            active_lev = float(session.get("leverage_multiplier", 1.0))
+        else:
+            active_lev = baseline_lev
+            logger.info(f"[LEVERAGE QUOTA] Quota reached ({quota} trades). Reverted to {baseline_lev}x baseline.")
+
+        target_dollars = float(session.get("target_profit_per_trade", 25.0))
+        dollar_risk = float(session.get("risk_per_trade_dollars", 25.0)) * active_lev
+
+        if is_gold:
+            base_gold_lots = float(session.get("default_lots", 0.01))
+            safe_lots = round(base_gold_lots * active_lev, 2)
+            safe_lots = max(symbol_info.volume_min, min(symbol_info.volume_max, safe_lots))
+        else:
+            base_lots = float(session.get("default_lots", 0.01))
+            safe_lots = round(base_lots * active_lev, 2)
+            safe_lots = max(symbol_info.volume_min, min(symbol_info.volume_max, safe_lots))
+            step = symbol_info.volume_step
+            if step > 0:
+                safe_lots = round(safe_lots / step) * step
+            safe_lots = min(safe_lots, 0.50)
+
+        # Dynamic target distance in price to produce EXACTLY target_dollars ($25.00)
+        target_dist = round(target_dollars / (safe_lots * contract_size), digits)
 
         if direction == "SELL":
             # SL above nearest swing high + ATR buffer
@@ -271,11 +304,10 @@ def run_scan_and_execute(symbol_override=None):
                 sl_distance = min_stop
 
             if is_gold:
-                # Target $25.00 profit (clamped between $20 and $30) on 0.01 lot ($25 price move)
-                gold_target_dist = 25.00
-                tp1 = round(price - gold_target_dist, digits)
-                tp2 = round(price - 30.00, digits) # Max $30 profit cap
-                tp3 = round(price - 35.00, digits)
+                # Target $25.00 profit dynamically sized per lot
+                tp1 = round(price - target_dist, digits)
+                tp2 = round(price - target_dist * 1.25, digits)
+                tp3 = round(price - target_dist * 1.50, digits)
             elif strategy_active == "Bollinger_Mean_Reversion" and bb_mid < price:
                 tp1 = round(bb_mid, digits)
                 tp2 = round(bb_lower, digits) if bb_lower < bb_mid else round(price - sl_distance * 1.8, digits)
@@ -299,11 +331,10 @@ def run_scan_and_execute(symbol_override=None):
                 sl_distance = min_stop
 
             if is_gold:
-                # Target $25.00 profit (clamped between $20 and $30) on 0.01 lot ($25 price move)
-                gold_target_dist = 25.00
-                tp1 = round(price + gold_target_dist, digits)
-                tp2 = round(price + 30.00, digits) # Max $30 profit cap
-                tp3 = round(price + 35.00, digits)
+                # Target $25.00 profit dynamically sized per lot
+                tp1 = round(price + target_dist, digits)
+                tp2 = round(price + target_dist * 1.25, digits)
+                tp3 = round(price + target_dist * 1.50, digits)
             elif strategy_active == "Bollinger_Mean_Reversion" and bb_mid > price:
                 tp1 = round(bb_mid, digits)
                 tp2 = round(bb_upper, digits) if bb_upper > bb_mid else round(price + sl_distance * 1.8, digits)
@@ -313,30 +344,7 @@ def run_scan_and_execute(symbol_override=None):
                 tp2 = round(price + sl_distance * 2.0, digits)
                 tp3 = round(price + sl_distance * 3.0, digits)
 
-        # === v3.6.0 GATE 6: Leverage Quota & Sizing Engine ===
-        quota = int(session.get("leverage_trades_quota", 9999))
-        used = int(session.get("leverage_trades_used", 0))
-        baseline_lev = float(session.get("baseline_leverage", 1.0))
-
-        if used < quota:
-            active_lev = float(session.get("leverage_multiplier", 1.0))
-        else:
-            active_lev = baseline_lev
-            logger.info(f"[LEVERAGE QUOTA] Quota reached ({quota} trades). Reverted to {baseline_lev}x baseline.")
-
-        dollar_risk = float(session.get("risk_per_trade_dollars", 25.0)) * active_lev
-
-        if is_gold:
-            base_gold_lots = float(session.get("default_lots", 0.01))
-            safe_lots = round(base_gold_lots * active_lev, 2)
-            safe_lots = max(symbol_info.volume_min, min(symbol_info.volume_max, safe_lots))
-        else:
-            safe_lots = round(dollar_risk / (sl_distance * contract_size), 2)
-            safe_lots = max(symbol_info.volume_min, min(symbol_info.volume_max, safe_lots))
-            step = symbol_info.volume_step
-            if step > 0:
-                safe_lots = round(safe_lots / step) * step
-            safe_lots = min(safe_lots, 0.50) # Safe ceiling for scaled accounts
+        # === v3.8.3 Execution & Risk Evaluation ===
         actual_risk = round(safe_lots * contract_size * sl_distance, 2)
 
         # === v3.6.0 GATE 7: R:R Check ===
@@ -358,8 +366,8 @@ def run_scan_and_execute(symbol_override=None):
             "strategy": strategy_active,
         }
 
-        logger.info(f"ALL v3.6.0 GATES PASSED — Executing {direction} {symbol} @ {price}")
-        logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} ({active_lev}x Lev) | Risk=${actual_risk}")
+        logger.info(f"ALL v3.8.3 GATES PASSED — Executing {direction} {symbol} @ {price}")
+        logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} | Risk=${actual_risk} | Target=${target_dollars}")
 
         # Execute in MT5
         result = execute_mt5_order(ticket)
@@ -384,26 +392,25 @@ def run_scan_and_execute(symbol_override=None):
 
             # Send execution alert to Telegram
             dir_emoji = "SHORT" if direction == "SELL" else "LONG"
+            round_idx = trades_done + 1
             alert_msg = (
-                f"<b>TRADE EXECUTED — {symbol} {dir_emoji}</b>\n"
+                f"<b>TRADE EXECUTED — {symbol} {dir_emoji} (ROUND {round_idx}/{max_trades})</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"<b>Ticket:</b> <code>{ticket_id}</code>\n"
                 f"<b>Direction:</b> {direction}\n"
                 f"<b>Entry:</b> <code>${price:.2f}</code>\n"
                 f"<b>Stop Loss:</b> <code>${sl_level}</code> (${sl_distance:.2f} distance)\n"
-                f"<b>TP1:</b> <code>${tp1}</code> (Close 40%, Move SL to BE)\n"
-                f"<b>TP2:</b> <code>${tp2}</code> (Close 40%, Lock TP1)\n"
-                f"<b>TP3:</b> <code>${tp3}</code> (Trail 20% runner)\n"
+                f"<b>Take Profit:</b> <code>${tp1}</code> (<b>+${target_dollars:.2f} Target</b>)\n"
+                f"<b>Profit Guard:</b> 80/70 (Arm: +${target_dollars * 0.80:.2f} | Floor: +${target_dollars * 0.70:.2f})\n"
                 f"<b>Lots:</b> <code>{safe_lots}</code> | <b>Risk:</b> <code>${actual_risk}</code>\n"
                 f"<b>R:R:</b> <code>1:{rr_ratio}</code>\n"
                 f"<b>Regime:</b> <code>{regime}</code>\n"
-                f"<b>ATR Floor:</b> ${min_stop:.2f} (1.5x ATR)\n"
-                f"<b>Trades:</b> {trades_done + 1}/{max_trades}\n"
+                f"<b>Sequential Progress:</b> <b>{round_idx}/{max_trades} Trades</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<i>v3.0.0 Confirmed Entry — All 7 gates passed</i>"
+                f"<i>v3.8.3 Sequential Multi-Trade Architecture Active</i>"
             )
             broadcast_telegram(alert_msg)
-            logger.info(f"Trade {ticket_id} executed and alert sent. ({trades_done + 1}/{max_trades})")
+            logger.info(f"Trade {ticket_id} executed and alert sent. ({round_idx}/{max_trades})")
             return "EXECUTED"
         else:
             logger.error(f"MT5 order execution failed for {ticket_id}")
