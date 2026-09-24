@@ -1,16 +1,16 @@
 {
   "version": "3.5.2",
   "authorized_by": "Admin / Lead Architect",
-  "authorized_at": "2026-09-24T19:21:12.168375+00:00",
+  "authorized_at": "2026-09-24T22:30:37.405107+00:00",
   "files": {
-    "SKILL.md": "5f1d25ea9a3c9401d6b7ae94509d8b83b461caba8fd06f07c114aaac1f8d05b1",
-    "scripts\\auto_scanner.py": "714a91f09c142e9f2872473e65bcf59ad5bb2ff6ae71af92bb300f0031d04fbe",
+    "SKILL.md": "a870fcde49f5dd18cb1009b8f4fb290d26342d80804bc5c2409a0dc17b41f7a4",
+    "scripts\\auto_scanner.py": "273be4cfc2c6f662c756e2d6ba1c89953141c9d5cc471dfb526092e2d15ae1c1",
     "scripts\\mt5_connector.py": "8ea223e3a4bbf95d910ebf4b576a6d0ef6379b5aee6f56c889d2d6b5b0be679f",
     "scripts\\trade_monitor.py": "d0c99e1667f0c35602d338c6a80c6a0d6375c60147a90efd7592ad6d338b2ae4",
     "scripts\\send_alert.py": "1d8136639f0efef345ef99d343667ba57f1142ecca567657b38040c6fd44e232",
     "scripts\\daily_summary.py": "8979813ddcecf4d84da8418941742c890926f4385bff9ec1c82fe6cf7b1ca456",
-    "scripts\\telegram_listener.py": "b324d4e978c7d433d2a19a45c19dc3387ae48d2f50c69e150ce4134069aad22c",
-    "scripts\\start_session.py": "d31a8739a2c6af56a283000be7addb9df4beacec52e2c5512d2b1a19bef850d3",
+    "scripts\\telegram_listener.py": "90d1197f50f14bfc34403d5f4e051c9d09e83eaba4694c5a3419cf72ed27f6dd",
+    "scripts\\start_session.py": "50d38f95697cb141b981efadb7a89a3cfb1f9a1d9a7741c2d1f6752a87eb6999",
     "docs\\01_ORGANIZATION_ROLES.md": "1c2996dd94aa00aee29b1a99a212b7222f607f26d033296f6b1e50a86ff1a4f6",
     "docs\\02_REGIME_STRATEGY_ENGINE.md": "01c0d1572fd35d10fd7c8a97220fab93afa761f1bddc210b0b419a1606aa8c2d"
   }

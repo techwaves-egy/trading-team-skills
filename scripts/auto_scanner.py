@@ -164,15 +164,16 @@ def run_scan_and_execute(symbol_override=None):
                 logger.info(f"[SESSION FILTER] GBPUSD restricted outside London/NY active window (Current: {cur_hour}:00 UTC). Skipping.")
                 return "OFF_SESSION"
 
-        # === v3.8.3 GATE 0.1: Strict Sequential Anti-Stacking Engine ===
+        # === v3.8.4 GATE 0.1: Concurrency Batch Engine ===
+        batch_size = int(session.get("concurrent_batch_size", 1))
         all_open_pos = mt5.positions_get()
-        if all_open_pos and len(all_open_pos) > 0:
-            active_p = all_open_pos[0]
+        open_count = len(all_open_pos) if all_open_pos else 0
+        if open_count >= batch_size:
             logger.info(
-                f"[SEQUENTIAL PIPELINE] Active trade #{active_p.ticket} ({active_p.symbol} {active_p.volume}L) "
-                f"is running. Waiting for trade to exit before opening next sequential round."
+                f"[CONCURRENCY ENGINE] Active batch ({open_count}/{batch_size} trades) currently running. "
+                f"Waiting for batch completion before opening next daily round."
             )
-            return "ACTIVE_TRADE_IN_PROGRESS"
+            return "ACTIVE_BATCH_IN_PROGRESS"
 
         # === v3.3.0 GATE 1: Lockout Check ===
         locked, locked_until = check_asset_lockout(symbol)
@@ -354,66 +355,83 @@ def run_scan_and_execute(symbol_override=None):
             logger.info(f"R:R ratio {rr_ratio} below minimum {min_req_rr}, rejecting")
             return "LOW_RR"
 
-        # === ALL GATES PASSED — EXECUTE ===
-        ticket_id = f"TRD-{symbol[:3]}-{datetime.now(timezone.utc).strftime('%H%M')}"
-        ticket = {
-            "ticket_id": ticket_id,
-            "symbol": symbol,
-            "order_type": direction,
-            "sl": float(sl_level),
-            "tp": float(tp1),
-            "lots": float(safe_lots),
-            "strategy": strategy_active,
-        }
+        # === ALL GATES PASSED — EXECUTE CONCURRENT BATCH ===
+        trades_to_open = max(1, min(batch_size - open_count, max_trades - trades_done))
+        executed_orders = []
+        now_ts = datetime.now(timezone.utc).strftime('%H%M%S')
 
-        logger.info(f"ALL v3.8.3 GATES PASSED — Executing {direction} {symbol} @ {price}")
-        logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} | Risk=${actual_risk} | Target=${target_dollars}")
+        logger.info(f"ALL v3.8.4 GATES PASSED — Executing batch of {trades_to_open} {direction} {symbol} orders @ {price}")
+        logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} / trade | Risk=${actual_risk} | Target=${target_dollars}/trade")
 
-        # Execute in MT5
-        result = execute_mt5_order(ticket)
-        logger.info(f"MT5 execution result: {result}")
+        for idx in range(trades_to_open):
+            ticket_id = f"TRD-{symbol[:3]}-{now_ts}-{idx+1}"
+            ticket = {
+                "ticket_id": ticket_id,
+                "symbol": symbol,
+                "order_type": direction,
+                "sl": float(sl_level),
+                "tp": float(tp1),
+                "lots": float(safe_lots),
+                "strategy": strategy_active,
+            }
+            res = execute_mt5_order(ticket)
+            logger.info(f"MT5 execution result ({idx+1}/{trades_to_open}): {res}")
+            if isinstance(res, dict) and res.get("status") == "SUCCESS":
+                executed_orders.append((ticket_id, res))
+                session["trades_executed"] = int(session.get("trades_executed", 0)) + 1
+                session["leverage_trades_used"] = used + len(executed_orders)
+                save_session(session)
+            time.sleep(0.1)
 
-        success = isinstance(result, dict) and result.get("status") == "SUCCESS"
+        success = len(executed_orders) > 0
 
         if success:
-            # Update session counter and leverage quota
-            session["trades_executed"] = trades_done + 1
-            session["leverage_trades_used"] = used + 1
-            
-            if session["leverage_trades_used"] == quota:
+            trades_done_now = int(session.get("trades_executed", 0))
+            active_batch_size = int(session.get("concurrent_batch_size", 1))
+            daily_rounds = int(session.get("daily_rounds", (max_trades // active_batch_size) if active_batch_size > 0 else max_trades))
+            current_round = ((trades_done_now - 1) // active_batch_size) + 1 if active_batch_size > 0 else trades_done_now
+            total_rounds = max(1, daily_rounds)
+
+            if quota > 0 and session.get("leverage_trades_used", 0) >= quota:
                 broadcast_telegram(
                     f"<b>ℹ️ LEVERAGE QUOTA REACHED</b>\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"Completed <b>{quota} trades</b> at <b>{session.get('leverage_multiplier')}x leverage</b>.\n"
                     f"Reverting automatically to baseline <b>{baseline_lev}x leverage</b>."
                 )
-            
+
             save_session(session)
 
             # Send execution alert to Telegram
-            dir_emoji = "SHORT" if direction == "SELL" else "LONG"
-            round_idx = trades_done + 1
+            dir_emoji = "🔴 SHORT" if direction == "SELL" else "🟢 LONG"
+            ticket_ids_str = ", ".join([f"<code>{t[0]}</code>" for t in executed_orders])
+            total_batch_target = target_dollars * len(executed_orders)
+            daily_goal = target_dollars * max_trades
+
             alert_msg = (
-                f"<b>TRADE EXECUTED — {symbol} {dir_emoji} (ROUND {round_idx}/{max_trades})</b>\n"
+                f"<b>🚀 BATCH TRADE EXECUTED — {symbol} {dir_emoji}</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<b>Ticket:</b> <code>{ticket_id}</code>\n"
+                f"<b>Batch Size:</b> <b>{len(executed_orders)}x Concurrent Trades</b>\n"
+                f"<b>Tickets:</b> {ticket_ids_str}\n"
                 f"<b>Direction:</b> {direction}\n"
-                f"<b>Entry:</b> <code>${price:.2f}</code>\n"
+                f"<b>Entry Price:</b> <code>${price:.2f}</code>\n"
                 f"<b>Stop Loss:</b> <code>${sl_level}</code> (${sl_distance:.2f} distance)\n"
-                f"<b>Take Profit:</b> <code>${tp1}</code> (<b>+${target_dollars:.2f} Target</b>)\n"
-                f"<b>Profit Guard:</b> 80/70 (Arm: +${target_dollars * 0.80:.2f} | Floor: +${target_dollars * 0.70:.2f})\n"
-                f"<b>Lots:</b> <code>{safe_lots}</code> | <b>Risk:</b> <code>${actual_risk}</code>\n"
-                f"<b>R:R:</b> <code>1:{rr_ratio}</code>\n"
-                f"<b>Regime:</b> <code>{regime}</code>\n"
-                f"<b>Sequential Progress:</b> <b>{round_idx}/{max_trades} Trades</b>\n"
+                f"<b>Take Profit:</b> <code>${tp1}</code> (<b>+${target_dollars:.2f} / trade</b>)\n"
+                f"<b>Batch Profit Target:</b> <b>+${total_batch_target:.2f}</b>\n"
+                f"<b>Profit Guard:</b> 80/70 (Arm: +${target_dollars * 0.80:.2f} | Floor: +${target_dollars * 0.70:.2f} per trade)\n"
+                f"<b>Lots:</b> <code>{safe_lots}</code> each (Total: <code>{safe_lots * len(executed_orders):.2f}</code>) | <b>Risk:</b> <code>${actual_risk * len(executed_orders):.2f}</code>\n"
+                f"<b>R:R:</b> <code>1:{rr_ratio}</code> | <b>Regime:</b> <code>{regime}</code>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<i>v3.8.3 Sequential Multi-Trade Architecture Active</i>"
+                f"<b>Execution Progress:</b> <b>Round {current_round}/{total_rounds}</b> ({trades_done_now}/{max_trades} Total Trades)\n"
+                f"<b>Daily Profit Goal:</b> <b>+${daily_goal:.2f}</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"<i>v3.8.4 Batch Concurrency & Multi-Round Architecture Active</i>"
             )
             broadcast_telegram(alert_msg)
-            logger.info(f"Trade {ticket_id} executed and alert sent. ({round_idx}/{max_trades})")
+            logger.info(f"Batch executed ({len(executed_orders)} trades): {ticket_ids_str}. Round {current_round}/{total_rounds}")
             return "EXECUTED"
         else:
-            logger.error(f"MT5 order execution failed for {ticket_id}")
+            logger.error(f"MT5 order execution failed for batch of {trades_to_open} trades")
             broadcast_telegram(
                 f"<b>EXECUTION FAILED — {symbol}</b>\n"
                 f"Order rejected by MT5 terminal.\n"

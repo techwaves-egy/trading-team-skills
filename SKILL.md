@@ -1,25 +1,37 @@
 ---
 name: autonomous-trading-firm
-version: 3.8.0
+version: 3.8.4
 description: >-
   Multi-agent AI Autonomous Trading Firm for live market analysis, automated market regime detection,
   dynamic strategy selection & competition, risk engine validation, 80/70 Asymmetric Profit Protection,
+  batch concurrency (x1-x5), daily rounds configurator, interactive Telegram buttons wizard,
   and trade execution across Forex, Metals, Crypto, Stocks, Indices, and Commodities.
 ---
 
-# AI Autonomous Trading Firm (v3.8.0 — Universal Empirical Standard)
+# AI Autonomous Trading Firm (v3.8.4 — Universal Empirical Standard)
 
-A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Bollinger Bands 2.0-StdDev Mean Reversion** (#1 Universal Tournament Winner: **67.2% Win Rate, PF 2.36 on EURUSD; 66.7% Win Rate, PF 2.95 on Gold**), **80/70 Asymmetric Profit Protection Engine (Arms at ≥ 80% TP, closes at market on ≤ 70% retracement to lock in win)**, **Mandatory 3-Question Session Setup Protocol (Total Trades, Leverage Tier, and Leverage Trade Quota Duration)**, **Gold Profit Clamping Target ($20.00 – $30.00 per 1x trade)**, **Automated Market Close Daily & Weekly Summaries with Process Kill Switch**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection**, dynamic broker filling mode resolution (`FOK`/`IOC`), strategy-aware confirmation routing, native UNIX timestamp deal streaming, dynamic ATR volatility floors, 2-strike asset lockout circuit breakers, persistent mobile credential management, 24/7 background Telegram listener daemons, real-time trade result streaming, native **MetaTrader 5 (MT5)** direct desktop execution, **TradingView** webhook integration, and **fully autonomous scan-and-execute daemon** in Mode D.
+A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Bollinger Bands 2.0-StdDev Mean Reversion** (#1 Universal Tournament Winner: **67.2% Win Rate, PF 2.36 on EURUSD; 66.7% Win Rate, PF 2.95 on Gold**), **80/70 Asymmetric Profit Protection Engine (Arms at ≥ 80% TP, closes at market on ≤ 70% retracement to lock in win)**, **Batch Concurrency Engine (1x–5x simultaneous 0.01 lot trades per signal, each with independent $25.00 TP and 80/70 protection)**, **Daily Frequency & Rounds Configurator (1 to 5 rounds per day)**, **Interactive 3-Step Telegram Button Wizard & Persistent Keyboard Controls**, **Gold Profit Clamping Target ($25.00 per trade)**, **Automated Market Close Daily & Weekly Summaries with Process Kill Switch**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection**, dynamic broker filling mode resolution (`FOK`/`IOC`), strategy-aware confirmation routing, native UNIX timestamp deal streaming, dynamic ATR volatility floors, 2-strike asset lockout circuit breakers, persistent mobile credential management, 24/7 background Telegram listener daemons, real-time trade result streaming, native **MetaTrader 5 (MT5)** direct desktop execution, **TradingView** webhook integration, and **fully autonomous scan-and-execute daemon** in Mode D.
 
 ---
 
-## 0. Mandatory Interactive Session Setup Protocol (Every Session)
+## 0. Interactive Telegram Configurator & Button Protocol (v3.8.4)
 
-Whenever a user requests to start a new trading session, make trades, or reconfigure operations, the assistant **MUST ALWAYS ask the following 3 mandatory questions before launching daemons**:
+Users can configure and launch autonomous trading sessions directly from Telegram interactive buttons via a 3-step wizard or 1-tap quick presets:
 
-1. **Total Number of Trades Allowed (`max_trades`)**: How many total trades should the system execute in this session? (e.g. `3`, `5`, `10`, `20`).
-2. **Trade Leverage Multiplier (`leverage_multiplier`)**: What leverage tier should be applied? (`1x` Baseline: $0.01\text{ lots}$, `2x` Double: $0.02\text{ lots}$, `3x` Triple: $0.03\text{ lots}$, `5x` Sizing: $0.05\text{ lots}$).
-3. **Leverage Quota Duration (`leverage_trades_quota`)**: For how many trades should this leverage tier apply before automatically reverting to `1x` baseline? (e.g. "Apply 2x for the next 2 trades, then revert to 1x", or "Apply for all trades in this session").
+1. **Step 1: Market Universe Selection**:
+   - 🥇 **Gold Only (`XAUUSD`)**: Volatility champion ($25 target / trade).
+   - 💶 **Forex Only (`EURUSD`)**: Institutional liquidity ($25 target / trade).
+   - 🌐 **Both (`EURUSD, XAUUSD`)**: Dual-engine multi-asset scanner.
+
+2. **Step 2: Concurrent Batch Size (`x`)**:
+   - Number of simultaneous trades opened per qualifying signal (`1x` = 1 trade, `2x` = 2 trades, `3x` = 3 trades, `5x` = 5 trades).
+   - Each trade opens strictly with `0.01` lot and targets **`+$25.00`** with independent 80/70 Asymmetric Protection.
+   - Batch target goal = `batch_size * $25.00` (e.g. `5x` = `+$125.00` per batch round).
+
+3. **Step 3: Daily Frequency / Rounds**:
+   - Number of times per day this batch executes (`1`, `2`, `3`, or `5` rounds daily).
+   - Total daily trades = `batch_size * daily_rounds`.
+   - Total daily goal = `total_trades * $25.00` (e.g. 5x concurrency × 3 daily rounds = 15 trades, `+$375.00` daily goal).
 
 ---
 
@@ -46,14 +58,14 @@ After session parameters are confirmed, the firm automatically launches `scripts
    - **Secondary Trend Engine (Engine 2)**: **Multi-Timeframe Structural Breakout / 4H Trend-Rider** (Activated during strong macroeconomic trend expansions).
 3. Applies all **12 v3.7.0 empirical decision gates & execution standards** before any execution:
    - **Gate 0: Asset Disablement Policy**: Permanently blocks `USDJPY` & `GBPUSD` (negative empirical expectancy).
-   - **Gate 0.1: Anti-Stacking Concurrency**: Blocks duplicate entries if a position is already open on that asset.
+   - **Gate 0.1: Batch Concurrency & Strict Anti-Stacking**: Opens up to `concurrent_batch_size` concurrent trades (e.g. 1x, 2x, 3x, 5x) for a high-probability opportunity. Each trade is opened with 0.01 lot and an independent $25.00 target and 80/70 protection. Stacking beyond `concurrent_batch_size` is strictly blocked.
    - **Gate 1: 2-Strike Asset Lockout**: 60-minute freeze after 2 consecutive stop-outs.
    - **Gate 2: Dual-Engine Strategy Selector**: Automatically deploys Bollinger Mean Reversion or Structural Breakout.
    - **Gate 3: Support/Resistance Trap Filter**: Never SELL within 0.5× ATR of 4H Major Support; never BUY within 0.5× ATR of 4H Major Resistance.
    - **Gate 4: ATR Volatility Floor**: Stop loss distance $\ge 1.5\times\text{ATR}$ to prevent noise-outs.
    - **Gate 5: Strategy-Aware Confirmation Entry**: Validates envelope bounce for Mean Reversion or 15M CHoCH break for Trend Breakout.
-   - **Gate 6: Trade Leverage & Quota Duration Engine**: Scales volume by active leverage multiplier, automatically tracking quota usage and reverting to 1x baseline when quota completes.
-   - **Gate 7: Gold Profit Target Clamping**: Initial Gold profit target locked between $+\$20.00 \text{ and } +\$30.00$ per 1x micro lot ($+\$25.00$ standard).
+   - **Gate 6: Batch Concurrency & Daily Rounds Quota**: Executes `concurrent_batch_size` trades simultaneously per setup across `daily_rounds` sessions, strictly bounded by `max_trades = batch_size * daily_rounds`.
+   - **Gate 7: Gold Profit Target Clamping**: Initial Gold profit target locked at $+\$25.00$ per 0.01 micro lot ($+\$125.00$ per 5x batch).
    - **Gate 8: Dynamic Decimal Precision & Strict Lot Clamping**: Formats prices using native `symbol_info.digits` (5 for FX, 2 for Metals).
    - **Gate 9: Dynamic Broker Filling Mode**: Automatically selects `ORDER_FILLING_FOK` or `ORDER_FILLING_IOC` from broker `symbol_info.filling_mode` flag.
    - **Gate 10: Mandatory Telegram Broadcast on Modification**: Every skill or engine parameter change triggers an instant detailed Telegram broadcast.

@@ -119,6 +119,22 @@ def send_tg_message(bot_token, chat_id, text, reply_markup=None):
     return tg_api_request(bot_token, "sendMessage", payload)
 
 
+def edit_tg_message(bot_token, chat_id, message_id, text, reply_markup=None):
+    """Edit existing HTML message text and inline keyboard."""
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": "HTML"
+    }
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    res = tg_api_request(bot_token, "editMessageText", payload)
+    if not res or not res.get("ok"):
+        return send_tg_message(bot_token, chat_id, text, reply_markup)
+    return res
+
+
 def make_reply_keyboard():
     """
     Create persistent custom reply keyboard docked permanently
@@ -131,12 +147,15 @@ def make_reply_keyboard():
                 {"text": "🔍 Scan Market"}
             ],
             [
-                {"text": "🚀 Start 1x ($25)"},
-                {"text": "🚀 Start 2x ($50)"}
+                {"text": "⚙️ Configure Session (Wizard)"}
             ],
             [
-                {"text": "🚀 Start 3x ($75)"},
-                {"text": "🚀 Start 5x ($125)"}
+                {"text": "🥇 Gold 5x (3 Rounds • +$375)"},
+                {"text": "🥇 Gold 2x (2 Rounds • +$100)"}
+            ],
+            [
+                {"text": "🌐 Both 2x (2 Rounds • +$100)"},
+                {"text": "🚀 Fast 1x ($25 Win)"}
             ],
             [
                 {"text": "⚡ Buy Gold (0.01)"},
@@ -166,12 +185,15 @@ def make_main_keyboard():
                 {"text": "🔍 Scan Market", "callback_data": "cb_scan"}
             ],
             [
-                {"text": "🚀 Start 1x ($25)", "callback_data": "cb_start_1x"},
-                {"text": "🚀 Start 2x ($50)", "callback_data": "cb_start_2x"}
+                {"text": "⚙️ Configure Session (Wizard)", "callback_data": "wiz_start"}
             ],
             [
-                {"text": "🚀 Start 3x ($75)", "callback_data": "cb_start_3x"},
-                {"text": "🚀 Start 5x ($125)", "callback_data": "cb_start_5x"}
+                {"text": "🥇 Gold 5x (3 Rnds • +$375)", "callback_data": "cb_quick_gold_5x3"},
+                {"text": "🥇 Gold 2x (2 Rnds • +$100)", "callback_data": "cb_quick_gold_2x2"}
+            ],
+            [
+                {"text": "🌐 Both 2x (2 Rnds • +$100)", "callback_data": "cb_quick_both_2x2"},
+                {"text": "🚀 Fast 1x (+$25)", "callback_data": "cb_start_1x"}
             ],
             [
                 {"text": "⚡ Buy Gold (0.01)", "callback_data": "cb_buy_gold"},
@@ -189,12 +211,129 @@ def make_main_keyboard():
     }
 
 
+def send_wizard_step1(chat_id, bot_token, message_id=None):
+    """Step 1/3: Interactive Market Universe Selection."""
+    text = (
+        "⚙️ <b>STEP 1/3: SELECT MARKET UNIVERSE</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Choose which market asset(s) the autonomous scanner will trade:\n\n"
+        "• 🥇 <b>Gold Only (XAUUSD):</b> Hyper-liquid, high-volatility momentum ($25 target / trade)\n"
+        "• 💶 <b>Forex Only (EURUSD):</b> Stable institutional trend liquidity ($25 target / trade)\n"
+        "• 🌐 <b>Multi-Asset (Both):</b> Dual scanner covering both EURUSD & XAUUSD\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "👉 <i>Tap an option below to proceed:</i>"
+    )
+    kb = {
+        "inline_keyboard": [
+            [
+                {"text": "🥇 Gold Only (XAUUSD)", "callback_data": "wiz_m_GOLD"},
+                {"text": "💶 Forex Only (EURUSD)", "callback_data": "wiz_m_FOREX"}
+            ],
+            [
+                {"text": "🌐 Both (Gold + Forex)", "callback_data": "wiz_m_BOTH"}
+            ],
+            [
+                {"text": "« Back to Main Menu", "callback_data": "cb_help"}
+            ]
+        ]
+    }
+    if message_id:
+        return edit_tg_message(bot_token, chat_id, message_id, text, kb)
+    return send_tg_message(bot_token, chat_id, text, kb)
+
+
+def send_wizard_step2(chat_id, bot_token, market, message_id=None):
+    """Step 2/3: Interactive Batch Concurrency Selection."""
+    labels = {
+        "GOLD": "🥇 Gold Only (XAUUSD)",
+        "FOREX": "💶 Forex Only (EURUSD)",
+        "BOTH": "🌐 Both (Gold + Forex)"
+    }
+    m_label = labels.get(market.upper(), market)
+    text = (
+        f"⚙️ <b>STEP 2/3: SELECT CONCURRENT BATCH SIZE (x)</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"Selected Universe: <b>{m_label}</b>\n\n"
+        f"How many simultaneous trades should be executed per setup?\n"
+        f"Each trade opens <code>0.01 lot</code> with an independent <b>+$25.00 profit target</b> and <b>80/70 Asymmetric Protection</b>:\n\n"
+        f"• <b>1x:</b> 1 trade per signal ➔ <b>+$25.00 / round</b>\n"
+        f"• <b>2x:</b> 2 concurrent trades ➔ <b>+$50.00 / round</b>\n"
+        f"• <b>3x:</b> 3 concurrent trades ➔ <b>+$75.00 / round</b>\n"
+        f"• <b>5x:</b> 5 concurrent trades ➔ <b>+$125.00 / round</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👉 <i>Tap batch concurrency (x) to proceed to Step 3:</i>"
+    )
+    kb = {
+        "inline_keyboard": [
+            [
+                {"text": "1x (1 Trade • +$25)", "callback_data": f"wiz_b_{market}_1"},
+                {"text": "2x (2 Trades • +$50)", "callback_data": f"wiz_b_{market}_2"}
+            ],
+            [
+                {"text": "3x (3 Trades • +$75)", "callback_data": f"wiz_b_{market}_3"},
+                {"text": "5x (5 Trades • +$125)", "callback_data": f"wiz_b_{market}_5"}
+            ],
+            [
+                {"text": "« Back to Step 1 (Market)", "callback_data": "wiz_start"}
+            ]
+        ]
+    }
+    if message_id:
+        return edit_tg_message(bot_token, chat_id, message_id, text, kb)
+    return send_tg_message(bot_token, chat_id, text, kb)
+
+
+def send_wizard_step3(chat_id, bot_token, market, batch_str, message_id=None):
+    """Step 3/3: Interactive Daily Rounds Frequency Selection."""
+    labels = {
+        "GOLD": "🥇 Gold Only (XAUUSD)",
+        "FOREX": "💶 Forex Only (EURUSD)",
+        "BOTH": "🌐 Both (Gold + Forex)"
+    }
+    m_label = labels.get(market.upper(), market)
+    batch = int(batch_str) if str(batch_str).isdigit() else 2
+    batch_goal = batch * 25.0
+
+    text = (
+        f"⚙️ <b>STEP 3/3: SELECT DAILY FREQUENCY (ROUNDS)</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"Universe: <b>{m_label}</b>\n"
+        f"Batch Size: <b>{batch}x Concurrent Trades</b> (0.01L each • +${batch_goal:.2f} / round)\n\n"
+        f"How many times per day should this batch execute?\n"
+        f"• <b>1 Round Daily:</b> {batch * 1} trades daily ➔ Daily Goal: <b>+${batch_goal * 1:.2f}</b>\n"
+        f"• <b>2 Rounds Daily:</b> {batch * 2} trades daily ➔ Daily Goal: <b>+${batch_goal * 2:.2f}</b>\n"
+        f"• <b>3 Rounds Daily:</b> {batch * 3} trades daily ➔ Daily Goal: <b>+${batch_goal * 3:.2f}</b>\n"
+        f"• <b>5 Rounds Daily:</b> {batch * 5} trades daily ➔ Daily Goal: <b>+${batch_goal * 5:.2f}</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👉 <i>Tap daily rounds to confirm and launch autonomous engine:</i>"
+    )
+    kb = {
+        "inline_keyboard": [
+            [
+                {"text": f"1 Round (+${batch_goal*1:.0f})", "callback_data": f"wiz_r_{market}_{batch}_1"},
+                {"text": f"2 Rounds (+${batch_goal*2:.0f})", "callback_data": f"wiz_r_{market}_{batch}_2"}
+            ],
+            [
+                {"text": f"3 Rounds (+${batch_goal*3:.0f})", "callback_data": f"wiz_r_{market}_{batch}_3"},
+                {"text": f"5 Rounds (+${batch_goal*5:.0f})", "callback_data": f"wiz_r_{market}_{batch}_5"}
+            ],
+            [
+                {"text": "« Back to Step 2 (Batch Concurrency)", "callback_data": f"wiz_m_{market}"}
+            ]
+        ]
+    }
+    if message_id:
+        return edit_tg_message(bot_token, chat_id, message_id, text, kb)
+    return send_tg_message(bot_token, chat_id, text, kb)
+
+
 def set_bot_commands(bot_token):
     """Register official command menu with Telegram Bot API."""
     commands = [
+        {"command": "wizard", "description": "⚙️ 3-Step Interactive Session Wizard"},
         {"command": "status", "description": "📊 Live balance, equity & positions"},
         {"command": "scan", "description": "🔍 Force immediate market sweep"},
-        {"command": "start_session", "description": "🚀 Launch autonomous trading session"},
+        {"command": "start_session", "description": "🚀 Launch custom session [m] [x] [rounds]"},
         {"command": "summary", "description": "📈 Today's complete market close audit"},
         {"command": "buy", "description": "⚡ Instant market BUY execution"},
         {"command": "sell", "description": "⚡ Instant market SELL execution"},
@@ -268,57 +407,84 @@ def send_engine_restart_alert(bot_token, config):
         logger.error(f"Error sending engine restart alert: {e}")
 
 
-def start_trading_session(tier="2x", leverage_tier=None, quota_trades=None):
+def start_trading_session(market="BOTH", batch_size=2, daily_rounds=2, quota_trades=None):
     """
-    Initializes session state for Sequential Multi-Trade Architecture:
-      - 1x = 1 trade,  +$25.00 target, 80/70 protection,  $25.00 total goal
-      - 2x = 2 trades, +$25.00 target, 80/70 protection,  $50.00 total goal
-      - 3x = 3 trades, +$25.00 target, 80/70 protection,  $75.00 total goal
-      - 5x = 5 trades, +$25.00 target, 80/70 protection, $125.00 total goal
-      - Nx = N sequential trades, each targeting $25.00 with 80/70 protection
+    Initializes session state for v3.8.4 Batch Concurrency & Multi-Round Architecture:
+      - market: "GOLD" (XAUUSD), "FOREX" (EURUSD), or "BOTH" (EURUSD, XAUUSD)
+      - batch_size (x): Number of concurrent trades opened per setup (e.g. 1, 2, 3, 5).
+                        Each trade is 0.01 lot with an independent $25.00 profit target and 80/70 protection.
+      - daily_rounds: Number of batches/cycles executed daily (e.g. 1, 2, 3, 5 rounds).
+      - total daily trades = batch_size * daily_rounds
+      - batch profit goal = batch_size * $25.00
+      - daily profit goal = total daily trades * $25.00
     """
-    rounds = 2
-    raw = str(tier).lower().strip()
-    if raw.endswith("x"):
-        raw_num = raw[:-1]
-        if raw_num.isdigit():
-            rounds = max(1, int(raw_num))
-    elif raw.isdigit():
-        rounds = max(1, int(raw))
-    elif leverage_tier:
-        raw_lev = str(leverage_tier).lower().strip().replace("x", "")
-        if raw_lev.isdigit():
-            rounds = max(1, int(raw_lev))
+    m_str = str(market).strip().upper()
+    if m_str.endswith("X") or m_str.isdigit():
+        raw_num = m_str[:-1] if m_str.endswith("X") else m_str
+        b_val = max(1, int(raw_num)) if raw_num.isdigit() else 2
+        r_val = int(batch_size) if str(batch_size).isdigit() else 1
+        m_resolved = "BOTH"
+        b_resolved = b_val
+        r_resolved = r_val
+    else:
+        if "GOLD" in m_str or "XAU" in m_str:
+            m_resolved = "GOLD"
+        elif "EUR" in m_str or "FOREX" in m_str:
+            m_resolved = "FOREX"
+        else:
+            m_resolved = "BOTH"
 
-    max_trades = rounds
+        b_raw = str(batch_size).strip().upper().replace("X", "")
+        b_resolved = int(b_raw) if b_raw.isdigit() else 2
+        r_raw = str(daily_rounds).strip().upper().replace("X", "").replace("R", "")
+        r_resolved = int(r_raw) if r_raw.isdigit() else 2
+
+    final_batch = max(1, b_resolved)
+    final_rounds = max(1, r_resolved)
+    total_trades = final_batch * final_rounds
     target_profit_per_trade = 25.0
-    session_profit_goal = round(target_profit_per_trade * rounds, 2)
-    approved_tier = f"{rounds}x"
-    quota = quota_trades if quota_trades is not None else rounds
+    batch_profit_goal = round(target_profit_per_trade * final_batch, 2)
+    session_profit_goal = round(target_profit_per_trade * total_trades, 2)
 
-    session_id = f"SES-{datetime.now(timezone.utc).strftime('%Y%m%d')}-SEQ{rounds}X"
+    if m_resolved == "GOLD":
+        watchlist = ["XAUUSD"]
+        active_market_label = "XAUUSD (Gold Only)"
+    elif m_resolved == "FOREX":
+        watchlist = ["EURUSD"]
+        active_market_label = "EURUSD (Forex Only)"
+    else:
+        watchlist = ["EURUSD", "XAUUSD"]
+        active_market_label = "EURUSD, XAUUSD (Both Multi-Asset)"
+
+    tier_label = f"{final_batch}x ({final_rounds}R)"
+    session_id = f"SES-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{m_resolved}-{final_batch}X-{final_rounds}R"
+    margin_stress = f"{final_batch * 2.7:.1f}% (Institutional A+ Rating)"
 
     session_data = {
         "session_id": session_id,
-        "active_market": "EURUSD, XAUUSD",
-        "watchlist": ["EURUSD", "XAUUSD"],
+        "market_choice": m_resolved,
+        "active_market": active_market_label,
+        "watchlist": watchlist,
+        "concurrent_batch_size": final_batch,
+        "daily_rounds": final_rounds,
         "target_profit_per_trade": target_profit_per_trade,
+        "batch_profit_goal": batch_profit_goal,
         "session_profit_goal": session_profit_goal,
-        "session_tier": approved_tier,
+        "session_tier": tier_label,
         "risk_per_trade_dollars": 25.0,
         "max_daily_loss_dollars": 50.0,
         "default_lots": 0.01,
         "leverage_multiplier": 1.0,
-        "leverage_trades_quota": quota,
+        "leverage_trades_quota": quota_trades if quota_trades is not None else total_trades,
         "leverage_trades_used": 0,
         "baseline_leverage": 1.0,
         "gold_profit_target_base": 25.0,
-        "max_trades": max_trades,
+        "max_trades": total_trades,
         "trades_executed": 0,
         "trading_mode": "D",
         "risk_manager_status": "APPROVED_BY_CRO",
-        "approved_leverage_tier": approved_tier,
-        "margin_stress_score": f"{0.03 * rounds:.2f}% (Institutional A+ Rating)",
+        "approved_leverage_tier": tier_label,
+        "margin_stress_score": margin_stress,
         "start_time": datetime.now(timezone.utc).isoformat(),
         "is_active": True
     }
@@ -356,10 +522,16 @@ def is_market_closed_now():
     return False, "Market is OPEN"
 
 
-def handle_start_session_cmd(args, chat_id, bot_token):
-    """Parse /start_session command parameters and initiate session."""
-    tier_input = "2x"
-
+def handle_start_session_cmd(args, chat_id, bot_token, message_id=None):
+    """
+    Parse /start_session command parameters and initiate session.
+    Supported inputs:
+      - No args or 'wizard' -> Launches 3-step interactive button wizard
+      - /start_session gold 5 3 -> 5 concurrent gold trades, 3 rounds daily
+      - /start_session both 2 2 -> 2 concurrent trades, 2 rounds daily
+      - /start_session 5x 3 -> 5 concurrent trades, 3 rounds daily
+      - /start_session 1x -> 1 trade, 1 round
+    """
     # Check for market closure
     is_closed, reason = is_market_closed_now()
     if is_closed and "--force" not in args:
@@ -374,27 +546,61 @@ def handle_start_session_cmd(args, chat_id, bot_token):
         send_tg_message(bot_token, chat_id, warning_msg, reply_markup=make_main_keyboard())
         return
 
-    if len(args) >= 1 and not args[0].startswith("--"):
-        tier_input = args[0]
+    # If no args or wizard requested, open wizard Step 1
+    if not args or args[0].lower() in ("wizard", "config", "step1", "menu"):
+        send_wizard_step1(chat_id, bot_token, message_id)
+        return
 
-    session = start_trading_session(tier_input)
+    clean_args = [a for a in args if not a.startswith("--")]
+    market = "BOTH"
+    batch = 2
+    rounds = 2
+
+    if len(clean_args) >= 3:
+        market = clean_args[0]
+        batch = clean_args[1]
+        rounds = clean_args[2]
+    elif len(clean_args) == 2:
+        if clean_args[0].upper() in ("GOLD", "FOREX", "BOTH", "EURUSD", "XAUUSD"):
+            market = clean_args[0]
+            batch = clean_args[1]
+            rounds = 2
+        else:
+            market = "BOTH"
+            batch = clean_args[0]
+            rounds = clean_args[1]
+    elif len(clean_args) == 1:
+        if clean_args[0].upper() in ("GOLD", "FOREX", "BOTH", "EURUSD", "XAUUSD"):
+            market = clean_args[0]
+            batch = 2
+            rounds = 2
+        else:
+            market = "BOTH"
+            batch = clean_args[0]
+            rounds = 1
+
+    session = start_trading_session(market, batch, rounds)
     target_dollars = float(session.get("target_profit_per_trade", 25.0))
-    session_goal = float(session.get("session_profit_goal", 50.0))
-    rounds = session.get("max_trades", 2)
-    tier_name = session.get("approved_leverage_tier", "2x")
+    batch_size = session.get("concurrent_batch_size", 1)
+    daily_rounds = session.get("daily_rounds", 1)
+    batch_goal = float(session.get("batch_profit_goal", 50.0))
+    daily_goal = float(session.get("session_profit_goal", 100.0))
+    total_trades = session.get("max_trades", 2)
+    market_label = session.get("active_market", "EURUSD, XAUUSD")
 
     msg = (
         f"🚀 <b>AUTONOMOUS SESSION LAUNCHED VIA TELEGRAM</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"🆔 <b>Session ID:</b> <code>{session['session_id']}</code>\n"
-        f"🎯 <b>Sequential Target:</b> <b>{tier_name} Tier ({rounds} Trade{'s' if rounds > 1 else ''})</b>\n"
-        f"💰 <b>Profit Target / Trade:</b> <code>+${target_dollars:.2f}</code> (Fixed per round)\n"
-        f"🛡️ <b>80/70 Protection:</b> Arms @ <code>+${target_dollars * 0.80:.2f}</code> | Floor @ <code>+${target_dollars * 0.70:.2f}</code>\n"
-        f"🏆 <b>Total Session Goal:</b> <b>+${session_goal:.2f} USD</b>\n"
-        f"📦 <b>Position Size:</b> <code>{session.get('default_lots', 0.01)} lot</code> (Strict Anti-Stacking)\n"
-        f"⚡ <b>Strategy:</b> Bollinger Bands 2.0 Mean Reversion\n"
-        f"🛡️ <b>CRO Risk Clearance:</b> ✅ APPROVED\n"
-        f"🤖 <b>Daemons:</b> Scanner, Trade Monitor & Daily Auditor Active\n"
+        f"🌐 <b>Active Market:</b> <b>{market_label}</b>\n"
+        f"⚡ <b>Batch Concurrency:</b> <b>{batch_size}x Simultaneous Orders</b> (0.01L each)\n"
+        f"🎯 <b>Daily Execution:</b> <b>{daily_rounds} Round{'s' if daily_rounds > 1 else ''} Daily</b> ({total_trades} Total Trades)\n"
+        f"💰 <b>Target Profit / Trade:</b> <code>+${target_dollars:.2f}</code>\n"
+        f"🏆 <b>Batch Target / Round:</b> <b>+${batch_goal:.2f} USD</b>\n"
+        f"🌟 <b>Total Daily Goal:</b> <b>+${daily_goal:.2f} USD</b>\n"
+        f"🛡️ <b>80/70 Protection:</b> Arms @ <code>+${target_dollars * 0.80:.2f}</code> | Floor @ <code>+${target_dollars * 0.70:.2f}</code> per trade\n"
+        f"🛡️ <b>CRO Safety Score:</b> <b>{session.get('margin_stress_score')}</b>\n"
+        f"🤖 <b>Active Daemons:</b> Scanner, Trade Monitor &amp; Daily Auditor Online\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"<i>Autonomous scanner is actively monitoring markets for Round 1 setup...</i>"
     )
@@ -427,24 +633,31 @@ def handle_status_cmd(chat_id, bot_token):
             pos_text = "  • No open positions (100% Flat & Protected)"
 
         target_per_trade = float(session.get("target_profit_per_trade", 25.0))
-        session_goal = float(session.get("session_profit_goal", 50.0))
+        batch_size = int(session.get("concurrent_batch_size", 1))
+        batch_goal = float(session.get("batch_profit_goal", target_per_trade * batch_size))
+        daily_goal = float(session.get("session_profit_goal", 50.0))
         trades_done = session.get('trades_executed', 0)
         max_trades = session.get('max_trades', 0)
-        tier_label = session.get('approved_leverage_tier', '2x')
+        daily_rounds = int(session.get("daily_rounds", (max_trades // batch_size) if batch_size > 0 else max_trades))
+        current_round = ((trades_done - 1) // batch_size) + 1 if trades_done > 0 and batch_size > 0 else 0
+        market_label = session.get("active_market", "EURUSD, XAUUSD")
 
         msg = (
             f"📊 <b>FIRM LIVE TELEMETRY &amp; STATUS</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"🆔 <b>Session:</b> <code>{session.get('session_id', 'NONE')}</code> [{status_icon}]\n"
+            f"🌐 <b>Universe:</b> <b>{market_label}</b>\n"
             f"🏦 <b>Account Balance:</b> <code>${acc.balance:,.2f}</code>\n"
             f"📈 <b>Equity:</b> <code>${acc.equity:,.2f}</code> | <b>Free Margin:</b> <code>${acc.margin_free:,.2f}</code>\n"
-            f"🎯 <b>Sequential Progress:</b> <b>{trades_done} / {max_trades} Trades</b> ({tier_label} Tier)\n"
-            f"💰 <b>Target / Trade:</b> <code>+${target_per_trade:.2f}</code> | <b>Session Goal:</b> <code>+${session_goal:.2f}</code>\n"
+            f"⚡ <b>Concurrency:</b> <b>{batch_size}x Concurrent Trades</b> per setup\n"
+            f"🎯 <b>Daily Rounds:</b> <b>Round {current_round}/{daily_rounds}</b> ({trades_done}/{max_trades} Total Trades)\n"
+            f"💰 <b>Target / Trade:</b> <code>+${target_per_trade:.2f}</code> | <b>Batch Goal:</b> <code>+${batch_goal:.2f}</code>\n"
+            f"🏆 <b>Total Daily Goal:</b> <b>+${daily_goal:.2f} USD</b>\n"
             f"🛡️ <b>80/70 Protection:</b> Arms @ <code>+${target_per_trade * 0.80:.2f}</code> | Floor @ <code>+${target_per_trade * 0.70:.2f}</code>\n\n"
             f"🛡️ <b>OPEN POSITIONS ({len(positions) if positions else 0}):</b>\n"
             f"{pos_text}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"<i>AI Autonomous Trading Firm v3.8.3</i>"
+            f"<i>AI Autonomous Trading Firm v3.8.4</i>"
         )
         send_tg_message(bot_token, chat_id, msg, reply_markup=make_main_keyboard())
     except Exception as e:
@@ -689,16 +902,19 @@ def handle_help_cmd(chat_id, bot_token):
     msg = (
         f"🤖 <b>AI AUTONOMOUS TRADING FIRM — REMOTE COMMANDS</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"<b>🚀 Launch Autonomous Session (Sequential Multi-Trade):</b>\n"
+        f"<b>⚙️ Interactive Configurator:</b>\n"
+        f"  • Tap <b>⚙️ Configure Session (Wizard)</b> to pick market, concurrency & daily rounds via interactive buttons.\n"
+        f"  • Or type <code>/wizard</code> anytime.\n\n"
+        f"<b>🚀 Direct Session Launch (Market, Concurrency, Rounds):</b>\n"
+        f"  • <code>/start_session gold 5 3</code> — Gold, 5x concurrent (15 trades, +$375 goal)\n"
+        f"  • <code>/start_session gold 2 2</code> — Gold, 2x concurrent (4 trades, +$100 goal)\n"
+        f"  • <code>/start_session both 2 2</code> — Both, 2x concurrent (4 trades, +$100 goal)\n"
         f"  • <code>/start_session 1x</code> — 1 Trade ($25 target, 80/70 protection)\n"
-        f"  • <code>/start_session 2x</code> — 2 Sequential Trades ($25 each, $50 goal)\n"
-        f"  • <code>/start_session 3x</code> — 3 Sequential Trades ($25 each, $75 goal)\n"
-        f"  • <code>/start_session 5x</code> — 5 Sequential Trades ($25 each, $125 goal)\n"
-        f"  • <code>/status</code> — Live balance, equity, sequential progress & target metrics\n"
+        f"  • <code>/status</code> — Live balance, equity, rounds progress & target metrics\n"
         f"  • <code>/stop</code> — Stop active auto-scanner\n\n"
         f"<b>⚡ Instant Direct Execution:</b>\n"
-        f"  • <code>/buy [symbol] [lots]</code> — Instant market BUY (e.g. <code>/buy XAUUSD 0.02</code>)\n"
-        f"  • <code>/sell [symbol] [lots]</code> — Instant market SELL (e.g. <code>/sell EURUSD 0.10</code>)\n"
+        f"  • <code>/buy [symbol] [lots]</code> — Instant market BUY (e.g. <code>/buy XAUUSD 0.01</code>)\n"
+        f"  • <code>/sell [symbol] [lots]</code> — Instant market SELL (e.g. <code>/sell EURUSD 0.01</code>)\n"
         f"  • <code>/scan</code> — Force immediate market sweep on EURUSD & Gold\n"
         f"  • <code>/close</code> — <b>Kill Switch:</b> Emergency close all open positions\n\n"
         f"<b>📊 Reports &amp; Security:</b>\n"
@@ -720,6 +936,7 @@ def process_update(update, bot_token, config):
         cb = update["callback_query"]
         user_id = cb.get("from", {}).get("id")
         chat_id = cb.get("message", {}).get("chat", {}).get("id")
+        msg_id = cb.get("message", {}).get("message_id")
         data = cb.get("data", "")
 
         if not is_authorized(user_id, chat_id, config):
@@ -736,6 +953,8 @@ def process_update(update, bot_token, config):
             handle_close_cmd(chat_id, bot_token)
         elif data == "cb_stop":
             handle_stop_cmd(chat_id, bot_token)
+        elif data == "cb_help":
+            handle_help_cmd(chat_id, bot_token)
         elif data == "cb_summary":
             from daily_summary import send_daily_summary
             send_daily_summary()
@@ -744,14 +963,36 @@ def process_update(update, bot_token, config):
             send_market_close_summary(is_weekend=True, kill_processes=False)
         elif data == "cb_integrity":
             handle_integrity_cmd(chat_id, bot_token)
+        elif data == "wiz_start":
+            send_wizard_step1(chat_id, bot_token, msg_id)
+        elif data.startswith("wiz_m_"):
+            m = data.replace("wiz_m_", "")
+            send_wizard_step2(chat_id, bot_token, m, msg_id)
+        elif data.startswith("wiz_b_"):
+            parts = data.split("_")
+            m = parts[2]
+            b = parts[3]
+            send_wizard_step3(chat_id, bot_token, m, b, msg_id)
+        elif data.startswith("wiz_r_"):
+            parts = data.split("_")
+            m = parts[2]
+            b = parts[3]
+            r = parts[4]
+            handle_start_session_cmd([m, b, r], chat_id, bot_token, msg_id)
+        elif data == "cb_quick_gold_5x3":
+            handle_start_session_cmd(["GOLD", "5", "3"], chat_id, bot_token)
+        elif data == "cb_quick_gold_2x2":
+            handle_start_session_cmd(["GOLD", "2", "2"], chat_id, bot_token)
+        elif data == "cb_quick_both_2x2":
+            handle_start_session_cmd(["BOTH", "2", "2"], chat_id, bot_token)
         elif data == "cb_start_1x":
-            handle_start_session_cmd(["1x"], chat_id, bot_token)
-        elif data == "cb_start_2x" or data == "cb_start_5_2x":
-            handle_start_session_cmd(["2x"], chat_id, bot_token)
+            handle_start_session_cmd(["BOTH", "1", "1"], chat_id, bot_token)
+        elif data in ("cb_start_2x", "cb_start_5_2x"):
+            handle_start_session_cmd(["BOTH", "2", "2"], chat_id, bot_token)
         elif data == "cb_start_3x":
-            handle_start_session_cmd(["3x"], chat_id, bot_token)
+            handle_start_session_cmd(["BOTH", "3", "1"], chat_id, bot_token)
         elif data == "cb_start_5x":
-            handle_start_session_cmd(["5x"], chat_id, bot_token)
+            handle_start_session_cmd(["BOTH", "5", "1"], chat_id, bot_token)
         elif data == "cb_buy_gold":
             handle_direct_trade_cmd("BUY", ["XAUUSD", "0.01"], chat_id, bot_token)
         elif data == "cb_sell_gold":
@@ -800,30 +1041,49 @@ def process_update(update, bot_token, config):
             "🔍 scan": "/scan",
             "scan": "/scan",
             "scan market": "/scan",
-            "🚀 start 1x ($25)": "/start_session 1x",
-            "🚀 start 1x": "/start_session 1x",
-            "start 1x": "/start_session 1x",
-            "1x": "/start_session 1x",
-            "1": "/start_session 1x",
-            "🚀 start 2x ($50)": "/start_session 2x",
-            "🚀 start 2x": "/start_session 2x",
-            "start 2x": "/start_session 2x",
-            "2x": "/start_session 2x",
-            "2": "/start_session 2x",
-            "🚀 start 3x ($75)": "/start_session 3x",
-            "🚀 start 3x": "/start_session 3x",
-            "start 3x": "/start_session 3x",
-            "3x": "/start_session 3x",
-            "3": "/start_session 3x",
-            "🚀 start 5x ($125)": "/start_session 5x",
-            "🚀 start 5x": "/start_session 5x",
-            "start 5x": "/start_session 5x",
-            "5x": "/start_session 5x",
-            "5": "/start_session 5x",
-            "🚀 start session": "/start_session 2x",
-            "start session": "/start_session 2x",
-            "start": "/start_session 2x",
-            "trade": "/start_session 2x",
+            "⚙️ configure session (wizard)": "/wizard",
+            "⚙️ configure session": "/wizard",
+            "configure session": "/wizard",
+            "configure": "/wizard",
+            "wizard": "/wizard",
+            "config": "/wizard",
+            "setup": "/wizard",
+            "🥇 gold 5x (3 rounds • +$375)": "/start_session gold 5 3",
+            "gold 5x (3 rounds • +$375)": "/start_session gold 5 3",
+            "gold 5x": "/start_session gold 5 3",
+            "🥇 gold 2x (2 rounds • +$100)": "/start_session gold 2 2",
+            "gold 2x (2 rounds • +$100)": "/start_session gold 2 2",
+            "gold 2x": "/start_session gold 2 2",
+            "🌐 both 2x (2 rounds • +$100)": "/start_session both 2 2",
+            "both 2x (2 rounds • +$100)": "/start_session both 2 2",
+            "both 2x": "/start_session both 2 2",
+            "🚀 fast 1x ($25 win)": "/start_session both 1 1",
+            "fast 1x ($25 win)": "/start_session both 1 1",
+            "fast 1x": "/start_session both 1 1",
+            "🚀 start 1x ($25)": "/start_session both 1 1",
+            "🚀 start 1x": "/start_session both 1 1",
+            "start 1x": "/start_session both 1 1",
+            "1x": "/start_session both 1 1",
+            "1": "/start_session both 1 1",
+            "🚀 start 2x ($50)": "/start_session both 2 1",
+            "🚀 start 2x": "/start_session both 2 1",
+            "start 2x": "/start_session both 2 1",
+            "2x": "/start_session both 2 1",
+            "2": "/start_session both 2 1",
+            "🚀 start 3x ($75)": "/start_session both 3 1",
+            "🚀 start 3x": "/start_session both 3 1",
+            "start 3x": "/start_session both 3 1",
+            "3x": "/start_session both 3 1",
+            "3": "/start_session both 3 1",
+            "🚀 start 5x ($125)": "/start_session both 5 1",
+            "🚀 start 5x": "/start_session both 5 1",
+            "start 5x": "/start_session both 5 1",
+            "5x": "/start_session both 5 1",
+            "5": "/start_session both 5 1",
+            "🚀 start session": "/wizard",
+            "start session": "/wizard",
+            "start": "/wizard",
+            "trade": "/wizard",
             "📈 today summary": "/summary",
             "📈 summary": "/summary",
             "today summary": "/summary",
@@ -881,6 +1141,8 @@ def process_update(update, bot_token, config):
 
         if cmd in ("/start", "/help"):
             handle_help_cmd(chat_id, bot_token)
+        elif cmd in ("/wizard", "/config", "/setup"):
+            send_wizard_step1(chat_id, bot_token)
         elif cmd in ("/start_session", "/run", "/launch", "/start_trading", "/start_trades", "/trade", "/trade_now"):
             handle_start_session_cmd(args, chat_id, bot_token)
         elif cmd == "/buy":
