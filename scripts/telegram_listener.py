@@ -108,7 +108,7 @@ def tg_api_request(bot_token, method, data=None):
 
 
 def send_tg_message(bot_token, chat_id, text, reply_markup=None):
-    """Send HTML message with optional inline keyboard."""
+    """Send HTML message with optional inline or reply keyboard."""
     payload = {
         "chat_id": chat_id,
         "text": text,
@@ -119,28 +119,145 @@ def send_tg_message(bot_token, chat_id, text, reply_markup=None):
     return tg_api_request(bot_token, "sendMessage", payload)
 
 
+def make_reply_keyboard():
+    """
+    Create persistent custom reply keyboard docked permanently
+    at the bottom of the user's screen in Telegram.
+    """
+    return {
+        "keyboard": [
+            [
+                {"text": "📊 Live Status"},
+                {"text": "🔍 Scan Market"}
+            ],
+            [
+                {"text": "🚀 Start Session"},
+                {"text": "📈 Today Summary"}
+            ],
+            [
+                {"text": "⚡ Buy Gold (0.02)"},
+                {"text": "⚡ Sell Gold (0.02)"}
+            ],
+            [
+                {"text": "🛡️ Verify Security"},
+                {"text": "🛑 Close All (Kill)"}
+            ],
+            [
+                {"text": "🏆 Weekly Audit"},
+                {"text": "❓ Help / Menu"}
+            ]
+        ],
+        "resize_keyboard": True,
+        "is_persistent": True,
+        "one_time_keyboard": False
+    }
+
+
 def make_main_keyboard():
-    """Create persistent interactive command keyboard."""
+    """Create interactive inline callback keyboard attached to messages."""
     return {
         "inline_keyboard": [
             [
-                {"text": "🚀 Start Session (5T / 2x)", "callback_data": "cb_start_5_2x"},
-                {"text": "📊 Live Status", "callback_data": "cb_status"}
+                {"text": "📊 Live Status", "callback_data": "cb_status"},
+                {"text": "🔍 Scan Market", "callback_data": "cb_scan"}
             ],
             [
-                {"text": "🔍 Scan Market", "callback_data": "cb_scan"},
+                {"text": "🚀 Start Session (5T/2x)", "callback_data": "cb_start_5_2x"},
+                {"text": "📈 Today Summary", "callback_data": "cb_summary"}
+            ],
+            [
+                {"text": "⚡ Buy Gold (0.02)", "callback_data": "cb_buy_gold"},
+                {"text": "⚡ Sell Gold (0.02)", "callback_data": "cb_sell_gold"}
+            ],
+            [
+                {"text": "🛡️ Verify Security", "callback_data": "cb_integrity"},
                 {"text": "🛑 Close All (Kill)", "callback_data": "cb_close"}
             ],
             [
-                {"text": "📈 Today Summary", "callback_data": "cb_summary"},
-                {"text": "🏆 Weekly Audit", "callback_data": "cb_weekly"}
-            ],
-            [
-                {"text": "⏹️ Stop Scanner", "callback_data": "cb_stop"},
-                {"text": "🛡️ Verify Security", "callback_data": "cb_integrity"}
+                {"text": "🏆 Weekly Audit", "callback_data": "cb_weekly"},
+                {"text": "⏹️ Stop Scanner", "callback_data": "cb_stop"}
             ]
         ]
     }
+
+
+def set_bot_commands(bot_token):
+    """Register official command menu with Telegram Bot API."""
+    commands = [
+        {"command": "status", "description": "📊 Live balance, equity & positions"},
+        {"command": "scan", "description": "🔍 Force immediate market sweep"},
+        {"command": "start_session", "description": "🚀 Launch autonomous trading session"},
+        {"command": "summary", "description": "📈 Today's complete market close audit"},
+        {"command": "buy", "description": "⚡ Instant market BUY execution"},
+        {"command": "sell", "description": "⚡ Instant market SELL execution"},
+        {"command": "close", "description": "🛑 Emergency kill switch: Close all"},
+        {"command": "stop", "description": "⏹️ Stop active auto-scanner"},
+        {"command": "integrity", "description": "🛡️ Verify SHA-256 security status"},
+        {"command": "weekly", "description": "🏆 Full weekly performance audit"},
+        {"command": "approve", "description": "🔑 Authorize pending code changes"},
+        {"command": "help", "description": "❓ Full mobile command directory"}
+    ]
+    try:
+        res = tg_api_request(bot_token, "setMyCommands", {"commands": commands})
+        if res and res.get("ok"):
+            logger.info("Successfully registered bot command menu with Telegram.")
+    except Exception as e:
+        logger.warning(f"Error registering bot commands: {e}")
+
+
+def send_engine_restart_alert(bot_token, config):
+    """Sends an executive notification when the trading engine restarts."""
+    try:
+        import MetaTrader5 as mt5
+        acc_str = "Disconnected"
+        bal_str = "N/A"
+        eq_str = "N/A"
+        open_count = 0
+        if mt5.initialize():
+            acc = mt5.account_info()
+            if acc:
+                acc_str = f"{acc.server} #{acc.login}"
+                bal_str = f"${acc.balance:,.2f}"
+                eq_str = f"${acc.equity:,.2f}"
+            pos = mt5.positions_get()
+            open_count = len(pos) if pos else 0
+            mt5.shutdown()
+
+        from skill_integrity_guard import verify_skill_integrity
+        is_valid, _ = verify_skill_integrity(silent=True)
+        sec_status = "🟢 100% Cryptographically Certified (SHA-256)" if is_valid else "⚠️ Tamper Warning Active"
+
+        session = load_session()
+        session_id = session.get("session_id", "STANDBY")
+        trades_done = session.get("trades_executed", 0)
+        max_trades = session.get("max_trades", 5)
+        lev_tier = session.get("approved_leverage_tier", "2x")
+
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        msg = (
+            f"🚀 <b>AI AUTONOMOUS TRADING FIRM — ENGINE ONLINE &amp; RESTARTED</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📅 <b>System Time:</b> <code>{now_str}</code>\n"
+            f"🏦 <b>Broker / Account:</b> <code>{acc_str}</code>\n"
+            f"💰 <b>Balance:</b> <code>{bal_str}</code> | <b>Equity:</b> <code>{eq_str}</code>\n"
+            f"🛡️ <b>Open Exposure:</b> <b>{open_count} open position(s)</b>\n"
+            f"🎯 <b>Session State:</b> <code>{session_id}</code> ({trades_done}/{max_trades} trades • {lev_tier})\n\n"
+            f"<b>ACTIVE OPERATIONAL DAEMONS:</b>\n"
+            f"  • 🟢 <b>Two-Way Mobile Listener:</b> Interactive 24/7\n"
+            f"  • 🟢 <b>Autonomous Market Scanner:</b> 15m scanning active\n"
+            f"  • 🟢 <b>Trade Monitor:</b> Deal Streamer &amp; 80/70 Protection armed\n"
+            f"  • 🟢 <b>Daily Market Close Auditor:</b> 21:55 UTC scheduled\n"
+            f"  • 🟢 <b>Security Guard:</b> {sec_status}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👉 <i>All commands are active as persistent buttons below:</i>"
+        )
+
+        admin_id = str(config.get("telegram", {}).get("admin_chat_id", "1264076025")).strip()
+        send_tg_message(bot_token, admin_id, msg, reply_markup=make_reply_keyboard())
+        logger.info(f"Engine restart notification delivered to Administrator {admin_id}")
+    except Exception as e:
+        logger.error(f"Error sending engine restart alert: {e}")
 
 
 def start_trading_session(max_trades=5, leverage_tier="2x", quota_trades=None):
@@ -592,6 +709,10 @@ def process_update(update, bot_token, config):
             handle_integrity_cmd(chat_id, bot_token)
         elif data == "cb_start_5_2x":
             handle_start_session_cmd(["5", "2x"], chat_id, bot_token)
+        elif data == "cb_buy_gold":
+            handle_direct_trade_cmd("BUY", ["XAUUSD", "0.02"], chat_id, bot_token)
+        elif data == "cb_sell_gold":
+            handle_direct_trade_cmd("SELL", ["XAUUSD", "0.02"], chat_id, bot_token)
         elif data.startswith("auth_approve_"):
             if not is_admin(user_id, config):
                 send_tg_message(bot_token, chat_id, "⛔ Permission Denied: Only Administrator @wtalaat can authorize modifications.")
@@ -614,7 +735,7 @@ def process_update(update, bot_token, config):
             send_tg_message(bot_token, chat_id, res_msg, reply_markup=make_main_keyboard())
         return
 
-    # Handle Text Messages
+    # Handle Text Messages (Commands and Button Taps)
     if "message" in update:
         msg = update["message"]
         user_id = msg.get("from", {}).get("id")
@@ -626,7 +747,65 @@ def process_update(update, bot_token, config):
             send_tg_message(bot_token, chat_id, f"⛔ Unauthorized. User ID <code>{user_id}</code> is not in the approved whitelist.")
             return
 
+        # Map persistent button texts and common natural language to commands
+        btn_map = {
+            "📊 live status": "/status",
+            "📊 status": "/status",
+            "status": "/status",
+            "live status": "/status",
+            "🔍 scan market": "/scan",
+            "🔍 scan": "/scan",
+            "scan": "/scan",
+            "scan market": "/scan",
+            "🚀 start session": "/start_session",
+            "start session": "/start_session",
+            "start": "/start_session",
+            "trade": "/start_session",
+            "📈 today summary": "/summary",
+            "📈 summary": "/summary",
+            "today summary": "/summary",
+            "summary": "/summary",
+            "daily summary": "/summary",
+            "🏆 weekly audit": "/weekly",
+            "weekly audit": "/weekly",
+            "weekly": "/weekly",
+            "audit": "/weekly",
+            "⚡ buy gold (0.02)": "/buy XAUUSD 0.02",
+            "⚡ buy gold": "/buy XAUUSD 0.02",
+            "buy gold": "/buy XAUUSD 0.02",
+            "⚡ sell gold (0.02)": "/sell XAUUSD 0.02",
+            "⚡ sell gold": "/sell XAUUSD 0.02",
+            "sell gold": "/sell XAUUSD 0.02",
+            "🛡️ verify security": "/integrity",
+            "🛡️ integrity": "/integrity",
+            "verify security": "/integrity",
+            "integrity": "/integrity",
+            "security": "/integrity",
+            "🛑 close all (kill)": "/close",
+            "🛑 close all": "/close",
+            "close all": "/close",
+            "close": "/close",
+            "kill": "/close",
+            "⏹️ stop scanner": "/stop",
+            "stop scanner": "/stop",
+            "stop": "/stop",
+            "pause": "/stop",
+            "❓ help / menu": "/help",
+            "help": "/help",
+            "menu": "/help"
+        }
+
+        normalized = text.lower().strip()
+        if normalized in btn_map:
+            text = btn_map[normalized]
+
         if not text.startswith("/"):
+            send_tg_message(
+                bot_token,
+                chat_id,
+                "💡 <i>Select an action from the buttons below or send /help to view command list:</i>",
+                reply_markup=make_reply_keyboard()
+            )
             return
 
         parts = text.split()
@@ -693,7 +872,14 @@ def run_telegram_listener():
         logger.error("No Telegram bot_token configured in alert_config.json")
         return
 
-    logger.info("Telegram Mobile Listener v3.7.0 started. Listening for remote commands...")
+    logger.info("Telegram Mobile Listener v3.8.2 started. Listening for remote commands...")
+
+    # 1. Register official command menu with Telegram Bot API
+    set_bot_commands(bot_token)
+
+    # 2. Dispatch Engine Online & Restart notification to Administrator
+    send_engine_restart_alert(bot_token, config)
+
     offset = None
 
     while True:

@@ -243,6 +243,7 @@ git log --oneline -n 10
 ### 2. Available Stable Version Checkpoints
 | Tag | Release Date | Description |
 | :--- | :--- | :--- |
+| `v3.8.2` | 2026-09-24 | Full Persistent Telegram Button Controls, Native Menu, and Engine Restart Broadcast. |
 | `v3.8.1` | 2026-09-24 | Remote Telegram Admin Approval, Security Isolation, Market Close Forensic Audit. |
 | `v3.8.0-stable` | 2026-09-23 | Baseline stable release with 80/70 Asymmetric Profit Protection & MT5 deal streamer. |
 

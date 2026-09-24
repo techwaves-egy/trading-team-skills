@@ -1,7 +1,7 @@
 {
   "version": "3.5.2",
   "authorized_by": "Admin / Lead Architect",
-  "authorized_at": "2026-09-23T20:58:07.247344+00:00",
+  "authorized_at": "2026-09-24T14:01:09.450028+00:00",
   "files": {
     "SKILL.md": "5f1d25ea9a3c9401d6b7ae94509d8b83b461caba8fd06f07c114aaac1f8d05b1",
     "scripts\\auto_scanner.py": "29279c21be940df1c2efefdaf2e50411bc87e2465fa01bd768032f6e19f5e4bc",
@@ -9,7 +9,7 @@
     "scripts\\trade_monitor.py": "d0c99e1667f0c35602d338c6a80c6a0d6375c60147a90efd7592ad6d338b2ae4",
     "scripts\\send_alert.py": "1d8136639f0efef345ef99d343667ba57f1142ecca567657b38040c6fd44e232",
     "scripts\\daily_summary.py": "8979813ddcecf4d84da8418941742c890926f4385bff9ec1c82fe6cf7b1ca456",
-    "scripts\\telegram_listener.py": "92bfc128de9f7061c3fbd64ded81645fa4f164415de01656830a05b0a99d6af2",
+    "scripts\\telegram_listener.py": "11daaa38ad4b8d35fb8e00cd788d59a422801340a25df3029e473ecc97850e94",
     "scripts\\start_session.py": "f4426aaa632dca1b8fd3791cd137a0113a3b6fd6b271da6b5ca2b42e69c5ce5c",
     "docs\\01_ORGANIZATION_ROLES.md": "1c2996dd94aa00aee29b1a99a212b7222f607f26d033296f6b1e50a86ff1a4f6",
     "docs\\02_REGIME_STRATEGY_ENGINE.md": "01c0d1572fd35d10fd7c8a97220fab93afa761f1bddc210b0b419a1606aa8c2d"

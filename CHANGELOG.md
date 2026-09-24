@@ -4,6 +4,21 @@ All notable changes, architectural upgrades, and version tags of the AI Autonomo
 
 ---
 
+## [v3.8.2] — 2026-09-24
+
+### 📱 Full Telegram Button Control & Engine Restart Broadcast
+* **Persistent Custom Mobile Keyboard (`scripts/telegram_listener.py`)**:
+  * Implemented permanent custom reply keyboard (`make_reply_keyboard()`) docked at the bottom of Telegram, providing instant zero-typing access to `/status`, `/scan`, `/start_session`, `/summary`, `/buy`, `/sell`, `/integrity`, and `/close`.
+  * Added natural language and emoji button text mapping in `process_update()` so all tapped buttons immediately trigger their corresponding firm commands.
+* **Native Telegram Bot Command Menu (`setMyCommands`)**:
+  * Automatically registers official slash commands with Telegram Bot API on startup, equipping the mobile and desktop client with the native `[/]` menu.
+* **Engine Online & Restart Alert Dispatcher**:
+  * Added `send_engine_restart_alert()` triggered automatically on listener startup, dispatching live account telemetry, open exposure status, active background daemons, and security certification directly to Administrator `@wtalaat`.
+* **Quick Buy/Sell Inline Callbacks**:
+  * Added `cb_buy_gold` and `cb_sell_gold` callbacks on the inline menu for 1-tap market entries.
+
+---
+
 ## [v3.8.1] — 2026-09-24
 
 ### 🔒 Remote Telegram Approval & Security Isolation
