@@ -1,5 +1,5 @@
 {
-  "session_id": "SES-20260925-GOLD-5X-3R",
+  "session_id": "SES-20260924-GOLD-5X-3R",
   "market_choice": "GOLD",
   "active_market": "XAUUSD (Gold Only)",
   "watchlist": [
@@ -25,6 +25,6 @@
   "risk_manager_status": "APPROVED_BY_CRO",
   "approved_leverage_tier": "5x (3R)",
   "margin_stress_score": "13.5% (Institutional A+ Rating)",
-  "start_time": "2026-09-25T00:00:00+00:00",
+  "start_time": "2026-09-24T22:34:15.274845+00:00",
   "is_active": true
 }
