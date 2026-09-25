@@ -385,6 +385,13 @@ def execute_mt5_order(ticket):
         # Digits precision rounding
         digits = symbol_info.digits
 
+        # Check MT5 terminal automated trading permission
+        term = mt5.terminal_info()
+        if term and not term.trade_allowed:
+            err_msg = "AutoTrading disabled by client in MT5 terminal (Enable 'Algo Trading' button in MT5 toolbar or press Ctrl+E)"
+            logger.error(err_msg)
+            return {"status": "ERROR", "reason": err_msg, "retcode": 10027}
+
         # Execution request
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -407,8 +414,11 @@ def execute_mt5_order(ticket):
             return {"status": "ERROR", "reason": f"Order send failed. Code: {err}"}
             
         if result.retcode != mt5.TRADE_RETCODE_DONE:
-            logger.error(f"Order failed: {result.comment} (code {result.retcode})")
-            return {"status": "ERROR", "reason": result.comment, "retcode": result.retcode}
+            comment = result.comment or "Order rejected"
+            if result.retcode == 10027 or "autotrading disabled" in comment.lower():
+                comment = "AutoTrading disabled by client (Enable 'Algo Trading' button in MT5 toolbar or press Ctrl+E)"
+            logger.error(f"Order failed: {comment} (code {result.retcode})")
+            return {"status": "ERROR", "reason": comment, "retcode": result.retcode}
             
         return {
             "status": "SUCCESS",

@@ -617,6 +617,8 @@ def handle_status_cmd(chat_id, bot_token):
 
         acc = mt5.account_info()
         positions = mt5.positions_get()
+        term = mt5.terminal_info()
+        algo_status = "🟢 ENABLED (Ready)" if (term and term.trade_allowed) else "⚠️ DISABLED (Press Ctrl+E in MT5)"
         mt5.shutdown()
 
         session = load_session()
@@ -646,6 +648,7 @@ def handle_status_cmd(chat_id, bot_token):
             f"📊 <b>FIRM LIVE TELEMETRY &amp; STATUS</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"🆔 <b>Session:</b> <code>{session.get('session_id', 'NONE')}</code> [{status_icon}]\n"
+            f"🤖 <b>MT5 Algo Trading:</b> <b>{algo_status}</b>\n"
             f"🌐 <b>Universe:</b> <b>{market_label}</b>\n"
             f"🏦 <b>Account Balance:</b> <code>${acc.balance:,.2f}</code>\n"
             f"📈 <b>Equity:</b> <code>${acc.equity:,.2f}</code> | <b>Free Margin:</b> <code>${acc.margin_free:,.2f}</code>\n"

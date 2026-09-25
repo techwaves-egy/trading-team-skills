@@ -363,6 +363,7 @@ def run_scan_and_execute(symbol_override=None):
         logger.info(f"ALL v3.8.4 GATES PASSED — Executing batch of {trades_to_open} {direction} {symbol} orders @ {price}")
         logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} / trade | Risk=${actual_risk} | Target=${target_dollars}/trade")
 
+        last_fail_reason = "Order rejected by MT5 terminal"
         for idx in range(trades_to_open):
             ticket_id = f"TRD-{symbol[:3]}-{now_ts}-{idx+1}"
             ticket = {
@@ -376,11 +377,14 @@ def run_scan_and_execute(symbol_override=None):
             }
             res = execute_mt5_order(ticket)
             logger.info(f"MT5 execution result ({idx+1}/{trades_to_open}): {res}")
-            if isinstance(res, dict) and res.get("status") == "SUCCESS":
-                executed_orders.append((ticket_id, res))
-                session["trades_executed"] = int(session.get("trades_executed", 0)) + 1
-                session["leverage_trades_used"] = used + len(executed_orders)
-                save_session(session)
+            if isinstance(res, dict):
+                if res.get("status") == "SUCCESS":
+                    executed_orders.append((ticket_id, res))
+                    session["trades_executed"] = int(session.get("trades_executed", 0)) + 1
+                    session["leverage_trades_used"] = used + len(executed_orders)
+                    save_session(session)
+                else:
+                    last_fail_reason = res.get("reason") or last_fail_reason
             time.sleep(0.1)
 
         success = len(executed_orders) > 0
@@ -431,11 +435,17 @@ def run_scan_and_execute(symbol_override=None):
             logger.info(f"Batch executed ({len(executed_orders)} trades): {ticket_ids_str}. Round {current_round}/{total_rounds}")
             return "EXECUTED"
         else:
-            logger.error(f"MT5 order execution failed for batch of {trades_to_open} trades")
+            logger.error(f"MT5 order execution failed for batch of {trades_to_open} trades. Reason: {last_fail_reason}")
+            action_tip = ""
+            if "autotrading" in last_fail_reason.lower() or "10027" in str(last_fail_reason):
+                action_tip = "\n👉 <b>ACTION:</b> Click the <b>'Algo Trading'</b> button in MetaTrader 5 (or press <b>Ctrl+E</b>) to turn it green."
             broadcast_telegram(
-                f"<b>EXECUTION FAILED — {symbol}</b>\n"
-                f"Order rejected by MT5 terminal.\n"
-                f"<i>Check terminal for details.</i>"
+                f"<b>⚠️ EXECUTION FAILED — {symbol}</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"<b>Reason:</b> <code>{last_fail_reason}</code>\n"
+                f"{action_tip}\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"<i>Scanner remains active and will retry on next setup.</i>"
             )
             return "EXEC_FAILED"
 
