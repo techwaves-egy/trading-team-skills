@@ -164,7 +164,7 @@ def run_scan_and_execute(symbol_override=None):
                 logger.info(f"[SESSION FILTER] GBPUSD restricted outside London/NY active window (Current: {cur_hour}:00 UTC). Skipping.")
                 return "OFF_SESSION"
 
-        # === v3.8.4 GATE 0.1: Concurrency Batch Engine ===
+        # === v3.8.7 GATE 0.1: Smart Concurrency & Anti-Stacking Engine ===
         batch_size = int(session.get("concurrent_batch_size", 1))
         all_open_pos = mt5.positions_get()
         open_count = len(all_open_pos) if all_open_pos else 0
@@ -174,6 +174,12 @@ def run_scan_and_execute(symbol_override=None):
                 f"Waiting for batch completion before opening next daily round."
             )
             return "ACTIVE_BATCH_IN_PROGRESS"
+
+        # Check intra-symbol stacking (Max 1 active trade permitted per symbol to eliminate correlated drawdown)
+        symbol_pos = [p for p in (all_open_pos or []) if p.symbol == symbol]
+        if len(symbol_pos) >= 1:
+            logger.info(f"[SMART CONCURRENCY] Position already open on {symbol} (Ticket #{symbol_pos[0].ticket}). Correlated stacking blocked.")
+            return "SYMBOL_ALREADY_ACTIVE"
 
         # === v3.3.0 GATE 1: Lockout Check ===
         locked, locked_until = check_asset_lockout(symbol)
@@ -210,40 +216,50 @@ def run_scan_and_execute(symbol_override=None):
         logger.info(f"[BB] Mid={bb_mid:.4f} | Upper={bb_upper:.4f} | Lower={bb_lower:.4f} | ATR={atr_1h:.4f}")
 
         # Strategy Selection:
-        # Engine 1 (Primary): Bollinger 2.0-StdDev Mean Reversion (#1 Tournament Winner: 67% WR, PF 2.36-2.95)
+        # Engine 1 (Primary): Bollinger 2.0-StdDev Mean Reversion (v3.8.7 Closed-Candle Rule)
         # Engine 2 (Secondary): Multi-Timeframe Structural Trend Breakout
         strategy_active = None
         direction = None
-        last_bar = rates_1h[-1]
 
-        # Check Bollinger Rebound
-        if last_bar['low'] <= bb_lower and price > bb_lower and last_bar['close'] > last_bar['open']:
+        last_closed_1h = rates_1h[-2]  # fully closed 1H bar
+        rates_m15 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, 15)
+        last_closed_m15 = rates_m15[-2] if (rates_m15 is not None and len(rates_m15) >= 2) else None
+
+        # Check Bollinger Rebound on completed bars
+        tested_lower = (last_closed_1h['low'] <= bb_lower) or (last_closed_m15 and last_closed_m15['low'] <= bb_lower) or (price <= bb_lower * 1.001)
+        tested_upper = (last_closed_1h['high'] >= bb_upper) or (last_closed_m15 and last_closed_m15['high'] >= bb_upper) or (price >= bb_upper * 0.999)
+
+        if tested_lower and last_closed_m15 and last_closed_m15['close'] > last_closed_m15['open'] and price >= last_closed_m15['close']:
             strategy_active = "Bollinger_Mean_Reversion"
             direction = "BUY"
-            logger.info(f"[ENGINE 1] Bullish Bollinger 2.0-StdDev Rebound detected on {symbol}")
-        elif last_bar['high'] >= bb_upper and price < bb_upper and last_bar['close'] < last_bar['open']:
+            logger.info(f"[ENGINE 1] Bullish Bollinger Rebound confirmed on closed M15 candle for {symbol}")
+        elif tested_upper and last_closed_m15 and last_closed_m15['close'] < last_closed_m15['open'] and price <= last_closed_m15['close']:
             strategy_active = "Bollinger_Mean_Reversion"
             direction = "SELL"
-            logger.info(f"[ENGINE 1] Bearish Bollinger 2.0-StdDev Rebound detected on {symbol}")
+            logger.info(f"[ENGINE 1] Bearish Bollinger Rebound confirmed on closed M15 candle for {symbol}")
         elif regime in ["UPTREND", "DOWNTREND"]:
             strategy_active = "Structural_Trend_Breakout"
             direction = "BUY" if regime == "UPTREND" else "SELL"
             logger.info(f"[ENGINE 2] Structural Trend Breakout active on {symbol} ({direction})")
         else:
-            logger.info("Market is consolidating inside Bollinger Bands without extreme extension — skipping")
+            logger.info("Market consolidating inside Bollinger Bands or awaiting closed-candle rejection — skipping")
             return "NO_TRADE_CONSOLIDATION"
 
-        # === v3.4.0 GATE 4: Confirmation Entry ===
-        confirmed, reason = check_confirmation(symbol, direction, mt5.TIMEFRAME_M15)
+        # === v3.8.7 GATE 4: Multi-Timeframe Closed-Candle Confirmation ===
+        if strategy_active == "Bollinger_Mean_Reversion":
+            from mt5_connector import check_bollinger_confirmation
+            confirmed, reason = check_bollinger_confirmation(symbol, direction)
+        else:
+            confirmed, reason = check_confirmation(symbol, direction, mt5.TIMEFRAME_M15)
         logger.info(f"[CONFIRM] {direction} ({strategy_active}): confirmed={confirmed}, reason={reason}")
 
-        if not confirmed and strategy_active != "Bollinger_Mean_Reversion":
+        if not confirmed:
             broadcast_telegram(
                 f"<b>SCAN {now_str} — {symbol}</b>\n"
                 f"Strategy: <code>{strategy_active}</code>\n"
                 f"Regime: <code>{regime}</code> | ATR: ${atr_1h:.2f}\n"
                 f"Direction: {direction}\n"
-                f"Confirmation: NOT YET — {escape_html(reason)}\n"
+                f"Confirmation: AWAITING — {escape_html(reason)}\n"
                 f"<b>VERDICT: MONITORING</b>"
             )
             return "NO_CONFIRMATION"
@@ -355,12 +371,12 @@ def run_scan_and_execute(symbol_override=None):
             logger.info(f"R:R ratio {rr_ratio} below minimum {min_req_rr}, rejecting")
             return "LOW_RR"
 
-        # === ALL GATES PASSED — EXECUTE CONCURRENT BATCH ===
-        trades_to_open = max(1, min(batch_size - open_count, max_trades - trades_done))
+        # === ALL GATES PASSED — EXECUTE (SMART CONCURRENCY: 1 TRADE PER SYMBOL) ===
+        trades_to_open = 1  # Exactly 1 trade per symbol to eliminate correlated stacking
         executed_orders = []
         now_ts = datetime.now(timezone.utc).strftime('%H%M%S')
 
-        logger.info(f"ALL v3.8.4 GATES PASSED — Executing batch of {trades_to_open} {direction} {symbol} orders @ {price}")
+        logger.info(f"ALL v3.8.7 GATES PASSED — Executing {direction} {symbol} order @ {price}")
         logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} / trade | Risk=${actual_risk} | Target=${target_dollars}/trade")
 
         last_fail_reason = "Order rejected by MT5 terminal"

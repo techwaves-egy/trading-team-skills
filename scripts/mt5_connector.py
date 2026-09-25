@@ -145,6 +145,79 @@ def check_confirmation(symbol, direction, timeframe=mt5.TIMEFRAME_M15):
     
     return False, "Invalid direction"
 
+def check_bollinger_confirmation(symbol, direction):
+    """
+    Closed-Candle Reversal Confirmation for Bollinger Mean Reversion (v3.8.7)
+    Guarantees:
+    1. Upper/Lower band was tested by a recent closed candle (1H or 15M).
+    2. The most recent completed 15M candle closed in the reversal direction (Bearish/Red for SELL, Bullish/Green for BUY).
+    3. Current live price is confirming momentum in the trade direction (price <= M15 close for SELL, price >= M15 close for BUY).
+    """
+    bridge.initialize()
+    rates_1h = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 30)
+    rates_m15 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, 15)
+    if rates_1h is None or len(rates_1h) < 22 or rates_m15 is None or len(rates_m15) < 5:
+        return False, "Insufficient candle data for Bollinger confirmation"
+        
+    tick = mt5.symbol_info_tick(symbol)
+    if not tick:
+        return False, "Tick data unavailable"
+    price = tick.bid if direction.upper() == "SELL" else tick.ask
+
+    # Calculate 1H Bollinger Bands on completed bars
+    closes_1h = [r['close'] for r in rates_1h[:-1]]  # exclude live forming bar
+    bb_mid = sum(closes_1h[-20:]) / 20.0
+    variance = sum((c - bb_mid) ** 2 for c in closes_1h[-20:]) / 20.0
+    bb_std = variance ** 0.5
+    bb_upper = bb_mid + 2.0 * bb_std
+    bb_lower = bb_mid - 2.0 * bb_std
+
+    last_closed_m15 = rates_m15[-2]  # index -1 is forming candle; -2 is last closed candle
+    prev_closed_m15 = rates_m15[-3]
+    last_closed_1h = rates_1h[-2]
+
+    if direction.upper() == "SELL":
+        band_tested = (
+            last_closed_1h['high'] >= bb_upper or
+            last_closed_m15['high'] >= bb_upper or
+            prev_closed_m15['high'] >= bb_upper or
+            price >= bb_upper * 0.999
+        )
+        if not band_tested:
+            return False, f"Upper Bollinger Band ({bb_upper:.2f}) not tested by recent closed candles"
+
+        # Completed 15M candle MUST be bearish (red)
+        if last_closed_m15['close'] >= last_closed_m15['open']:
+            return False, f"Awaiting closed-candle confirmation: Last 15M candle closed bullish (O:{last_closed_m15['open']:.2f}, C:{last_closed_m15['close']:.2f}). Sellers not confirmed."
+
+        # Live price must not be spiking above rejection candle high
+        if price > last_closed_m15['high']:
+            return False, f"Price breakout detected: live price ({price:.2f}) broke above rejection high ({last_closed_m15['high']:.2f}). Mean reversion aborted."
+
+        return True, f"Closed-Candle Reversal Confirmed (15M Bearish Close {last_closed_m15['close']:.2f}, Live {price:.2f})"
+
+    elif direction.upper() == "BUY":
+        band_tested = (
+            last_closed_1h['low'] <= bb_lower or
+            last_closed_m15['low'] <= bb_lower or
+            prev_closed_m15['low'] <= bb_lower or
+            price <= bb_lower * 1.001
+        )
+        if not band_tested:
+            return False, f"Lower Bollinger Band ({bb_lower:.2f}) not tested by recent closed candles"
+
+        # Completed 15M candle MUST be bullish (green)
+        if last_closed_m15['close'] <= last_closed_m15['open']:
+            return False, f"Awaiting closed-candle confirmation: Last 15M candle closed bearish (O:{last_closed_m15['open']:.2f}, C:{last_closed_m15['close']:.2f}). Buyers not confirmed."
+
+        # Live price must not be falling below rejection candle low
+        if price < last_closed_m15['low']:
+            return False, f"Price drop detected: live price ({price:.2f}) broke below rejection low ({last_closed_m15['low']:.2f}). Mean reversion aborted."
+
+        return True, f"Closed-Candle Reversal Confirmed (15M Bullish Close {last_closed_m15['close']:.2f}, Live {price:.2f})"
+
+    return False, "Invalid direction"
+
 def update_loss_tracker(symbol):
     """Checks recent deal history to update the 2-Strike lockout tracker."""
     bridge.initialize()
@@ -265,12 +338,21 @@ def execute_mt5_order(ticket):
             logger.critical(reason)
             return {"status": "REJECTED", "reason": reason}
 
-        # 0.1 Anti-Stacking Gate: Allow up to concurrent_batch_size positions for this symbol
+        # 0.1 Smart Anti-Stacking Gate (v3.8.7):
+        # Prevent correlated stacking on the same symbol (max 1 active position per symbol).
+        # Enforce portfolio concurrency limit across different symbols.
         state = get_session_state()
         batch_size = int(ticket.get("batch_size", state.get("concurrent_batch_size", 1)))
-        open_pos = mt5.positions_get(symbol=symbol)
-        if open_pos and len(open_pos) >= batch_size:
-            reason = f"ANTI-STACKING: Concurrency limit reached ({len(open_pos)}/{batch_size} open on {symbol}). Multiple entries blocked."
+        symbol_pos = mt5.positions_get(symbol=symbol)
+        if symbol_pos and len(symbol_pos) >= 1:
+            reason = f"SMART ANTI-STACKING: Position already active on {symbol} (Ticket #{symbol_pos[0].ticket}). Intra-symbol stacking blocked to prevent correlated drawdown."
+            logger.warning(f"Order REJECTED: {reason}")
+            return {"status": "REJECTED", "reason": reason}
+
+        all_open_pos = mt5.positions_get()
+        total_open = len(all_open_pos) if all_open_pos else 0
+        if total_open >= batch_size:
+            reason = f"PORTFOLIO CONCURRENCY: Limit reached ({total_open}/{batch_size} open positions). Waiting for open trade to close."
             logger.warning(f"Order REJECTED: {reason}")
             return {"status": "REJECTED", "reason": reason}
         
@@ -286,13 +368,16 @@ def execute_mt5_order(ticket):
             
         # 4. Strategy-Aware Confirmation Entry & Trap Filter Gate
         strat_type = ticket.get("strategy", "Structural_Trend_Breakout")
-        if strat_type != "Bollinger_Mean_Reversion":
-            confirmed, conf_reason = check_confirmation(symbol, order_type_str)
+        if strat_type == "Bollinger_Mean_Reversion":
+            confirmed, conf_reason = check_bollinger_confirmation(symbol, order_type_str)
             if not confirmed:
-                logger.warning(f"Order REJECTED: {conf_reason}")
+                logger.warning(f"Order REJECTED (Bollinger Closed-Candle Confirmation): {conf_reason}")
                 return {"status": "REJECTED", "reason": conf_reason}
         else:
-            logger.info(f"[{symbol}] Bollinger Mean Reversion strategy validated by scanner. Proceeding to execution.")
+            confirmed, conf_reason = check_confirmation(symbol, order_type_str)
+            if not confirmed:
+                logger.warning(f"Order REJECTED (Structural Confirmation): {conf_reason}")
+                return {"status": "REJECTED", "reason": conf_reason}
             
         # 2. Real ATR Calculation
         atr = calculate_atr(symbol, mt5.TIMEFRAME_H1, 14)

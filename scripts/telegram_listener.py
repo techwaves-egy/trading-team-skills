@@ -188,8 +188,8 @@ def make_main_keyboard():
                 {"text": "⚙️ Configure Session (Wizard)", "callback_data": "wiz_start"}
             ],
             [
-                {"text": "🥇 Gold 5x (3 Rnds • +$375)", "callback_data": "cb_quick_gold_5x3"},
-                {"text": "🥇 Gold 2x (2 Rnds • +$100)", "callback_data": "cb_quick_gold_2x2"}
+                {"text": "🥇 Gold 1x (5 Rnds • +$125)", "callback_data": "cb_quick_gold_1x5"},
+                {"text": "🥇 Gold 1x (3 Rnds • +$75)", "callback_data": "cb_quick_gold_1x3"}
             ],
             [
                 {"text": "🌐 Both 2x (2 Rnds • +$100)", "callback_data": "cb_quick_both_2x2"},
@@ -447,18 +447,37 @@ def start_trading_session(market="BOTH", batch_size=2, daily_rounds=2, quota_tra
     session_profit_goal = round(target_profit_per_trade * total_trades, 2)
 
     if m_resolved == "GOLD":
+        # Institutional Smart Concurrency (v3.8.7):
+        # Single-asset gold sessions run 1x sequential trades (1 trade at a time)
+        # to eliminate correlated stacking drawdown. Target volume runs across daily rounds.
+        final_batch = 1
+        final_rounds = total_trades
+        batch_profit_goal = 25.0
         watchlist = ["XAUUSD"]
-        active_market_label = "XAUUSD (Gold Only)"
+        active_market_label = "XAUUSD (Gold Only — 1x Sequential)"
+        tier_label = f"1x ({final_rounds}R)"
+        margin_stress = "2.7% (Institutional AAA Rating)"
     elif m_resolved == "FOREX":
+        final_batch = 1
+        final_rounds = total_trades
+        batch_profit_goal = 25.0
         watchlist = ["EURUSD"]
-        active_market_label = "EURUSD (Forex Only)"
+        active_market_label = "EURUSD (Forex Only — 1x Sequential)"
+        tier_label = f"1x ({final_rounds}R)"
+        margin_stress = "2.7% (Institutional AAA Rating)"
     else:
+        # Multi-Asset (Both): Concurrency allowed across distinct symbols (max 1 per symbol)
+        final_batch = min(final_batch, 2)
+        final_rounds = max(1, r_resolved)
+        total_trades = final_batch * final_rounds
+        batch_profit_goal = round(target_profit_per_trade * final_batch, 2)
+        session_profit_goal = round(target_profit_per_trade * total_trades, 2)
         watchlist = ["EURUSD", "XAUUSD"]
-        active_market_label = "EURUSD, XAUUSD (Both Multi-Asset)"
+        active_market_label = "EURUSD, XAUUSD (Both Multi-Asset — Diversified)"
+        tier_label = f"{final_batch}x ({final_rounds}R)"
+        margin_stress = f"{final_batch * 2.7:.1f}% (Institutional A+ Rating)"
 
-    tier_label = f"{final_batch}x ({final_rounds}R)"
     session_id = f"SES-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{m_resolved}-{final_batch}X-{final_rounds}R"
-    margin_stress = f"{final_batch * 2.7:.1f}% (Institutional A+ Rating)"
 
     session_data = {
         "session_id": session_id,
@@ -982,10 +1001,14 @@ def process_update(update, bot_token, config):
             b = parts[3]
             r = parts[4]
             handle_start_session_cmd([m, b, r], chat_id, bot_token, msg_id)
+        elif data == "cb_quick_gold_1x5":
+            handle_start_session_cmd(["GOLD", "1", "5"], chat_id, bot_token)
+        elif data == "cb_quick_gold_1x3":
+            handle_start_session_cmd(["GOLD", "1", "3"], chat_id, bot_token)
         elif data == "cb_quick_gold_5x3":
-            handle_start_session_cmd(["GOLD", "5", "3"], chat_id, bot_token)
+            handle_start_session_cmd(["GOLD", "1", "15"], chat_id, bot_token)
         elif data == "cb_quick_gold_2x2":
-            handle_start_session_cmd(["GOLD", "2", "2"], chat_id, bot_token)
+            handle_start_session_cmd(["GOLD", "1", "4"], chat_id, bot_token)
         elif data == "cb_quick_both_2x2":
             handle_start_session_cmd(["BOTH", "2", "2"], chat_id, bot_token)
         elif data == "cb_start_1x":
