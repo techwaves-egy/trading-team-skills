@@ -1,17 +1,17 @@
 ---
 name: autonomous-trading-firm
-version: 3.8.7
+version: 3.8.8
 description: >-
   Multi-agent AI Autonomous Trading Firm for live market analysis, automated market regime detection,
   dynamic strategy selection & competition, risk engine validation, 80/70 Asymmetric Profit Protection,
-  closed-candle reversal confirmation, smart anti-stacking concurrency guard, batch concurrency (x1-x5),
-  daily rounds configurator, interactive Telegram buttons wizard, and trade execution across Forex, Metals,
-  Crypto, Stocks, Indices, and Commodities.
+  closed-candle reversal confirmation, smart anti-stacking concurrency guard, self-healing MT5 deal streamer,
+  batch concurrency (x1-x5), daily rounds configurator, interactive Telegram buttons wizard, and trade
+  execution across Forex, Metals, Crypto, Stocks, Indices, and Commodities.
 ---
 
-# AI Autonomous Trading Firm (v3.8.7 — Universal Empirical Standard)
+# AI Autonomous Trading Firm (v3.8.8 — Universal Empirical Standard)
 
-A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Bollinger Bands 2.0-StdDev Mean Reversion with Closed-Candle Reversal Confirmation (v3.8.7)** (#1 Universal Tournament Winner: **67.2% Win Rate, PF 2.36 on EURUSD; 66.7% Win Rate, PF 2.95 on Gold**), **Smart Anti-Stacking & Portfolio Concurrency Engine (Guarantees max 1 active trade per symbol to eliminate correlated drawdown; multi-market concurrency distributed across uncorrelated pairs; sequential 1x daily rounds for single-asset focus)**, **80/70 Asymmetric Profit Protection Engine (Arms at ≥ 80% TP, closes at market on ≤ 70% retracement to lock in win)**, **Batch Concurrency Engine (1x–5x simultaneous 0.01 lot trades per signal, each with independent $25.00 TP and 80/70 protection)**, **Daily Frequency & Rounds Configurator (1 to 5 rounds per day)**, **Interactive 3-Step Telegram Button Wizard & Persistent Keyboard Controls**, **Gold Profit Clamping Target ($25.00 per trade)**, **Automated Market Close Daily & Weekly Summaries with Process Kill Switch**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection**, dynamic broker filling mode resolution (`FOK`/`IOC`), strategy-aware confirmation routing, native UNIX timestamp deal streaming, dynamic ATR volatility floors, 2-strike asset lockout circuit breakers, persistent mobile credential management, 24/7 background Telegram listener daemons, real-time trade result streaming, native **MetaTrader 5 (MT5)** direct desktop execution, **TradingView** webhook integration, and **fully autonomous scan-and-execute daemon** in Mode D.
+A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Bollinger Bands 2.0-StdDev Mean Reversion with Closed-Candle Reversal Confirmation (v3.8.7)** (#1 Universal Tournament Winner: **67.2% Win Rate, PF 2.36 on EURUSD; 66.7% Win Rate, PF 2.95 on Gold**), **Self-Healing Real-Time MT5 Deal Streamer & Profit Protection Daemon (v3.8.8 Auto-Reconnecting IPC Engine)**, **Smart Anti-Stacking & Portfolio Concurrency Engine (Guarantees max 1 active trade per symbol to eliminate correlated drawdown; multi-market concurrency distributed across uncorrelated pairs; sequential 1x daily rounds for single-asset focus)**, **80/70 Asymmetric Profit Protection Engine (Arms at ≥ 80% TP, closes at market on ≤ 70% retracement to lock in win)**, **Batch Concurrency Engine (1x–5x simultaneous 0.01 lot trades per signal, each with independent $25.00 TP and 80/70 protection)**, **Daily Frequency & Rounds Configurator (1 to 5 rounds per day)**, **Interactive 3-Step Telegram Button Wizard & Persistent Keyboard Controls**, **Gold Profit Clamping Target ($25.00 per trade)**, **Automated Market Close Daily & Weekly Summaries with Process Kill Switch**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection**, dynamic broker filling mode resolution (`FOK`/`IOC`), strategy-aware confirmation routing, native UNIX timestamp deal streaming, dynamic ATR volatility floors, 2-strike asset lockout circuit breakers, persistent mobile credential management, 24/7 background Telegram listener daemons, real-time trade result streaming, native **MetaTrader 5 (MT5)** direct desktop execution, **TradingView** webhook integration, and **fully autonomous scan-and-execute daemon** in Mode D.
 
 ---
 

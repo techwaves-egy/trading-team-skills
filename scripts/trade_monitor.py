@@ -250,29 +250,45 @@ def format_telegram_alert(deal, account_info):
     return msg
 
 
+def ensure_mt5_connected():
+    """Verify live MT5 IPC connection and auto-reconnect if dropped."""
+    try:
+        if not mt5.terminal_info():
+            logger.warning("[MT5 HEALTH] MT5 terminal not connected. Attempting reconnection...")
+            if mt5.initialize():
+                logger.info("[MT5 HEALTH] MT5 reconnected successfully.")
+                return True
+            else:
+                logger.error(f"[MT5 HEALTH] MT5 reconnect failed: {mt5.last_error()}")
+                return False
+        return True
+    except Exception as e:
+        logger.error(f"[MT5 HEALTH] Connection check exception: {e}")
+        try:
+            return mt5.initialize()
+        except Exception:
+            return False
+
+
 def monitor_loop():
-    logger.info("Initializing Real-Time MT5 Trade Closure & Profit Protection Monitor (v3.8.0)...")
-    if not mt5.initialize():
-        logger.error(f"MT5 Initialization failed: {mt5.last_error()}")
-        sys.exit(1)
+    logger.info("Initializing Real-Time MT5 Trade Closure & Profit Protection Monitor (v3.8.8)...")
+    if not ensure_mt5_connected():
+        logger.error(f"Initial MT5 connection failed: {mt5.last_error()}")
 
     processed_tickets = load_processed_tickets()
     protection_state = load_profit_protection_state()
 
-    # Prime initial history
-    now_ts = int(time.time()) + 86400
-    from_ts = now_ts - (86400 * 3)
-    initial_deals = mt5.history_deals_get(from_ts, now_ts)
-    if initial_deals and len(processed_tickets) == 0:
-        for d in initial_deals:
-            processed_tickets.add(d.ticket)
-        save_processed_tickets(processed_tickets)
-        logger.info(f"Primed monitor with {len(processed_tickets)} existing historical deals.")
+    logger.info(f"Trade Monitor ACTIVE — polling deal stream & 80/70 profit guard every 3 seconds ({len(processed_tickets)} processed deals tracked)...")
 
-    logger.info("Trade Monitor ACTIVE — polling deal stream & 80/70 profit guard every 3 seconds...")
+    last_heartbeat = time.time()
 
     while True:
         try:
+            # 0. Health check & Auto-reconnect
+            if not ensure_mt5_connected():
+                time.sleep(3)
+                continue
+
             # 1. Check 80/70 Asymmetric Profit Protection on Open Positions
             positions = mt5.positions_get()
             if positions:
@@ -283,10 +299,15 @@ def monitor_loop():
             from_ts = now_ts - (86400 * 2)
             deals = mt5.history_deals_get(from_ts, now_ts)
 
-            if deals:
+            if deals is None:
+                err = mt5.last_error()
+                if err[0] != 1:
+                    logger.warning(f"Failed to query history deals: {err}. Triggering reconnect...")
+                    mt5.initialize()
+            else:
                 for deal in deals:
                     if deal.entry in [mt5.DEAL_ENTRY_OUT, getattr(mt5, "DEAL_ENTRY_OUT_BY", 2)] and deal.ticket not in processed_tickets:
-                        logger.info(f"NEW CLOSED TRADE DETECTED: Deal #{deal.ticket} on {deal.symbol} | Profit: ${deal.profit:+.2f}")
+                        logger.info(f"NEW CLOSED TRADE DETECTED: Deal #{deal.ticket} on {deal.symbol} | Profit: ${deal.profit:+.2f} ({deal.comment})")
 
                         account_info = mt5.account_info()
                         alert_msg = format_telegram_alert(deal, account_info)
@@ -296,6 +317,12 @@ def monitor_loop():
                         processed_tickets.add(deal.ticket)
                         save_processed_tickets(processed_tickets)
                         logger.info(f"Alert delivered for Deal #{deal.ticket}.")
+
+            # 3. Periodic Heartbeat (Every 10 minutes)
+            if time.time() - last_heartbeat >= 600:
+                pos_count = len(positions) if positions else 0
+                logger.info(f"[HEARTBEAT] Monitor active. Open positions: {pos_count} | Processed deals: {len(processed_tickets)}")
+                last_heartbeat = time.time()
 
         except Exception as e:
             logger.error(f"Error in monitor loop: {e}", exc_info=True)
