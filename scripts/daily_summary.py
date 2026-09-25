@@ -96,7 +96,9 @@ def get_daily_deals():
                 open_time = datetime.fromtimestamp(e_deal.time, tz=timezone.utc) if e_deal else None
                 close_time = datetime.fromtimestamp(d.time, tz=timezone.utc)
                 duration_sec = int((close_time - open_time).total_seconds()) if open_time else 0
-                dur_str = f"{duration_sec // 60}m {duration_sec % 60}s" if duration_sec >= 60 else f"{duration_sec}s"
+                dur_h = duration_sec // 3600
+                dur_m = (duration_sec % 3600) // 60
+                dur_str = f"{dur_h}h {dur_m}m" if dur_h > 0 else (f"{dur_m}m {duration_sec % 60}s" if dur_m > 0 else f"{duration_sec}s")
                 
                 # If e_deal exists, type is e_deal.type (0=BUY, 1=SELL). If not, exit type 1 implies entry was BUY.
                 if e_deal:

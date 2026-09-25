@@ -1,14 +1,14 @@
 {
   "version": "3.5.2",
   "authorized_by": "Admin / Lead Architect",
-  "authorized_at": "2026-09-25T14:12:03.647149+00:00",
+  "authorized_at": "2026-09-25T14:19:10.418445+00:00",
   "files": {
-    "SKILL.md": "c0dc1ff39576a932a7befa224f285f2c0ab098beca8d6a86fe53ec9271bf8c66",
+    "SKILL.md": "43c0cec9d34246ef156b652ea20c9afad2b0e9e87f3bfeba70fb4fdef1b86482",
     "scripts\\auto_scanner.py": "7f322d1d437e9b32b9382436d187395ea3cd63481824f7d5dba7cc3e65c3ff76",
     "scripts\\mt5_connector.py": "2410d7cbfee91ecd9f0b0983bab32664ed02c5895583a606be3b0803d05876b1",
-    "scripts\\trade_monitor.py": "5c2aef058f1fb430d3b03789aa9069cddef216ea488cd0c9595a8fb2cde9b640",
+    "scripts\\trade_monitor.py": "a9a5ff620af289149f4ce1cfa078a1bd1e5f01f7d4fe4cbb3e40d530acaa3297",
     "scripts\\send_alert.py": "1d8136639f0efef345ef99d343667ba57f1142ecca567657b38040c6fd44e232",
-    "scripts\\daily_summary.py": "8979813ddcecf4d84da8418941742c890926f4385bff9ec1c82fe6cf7b1ca456",
+    "scripts\\daily_summary.py": "f40631408b90492e9677da4daafd040d06fd491733ffed2fef16f575de35e9d4",
     "scripts\\telegram_listener.py": "f0aaa297dcc289cd960967c3baecc1d557338ddd55f438c48fa8c71e4300c703",
     "scripts\\start_session.py": "50d38f95697cb141b981efadb7a89a3cfb1f9a1d9a7741c2d1f6752a87eb6999",
     "docs\\01_ORGANIZATION_ROLES.md": "1c2996dd94aa00aee29b1a99a212b7222f607f26d033296f6b1e50a86ff1a4f6",

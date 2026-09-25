@@ -155,11 +155,17 @@ def check_and_execute_profit_protection(positions, protection_state):
             res = close_position(pos.ticket)
             if res.get("status") == "SUCCESS":
                 profit = pos.profit
+                open_ts = getattr(pos, "time", int(time.time()))
+                dur_sec = max(0, int(time.time()) - open_ts)
+                dur_h = dur_sec // 3600
+                dur_m = (dur_sec % 3600) // 60
+                dur_str = f"{dur_h}h {dur_m}m ({dur_h} hours, {dur_m} mins)" if dur_h > 0 else f"{dur_m}m ({dur_m} mins)"
                 alert_msg = (
                     f"🎯 <b>PROFIT PROTECTION WIN EXIT (80% ➔ 70% RETRACEMENT)</b>\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"<b>Asset:</b> <code>{pos.symbol}</code> ({pos_dir})\n"
                     f"<b>Action:</b> <b>PROFIT LOCKED IN AT MARKET</b>\n"
+                    f"<b>Duration:</b> ⏱️ <b>{dur_str}</b>\n"
                     f"<b>Peak Distance Reached:</b> <code>{peak_pct:.1f}%</code> of TP\n"
                     f"<b>Exit Retracement:</b> <code>{current_pct:.1f}%</code> of TP\n"
                     f"<b>Execution Price:</b> <code>{pos.price_current}</code>\n"
@@ -211,6 +217,48 @@ def determine_exit_type(deal):
             return "STOP_LOSS_REACHED", "🛑 STOP LOSS / EXIT"
 
 
+def calculate_trade_duration(deal):
+    """
+    Computes holding duration of a trade in hours and minutes.
+    Returns: formatted string e.g. '4h 18m (4 hours, 18 mins)' or '25m (25 mins)'.
+    """
+    open_time = None
+    pos_id = getattr(deal, "position_id", None) or getattr(deal, "order", None)
+
+    if pos_id:
+        try:
+            pos_deals = mt5.history_deals_get(position=pos_id)
+            if pos_deals:
+                in_deals = [d for d in pos_deals if d.entry == mt5.DEAL_ENTRY_IN]
+                if in_deals:
+                    open_time = in_deals[0].time
+        except Exception:
+            pass
+
+        if not open_time:
+            try:
+                pos_orders = mt5.history_orders_get(ticket=pos_id)
+                if pos_orders:
+                    open_time = pos_orders[0].time_setup
+            except Exception:
+                pass
+
+    if not open_time:
+        return "N/A"
+
+    duration_sec = max(0, deal.time - open_time)
+    hours = duration_sec // 3600
+    minutes = (duration_sec % 3600) // 60
+
+    if hours > 0:
+        h_unit = "hour" if hours == 1 else "hours"
+        m_unit = "min" if minutes == 1 else "mins"
+        return f"{hours}h {minutes}m ({hours} {h_unit}, {minutes} {m_unit})"
+    else:
+        m_unit = "min" if minutes == 1 else "mins"
+        return f"{minutes}m ({minutes} {m_unit})"
+
+
 def format_telegram_alert(deal, account_info):
     """Format an institutional trade closure alert."""
     exit_key, exit_header = determine_exit_type(deal)
@@ -223,6 +271,7 @@ def format_telegram_alert(deal, account_info):
     price = deal.price
     volume = deal.volume
     close_time = datetime.fromtimestamp(deal.time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    duration_str = calculate_trade_duration(deal)
 
     balance = account_info.balance if account_info else 0.0
     equity = account_info.equity if account_info else 0.0
@@ -238,6 +287,7 @@ def format_telegram_alert(deal, account_info):
 ━━━━━━━━━━━━━━━━━━━━
 <b>Asset:</b> <code>{symbol}</code> ({pos_direction})
 <b>Result:</b> <b>{badge} ({pnl_str})</b>
+<b>Duration:</b> ⏱️ <b>{duration_str}</b>
 <b>Exit Price:</b> <code>{price}</code>
 <b>Volume:</b> <code>{volume:.2f} Lots</code>
 <b>Close Time:</b> <code>{close_time}</code>
@@ -245,7 +295,7 @@ def format_telegram_alert(deal, account_info):
 ━━━━━━━━━━━━━━━━━━━━
 <b>Account Balance:</b> <code>${balance:,.2f}</code>
 <b>Account Equity:</b> <code>${equity:,.2f}</code>
-<b>Strategy Status:</b> 80/70 Profit Guard Protected (v3.8.0)"""
+<b>Strategy Status:</b> 80/70 Profit Guard Protected (v3.8.9)"""
 
     return msg
 
