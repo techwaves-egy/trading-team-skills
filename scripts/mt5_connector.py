@@ -338,14 +338,13 @@ def execute_mt5_order(ticket):
             logger.critical(reason)
             return {"status": "REJECTED", "reason": reason}
 
-        # 0.1 Smart Anti-Stacking Gate (v3.8.7):
-        # Prevent correlated stacking on the same symbol (max 1 active position per symbol).
-        # Enforce portfolio concurrency limit across different symbols.
+        # 0.1 Dynamic Anti-Stacking & Concurrency Gate:
+        # Allows up to concurrent_batch_size positions for the symbol
         state = get_session_state()
         batch_size = int(ticket.get("batch_size", state.get("concurrent_batch_size", 1)))
         symbol_pos = mt5.positions_get(symbol=symbol)
-        if symbol_pos and len(symbol_pos) >= 1:
-            reason = f"SMART ANTI-STACKING: Position already active on {symbol} (Ticket #{symbol_pos[0].ticket}). Intra-symbol stacking blocked to prevent correlated drawdown."
+        if symbol_pos and len(symbol_pos) >= batch_size:
+            reason = f"ANTI-STACKING: Concurrency limit reached ({len(symbol_pos)}/{batch_size} open on {symbol}). Multiple entries blocked."
             logger.warning(f"Order REJECTED: {reason}")
             return {"status": "REJECTED", "reason": reason}
 

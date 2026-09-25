@@ -164,7 +164,7 @@ def run_scan_and_execute(symbol_override=None):
                 logger.info(f"[SESSION FILTER] GBPUSD restricted outside London/NY active window (Current: {cur_hour}:00 UTC). Skipping.")
                 return "OFF_SESSION"
 
-        # === v3.8.7 GATE 0.1: Smart Concurrency & Anti-Stacking Engine ===
+        # === v3.8.10 GATE 0.1: Concurrency Batch Engine ===
         batch_size = int(session.get("concurrent_batch_size", 1))
         all_open_pos = mt5.positions_get()
         open_count = len(all_open_pos) if all_open_pos else 0
@@ -175,11 +175,10 @@ def run_scan_and_execute(symbol_override=None):
             )
             return "ACTIVE_BATCH_IN_PROGRESS"
 
-        # Check intra-symbol stacking (Max 1 active trade permitted per symbol to eliminate correlated drawdown)
         symbol_pos = [p for p in (all_open_pos or []) if p.symbol == symbol]
-        if len(symbol_pos) >= 1:
-            logger.info(f"[SMART CONCURRENCY] Position already open on {symbol} (Ticket #{symbol_pos[0].ticket}). Correlated stacking blocked.")
-            return "SYMBOL_ALREADY_ACTIVE"
+        if len(symbol_pos) >= batch_size:
+            logger.info(f"[CONCURRENCY ENGINE] Active trades for {symbol} ({len(symbol_pos)}/{batch_size}) reached limit. Skipping.")
+            return "ACTIVE_BATCH_IN_PROGRESS"
 
         # === v3.3.0 GATE 1: Lockout Check ===
         locked, locked_until = check_asset_lockout(symbol)
@@ -371,12 +370,12 @@ def run_scan_and_execute(symbol_override=None):
             logger.info(f"R:R ratio {rr_ratio} below minimum {min_req_rr}, rejecting")
             return "LOW_RR"
 
-        # === ALL GATES PASSED — EXECUTE (SMART CONCURRENCY: 1 TRADE PER SYMBOL) ===
-        trades_to_open = 1  # Exactly 1 trade per symbol to eliminate correlated stacking
+        # === ALL GATES PASSED — EXECUTE CONCURRENT BATCH ===
+        trades_to_open = max(1, min(batch_size - open_count, max_trades - trades_done))
         executed_orders = []
         now_ts = datetime.now(timezone.utc).strftime('%H%M%S')
 
-        logger.info(f"ALL v3.8.7 GATES PASSED — Executing {direction} {symbol} order @ {price}")
+        logger.info(f"ALL v3.8.10 GATES PASSED — Executing batch of {trades_to_open} {direction} {symbol} orders @ {price}")
         logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} / trade | Risk=${actual_risk} | Target=${target_dollars}/trade")
 
         last_fail_reason = "Order rejected by MT5 terminal"
