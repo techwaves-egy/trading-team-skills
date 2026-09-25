@@ -1,11 +1,11 @@
 {
-  "58616511926": {
+  "10677425711": {
     "symbol": "XAUUSD",
-    "direction": "BUY",
-    "open_price": 4255.92,
-    "tp_price": 4280.61,
-    "armed": true,
-    "peak_progress": 0.8007290400971991,
-    "armed_at": "2026-09-24T16:16:26.858188+00:00"
+    "direction": "SELL",
+    "open_price": 4291.18,
+    "tp_price": 4266.16,
+    "armed": false,
+    "peak_progress": 0.0,
+    "armed_at": null
   }
 }

@@ -374,6 +374,7 @@ def run_scan_and_execute(symbol_override=None):
                 "tp": float(tp1),
                 "lots": float(safe_lots),
                 "strategy": strategy_active,
+                "batch_size": batch_size,
             }
             res = execute_mt5_order(ticket)
             logger.info(f"MT5 execution result ({idx+1}/{trades_to_open}): {res}")

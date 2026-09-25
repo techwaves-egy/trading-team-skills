@@ -265,10 +265,12 @@ def execute_mt5_order(ticket):
             logger.critical(reason)
             return {"status": "REJECTED", "reason": reason}
 
-        # 0.1 Anti-Stacking Gate: Check if an open position already exists for this symbol
+        # 0.1 Anti-Stacking Gate: Allow up to concurrent_batch_size positions for this symbol
+        state = get_session_state()
+        batch_size = int(ticket.get("batch_size", state.get("concurrent_batch_size", 1)))
         open_pos = mt5.positions_get(symbol=symbol)
-        if open_pos and len(open_pos) > 0:
-            reason = f"ANTI-STACKING: Position already open on {symbol} (Ticket #{open_pos[0].ticket}). Multiple entries blocked."
+        if open_pos and len(open_pos) >= batch_size:
+            reason = f"ANTI-STACKING: Concurrency limit reached ({len(open_pos)}/{batch_size} open on {symbol}). Multiple entries blocked."
             logger.warning(f"Order REJECTED: {reason}")
             return {"status": "REJECTED", "reason": reason}
         

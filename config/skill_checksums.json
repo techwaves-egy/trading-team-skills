@@ -1,11 +1,11 @@
 {
   "version": "3.5.2",
   "authorized_by": "Admin / Lead Architect",
-  "authorized_at": "2026-09-25T06:09:25.032568+00:00",
+  "authorized_at": "2026-09-25T09:42:28.277779+00:00",
   "files": {
     "SKILL.md": "a870fcde49f5dd18cb1009b8f4fb290d26342d80804bc5c2409a0dc17b41f7a4",
-    "scripts\\auto_scanner.py": "3e73c7e6e3608ed8acc36a56d634bc257c53c7d9ebed85599bab6707a50bc0c2",
-    "scripts\\mt5_connector.py": "01be63d9471ff0f50bec522971d4cabfe11d72e854f9180c925f005c500a985a",
+    "scripts\\auto_scanner.py": "500e76e91692e18dfead40626db1c3b98949a646adceb25859922fdcc9e7e257",
+    "scripts\\mt5_connector.py": "6d4f39a3deb74d4df8b81262d2090b0420bebef2cb9f92046ad5d7289b32268e",
     "scripts\\trade_monitor.py": "d0c99e1667f0c35602d338c6a80c6a0d6375c60147a90efd7592ad6d338b2ae4",
     "scripts\\send_alert.py": "1d8136639f0efef345ef99d343667ba57f1142ecca567657b38040c6fd44e232",
     "scripts\\daily_summary.py": "8979813ddcecf4d84da8418941742c890926f4385bff9ec1c82fe6cf7b1ca456",
