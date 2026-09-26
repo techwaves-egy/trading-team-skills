@@ -4,6 +4,77 @@ All notable changes, architectural upgrades, and version tags of the AI Autonomo
 
 ---
 
+## [v3.8.10] — 2026-09-25
+
+### 🚀 Full User-Configured Batch Concurrency (1x–5x) Across All Markets
+* **Configurable Concurrency Restoration (`scripts/auto_scanner.py`, `scripts/mt5_connector.py`)**:
+  * Restored user-selected multi-trade batch scaling (`1x` to `5x`) across all universe profiles, including Gold (`XAUUSD`).
+  * Harmonized scanner iteration and connector anti-stacking filters to respect `concurrent_batch_size` from `session_state.json`.
+
+---
+
+## [v3.8.9] — 2026-09-25
+
+### ⏱️ Trade Holding Duration Telemetry
+* **Trade Duration Telemetry (`scripts/trade_monitor.py`)**:
+  * Added trade holding duration calculation to all MT5 trade closure alerts and journal logs.
+  * Correlates exit deals (`entry == 1`) with entry deals (`entry == 0`) by position ticket to report exact elapsed time in `⏱️ Xh Ym (X hours, Y mins)`.
+
+---
+
+## [v3.8.8] — 2026-09-25
+
+### 🔄 Self-Healing MT5 Deal Streamer
+* **Auto-Reconnecting MT5 IPC Pipe (`scripts/trade_monitor.py`)**:
+  * Implemented `ensure_mt5_connected()` inside the deal streaming loop to detect silent MT5 IPC disconnects.
+  * Recovers connection automatically within 3 seconds, eliminating dropped closure alerts.
+  * Retroactively audited and broadcasted missing `$49.98` TP notifications for tickets `#10415140330` and `#10415140337`.
+
+---
+
+## [v3.8.7] — 2026-09-25
+
+### 🕯️ Closed-Candle Reversal Confirmation
+* **False Breakout Filter (`scripts/auto_scanner.py`)**:
+  * Replaced inspection of live forming bars (`bars[-1]`) with confirmed closed bars (`bars[-2]`).
+  * Implemented `check_bollinger_confirmation()` requiring confirmed candlestick rejection after Bollinger Band breach before firing market orders.
+
+---
+
+## [v3.8.6] — 2026-09-25
+
+### ⚡ Batch Concurrency Gate Alignment
+* **Anti-Stacking Gate Update (`scripts/mt5_connector.py`)**:
+  * Upgraded anti-stacking gate to allow concurrent execution up to active `concurrent_batch_size`.
+
+---
+
+## [v3.8.5] — 2026-09-25
+
+### 🛠️ Pre-Flight AlgoTrading Permission Validation
+* **MT5 Error 10027 Handler (`scripts/mt5_connector.py`)**:
+  * Added pre-flight check for `terminal_info().trade_allowed`.
+  * Generates immediate diagnostic alert when MT5 AlgoTrading button is disabled.
+
+---
+
+## [v3.8.4] — 2026-09-25
+
+### 🧙 3-Step Telegram Interactive Wizard (`/wizard`)
+* **Interactive Setup Flow (`scripts/telegram_listener.py`)**:
+  * 3-step inline button wizard for Universe selection, Batch Concurrency (`1x`–`5x`), and Daily Rounds.
+  * Dynamic session state generation with independent `$25.00` TP tracking per trade.
+
+---
+
+## [v3.8.3] — 2026-09-24
+
+### 🎯 Sequential Multi-Trade Target Architecture
+* **Fixed Per-Trade Target**:
+  * Standardized fixed `$25.00` target per trade ticket with 80/70 Asymmetric Profit Protection tracking each ticket independently.
+
+---
+
 ## [v3.8.2] — 2026-09-24
 
 ### 📱 Full Telegram Button Control & Engine Restart Broadcast

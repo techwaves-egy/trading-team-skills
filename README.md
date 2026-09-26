@@ -1,9 +1,11 @@
-# 🏛️ AI Autonomous Trading Firm — Institutional Workspace (v3.8.0)
+# 🏛️ AI Autonomous Trading Firm — Institutional Workspace (v3.8.10)
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![MetaTrader 5](https://img.shields.io/badge/MetaTrader-5-darkgreen.svg)](https://www.metatrader5.com/)
 [![Security: Anti-Tamper SHA-256](https://img.shields.io/badge/Security-Cryptographic%20Guarded-green.svg)](scripts/skill_integrity_guard.py)
 [![Telegram Remote Control](https://img.shields.io/badge/Telegram-Remote%20Approval%20Enabled-0088cc.svg)](scripts/telegram_listener.py)
+
+> 📖 **Agent Continuity & Handover:** For incoming AI agents and developers, the master operational log, past diagnoses, mathematical evaluations, and full version history are maintained in [WORK_LOG.md](WORK_LOG.md).
 
 Institutional multi-agent AI trading organization engineered for live market analysis, automated regime detection, confirmation entry protocols, dynamic ATR volatility floors, 2-strike asset lockouts, dynamic strategy competition, quantitative risk management, order execution, dual In-Chat/Telegram approvals, real-time Take Profit & Stop Loss action guidance, native **MetaTrader 5 direct desktop execution**, and **TradingView webhooks**.
 
