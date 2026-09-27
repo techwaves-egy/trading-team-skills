@@ -4,6 +4,16 @@ All notable changes, architectural upgrades, and version tags of the AI Autonomo
 
 ---
 
+## [v3.8.11] — 2026-09-27
+
+### ⏳ Autonomous Weekend Standby Engine
+* **Non-Destructive Weekend Polling (`scripts/auto_scanner.py`)**:
+  * Implemented Weekend Standby Mode allowing the scanner daemon to stay alive and in memory when launched during weekend closures.
+  * Calculates exact time remaining until Sunday market reopen (20:55 UTC) and sleeps in safe intervals rather than executing a process kill switch.
+  * Ensures the system seamlessly and automatically begins scanning the moment markets open without manual intervention.
+
+---
+
 ## [v3.8.10] — 2026-09-25
 
 ### 🚀 Full User-Configured Batch Concurrency (1x–5x) Across All Markets
