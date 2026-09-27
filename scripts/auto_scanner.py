@@ -508,13 +508,32 @@ def start_auto_scanner(interval_minutes=15):
             # Check for weekend market closure
             closed, reason = is_market_closed()
             if closed:
-                logger.info(f"Market is closed ({reason}). Executing Market Close Protocol and terminating.")
-                try:
-                    from daily_summary import send_market_close_summary
-                    send_market_close_summary(is_weekend=True, kill_processes=True)
-                except Exception as ex:
-                    logger.error(f"Error in market close summary handler: {ex}")
-                break
+                now_utc = datetime.now(timezone.utc)
+                if reason == "WEEKEND_CLOSE_FRIDAY":
+                    logger.info(f"Market is closed ({reason}). Executing Friday Close Protocol.")
+                    try:
+                        from daily_summary import send_market_close_summary
+                        send_market_close_summary(is_weekend=True, kill_processes=True)
+                    except Exception as ex:
+                        logger.error(f"Error in market close summary handler: {ex}")
+                    break
+                else:
+                    # Weekend Standby (Saturday or Sunday before 20:55 UTC)
+                    # Calculate time remaining until Sunday 20:55 UTC
+                    days_ahead = (6 - now_utc.weekday()) % 7
+                    target_open = now_utc.replace(hour=20, minute=55, second=0, microsecond=0) + timedelta(days=days_ahead)
+                    if target_open <= now_utc:
+                        target_open += timedelta(days=7)
+                    wait_sec = max(60, int((target_open - now_utc).total_seconds()))
+                    wait_hours = wait_sec / 3600.0
+                    sleep_chunk = min(900, wait_sec)
+                    logger.info(
+                        f"[WEEKEND STANDBY] Markets closed ({reason}). "
+                        f"Next market open at Sunday 20:55 UTC (in {wait_hours:.1f}h). "
+                        f"Engine sleeping for {sleep_chunk // 60}m..."
+                    )
+                    time.sleep(sleep_chunk)
+                    continue
 
             session = load_session()
             if not session.get("is_active", True):
