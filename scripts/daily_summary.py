@@ -108,11 +108,15 @@ def get_daily_deals():
 
                 net = round(d.profit + d.commission + d.swap, 2)
 
-                comm = d.comment or ""
                 if "[tp" in comm.lower():
                     reason = "Take Profit Hit"
                 elif "[sl" in comm.lower():
-                    reason = "Stop Loss Hit"
+                    if net > 1.0:
+                        reason = "80/70 Asymmetric Exit (Server SL)"
+                    elif net >= 0:
+                        reason = "Break-Even Exit"
+                    else:
+                        reason = "Stop Loss Hit"
                 elif "close" in comm.lower():
                     reason = "80/70 Asymmetric Exit"
                 else:

@@ -530,13 +530,18 @@ def modify_mt5_sl(ticket_id, new_sl):
             return {"status": "ERROR", "reason": f"Position {ticket_id} not found"}
             
         pos = positions[0]
+        digits = 2
+        sym_info = mt5.symbol_info(pos.symbol)
+        if sym_info:
+            digits = sym_info.digits
+
         request = {
             "action": mt5.TRADE_ACTION_SLTP,
             "position": pos.ticket,
             "symbol": pos.symbol,
-            "sl": float(new_sl),
-            "tp": float(pos.tp),
-            "magic": 300000
+            "sl": float(round(new_sl, digits)),
+            "tp": float(round(pos.tp, digits)) if pos.tp else 0.0,
+            "magic": getattr(pos, "magic", 300000)
         }
         result = mt5.order_send(request)
         if result is None:
@@ -545,7 +550,7 @@ def modify_mt5_sl(ticket_id, new_sl):
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             return {"status": "ERROR", "reason": result.comment, "retcode": result.retcode}
             
-        return {"status": "SUCCESS", "message": "SL modified (v3.0.0)"}
+        return {"status": "SUCCESS", "message": f"SL modified to {request['sl']} (v3.0.0)", "sl": request["sl"]}
     except Exception as e:
         return {"status": "ERROR", "reason": str(e)}
 

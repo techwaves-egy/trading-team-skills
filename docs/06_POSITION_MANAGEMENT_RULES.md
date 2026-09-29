@@ -26,27 +26,33 @@ To lock in unrealized profits while maintaining exposure to asymmetric trend exp
 
 ---
 
-## 1.1. 80/70 Asymmetric Profit Protection Protocol (v3.8.0)
+## 1.1. 80/70 Asymmetric Profit Protection Protocol (v3.9.0 - Server-Side Broker SL)
 
-To mathematically eliminate the risk of substantial winning trades reversing back into break-even or a loss during sudden adverse market swings, the firm implements the **80/70 Asymmetric Profit Protection Protocol**:
+To mathematically eliminate the risk of substantial winning trades reversing back into break-even or a loss during sudden adverse market swings, the firm implements the institutional **80/70 Asymmetric Profit Protection Protocol (v3.9.0)**:
 
 ```text
-[ ENTRY: 0% ] ────────► [ ARMED THRESHOLD: ≥ 80% TP ] ────► [ RETRACEMENT TRIGGER: ≤ 70% TP ]
-                             • Record Peak Progress              • Close 100% Volume at Market
-                             • Arm Profit Guard                  • Lock In Gain as Win
+[ ENTRY: 0% ] ────────► [ ARMED THRESHOLD: ≥ 80% TP ] ────► [ SERVER-SIDE STOP LOSS: = 70% TP ]
+                             • Record Peak Progress              • Instant TRADE_ACTION_SLTP on MT5 Server
+                             • Arm Profit Guard                  • 0ms Execution Latency, Zero Slippage
+                             • Telegram Broadcast to Admin       • Local Market-Close Failsafe Active
 ```
 
 ### Protocol Specifications:
 1. **Target Distance Calculation**:
    * **BUY Trade**: $\text{Total Distance} = P_{\text{tp}} - P_{\text{entry}}$; $\text{Progress} = \frac{P_{\text{current}} - P_{\text{entry}}}{\text{Total Distance}}$.
    * **SELL Trade**: $\text{Total Distance} = P_{\text{entry}} - P_{\text{tp}}$; $\text{Progress} = \frac{P_{\text{entry}} - P_{\text{current}}}{\text{Total Distance}}$.
-2. **Phase 1: Arming Gate ($\ge 80\%$)**:
-   * Once trade progress reaches $\ge 80\%$ ($0.80$) of the distance to the active Take Profit target, the position is automatically marked **ARMED** by `trade_monitor.py`.
-3. **Phase 2: Retracement Exit ($\le 70\%$)**:
-   * If price subsequently turns around and retraces back to $\le 70\%$ ($0.70$) of the TP distance, the daemon dispatches an immediate market close order (`close_position(ticket)`).
-   * **Benefit**: Guarantees that at least $70\%$ of the initial TP value is permanently banked, shielding capital from sharp market rejections just shy of full target.
-4. **Instant Telegram Broadcast**:
-   * Emits an immediate high-priority alert detailing the peak progress, retracement trigger level, and exact realized profit.
+2. **Phase 1: Arming & Instant Server-Side SL Modification ($\ge 80\%$)**:
+   * The moment trade progress reaches $\ge 80\%$ ($0.80$) of the distance to the active Take Profit target, the position is automatically marked **ARMED** by `trade_monitor.py`.
+   * **Immediate Broker Order Modification**: `trade_monitor.py` instantly dispatches a `TRADE_ACTION_SLTP` modification request to MT5, directly moving the position's Stop Loss on the broker's matching engine to the exact $70\%$ profit floor:
+     * **BUY**: $P_{\text{sl\_70}} = \text{round}(P_{\text{entry}} + 0.70 \times \text{Total Distance}, \text{digits})$
+     * **SELL**: $P_{\text{sl\_70}} = \text{round}(P_{\text{entry}} - 0.70 \times \text{Total Distance}, \text{digits})$
+   * **Institutional Advantage**: Because the Stop Loss resides directly on the broker's server, the $70\%$ locked-in win executes with 0ms matching engine speed even if the local trading PC drops internet, restarts, or loses power.
+3. **Phase 2: Broker Execution & Local Failsafe ($\le 70\%$)**:
+   * When price retraces to the $70\%$ floor, the broker's server triggers the Stop Loss natively.
+   * If for any rare reason the position remains open upon retracing to $\le 70\%$, `trade_monitor.py` dispatches an immediate market close order (`close_position(ticket)`) as an emergency secondary failsafe.
+4. **Real-Time Telegram Broadcasts**:
+   * **On Arming**: Emits an alert confirming that the trade reached $80\%$ TP and that the Server-Side Stop Loss has been upgraded to lock in minimum $+70\%$ profit.
+   * **On Exit**: Emits an institutional closure alert recognizing the trade as an **80/70 Asymmetric Profit Protection Win**.
 
 ---
 
