@@ -1,6 +1,6 @@
 ---
 name: autonomous-trading-firm
-version: 3.9.0
+version: 4.0.0
 description: >-
   Multi-agent AI Autonomous Trading Firm for live market analysis, automated market regime detection,
   dynamic strategy selection & competition, risk engine validation, 80/70 Asymmetric Profit Protection (Server-Side Broker SL),
@@ -9,9 +9,9 @@ description: >-
   and trade execution across Forex, Metals, Crypto, Stocks, Indices, and Commodities.
 ---
 
-# AI Autonomous Trading Firm (v3.9.0 — Universal Empirical Standard)
+# AI Autonomous Trading Firm (v4.0.0 — Institutional Resilience & Macro Sizing Standard)
 
-A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Bollinger Bands 2.0-StdDev Mean Reversion with Closed-Candle Reversal Confirmation (v3.8.7)** (#1 Universal Tournament Winner: **67.2% Win Rate, PF 2.36 on EURUSD; 66.7% Win Rate, PF 2.95 on Gold**), **User-Configured Batch Concurrency Engine (1x–5x simultaneous 0.01 lot trades per signal, each with independent $25.00 TP and 80/70 protection)**, **Self-Healing Real-Time MT5 Deal Streamer & Server-Side Profit Protection Daemon with Trade Duration Telemetry (v3.9.0)**, **80/70 Asymmetric Profit Protection Engine (The moment ≥ 80% TP is armed, instantly modifies broker server-side Stop Loss directly to 70% level with 0ms matching engine speed and local failsafe)**, **Daily Frequency & Rounds Configurator (1 to 5 rounds per day)**, **Interactive 3-Step Telegram Button Wizard & Persistent Keyboard Controls**, **Gold Profit Clamping Target ($25.00 per trade)**, **Automated Market Close Daily & Weekly Summaries with Process Kill Switch**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection**, dynamic broker filling mode resolution (`FOK`/`IOC`), strategy-aware confirmation routing, native UNIX timestamp deal streaming, dynamic ATR volatility floors, 2-strike asset lockout circuit breakers, persistent mobile credential management, 24/7 background Telegram listener daemons, real-time trade result streaming, native **MetaTrader 5 (MT5)** direct desktop execution, **TradingView** webhook integration, and **fully autonomous scan-and-execute daemon** in Mode D.
+A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Bollinger Bands 2.0-StdDev Mean Reversion with Multi-Candle Reversal Confirmation & Waterfall Cascade Filter (v4.0.0)** (#1 Universal Tournament Winner: **67.2% Win Rate, PF 2.36 on EURUSD; 66.7% Win Rate, PF 2.95 on Gold**), **7-Pillar Institutional Resilience Engine (Real-Time Daily Loss Circuit Breaker, Gold Session Time-of-Day Filter 07:00–19:00 UTC, Account Equity Floor & Dynamic Batch Scaling, 3x Free Margin Buffer & 400% Projected Margin Level Gate, Symmetrical R:R $\ge 1.0:1$, Persistent Batch-Aware 2-Strike Lockout)**, **User-Configured Batch Concurrency Engine (1x–5x simultaneous 0.01 lot trades per signal, each with independent $25.00 TP and 80/70 protection)**, **Self-Healing Real-Time MT5 Deal Streamer & Server-Side Profit Protection Daemon with Trade Duration Telemetry (v3.9.0)**, **80/70 Asymmetric Profit Protection Engine (The moment ≥ 80% TP is armed, instantly modifies broker server-side Stop Loss directly to 70% level with 0ms matching engine speed and local failsafe)**, **Daily Frequency & Rounds Configurator (1 to 5 rounds per day)**, **Interactive 3-Step Telegram Button Wizard & Persistent Keyboard Controls**, **Gold Profit Clamping Target ($25.00 per trade)**, **Automated Market Close Daily & Weekly Summaries with Process Kill Switch**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection**, dynamic broker filling mode resolution (`FOK`/`IOC`), strategy-aware confirmation routing, native UNIX timestamp deal streaming, dynamic ATR volatility floors, 2-strike asset lockout circuit breakers, persistent mobile credential management, 24/7 background Telegram listener daemons, real-time trade result streaming, native **MetaTrader 5 (MT5)** direct desktop execution, **TradingView** webhook integration, and **fully autonomous scan-and-execute daemon** in Mode D.
 
 ---
 
@@ -50,29 +50,32 @@ To protect capital, prevent phantom API calls during exchange closures, and auto
 
 ---
 
-## 1. Autonomous Multi-Engine Scan & Execute Daemon (Mode D — v3.7.0)
+## 1. Autonomous Multi-Engine Scan & Execute Daemon (Mode D — v4.0.0)
 
 After session parameters are confirmed, the firm automatically launches `scripts/auto_scanner.py` as a background daemon that:
 1. Scans the target market every **15 minutes** using real MT5 4H, 1H, and 15M multi-timeframe data.
 2. Applies the **Dual-Engine Strategy Hierarchy**:
    - **Primary Alpha Engine (Engine 1)**: **Bollinger Bands 2.0-StdDev Mean Reversion** (Fades statistical overextensions back towards the 20-period mean when price pierces the $2.0\sigma$ envelope with reversal confirmation).
    - **Secondary Trend Engine (Engine 2)**: **Multi-Timeframe Structural Breakout / 4H Trend-Rider** (Activated during strong macroeconomic trend expansions).
-3. Applies all **12 v3.7.0 empirical decision gates & execution standards** before any execution:
-   - **Gate 0: Asset Disablement Policy**: Permanently blocks `USDJPY` & `GBPUSD` (negative empirical expectancy).
-   - **Gate 0.1: Batch Concurrency & Strict Anti-Stacking**: Opens up to `concurrent_batch_size` concurrent trades (e.g. 1x, 2x, 3x, 5x) for a high-probability opportunity. Each trade is opened with 0.01 lot and an independent $25.00 target and 80/70 protection. Stacking beyond `concurrent_batch_size` is strictly blocked.
-   - **Gate 1: 2-Strike Asset Lockout**: 60-minute freeze after 2 consecutive stop-outs.
+3. Applies all **14 v4.0.0 empirical decision gates & execution standards** before any execution:
+   - **Gate 0.00: Real-Time Max Daily Loss Circuit Breaker**: Evaluates `get_daily_realized_pnl() + floating_pnl` before every scan. If net daily loss reaches `max_daily_loss`, scanning halts immediately for 24h.
+   - **Gate 0.05: Institutional Gold Session Filter**: Restricts Gold (`XAUUSD`) execution strictly to **07:00 UTC to 19:00 UTC** (London Open through NY Afternoon). Completely freezes Gold during the illiquid Asian session and NY close (19:00 to 07:00 UTC) where mean reversion has negative expectancy.
+   - **Gate 0.0: Account Equity Floor & Dynamic Batch Scaling**: Requires minimum equity of **$25.00**. Dynamically caps batch size based on equity ($<\$150 \implies 1\text{x}$; $<\$300 \implies 2\text{x}$; $<\$500 \implies 3\text{x}$; $\ge\$500 \implies 5\text{x}$).
+   - **Gate 0: Asset Disablement Policy**: Permanently blocks `USDJPY` & `GBPUSD` outside liquid windows.
+   - **Gate 0.1: Batch Concurrency & Strict Anti-Stacking**: Opens up to `concurrent_batch_size` concurrent trades for a high-probability opportunity. Stacking beyond `concurrent_batch_size` is strictly blocked.
+   - **Gate 1: Persistent Batch-Aware 2-Strike Asset Lockout**: Tracks closed deals in `config/loss_state.json`. Aggregates all orders in a losing batch, triggering an immediate 60-minute cooling period if 2 or more losses occur.
    - **Gate 2: Dual-Engine Strategy Selector**: Automatically deploys Bollinger Mean Reversion or Structural Breakout.
    - **Gate 3: Support/Resistance Trap Filter**: Never SELL within 0.5× ATR of 4H Major Support; never BUY within 0.5× ATR of 4H Major Resistance.
-   - **Gate 4: ATR Volatility Floor**: Stop loss distance $\ge 1.5\times\text{ATR}$ to prevent noise-outs.
+   - **Gate 4: Multi-Candle Reversal & Waterfall Cascade Filter**: Rejects fading against 3 consecutive 1H drop bars ($>2\times\text{ATR}$). Requires completed M15 reversal candle with rejection wick $\ge 35\%$, engulfing structure, or 2 consecutive directional closes.
    - **Gate 5: Strategy-Aware Confirmation Entry**: Validates envelope bounce for Mean Reversion or 15M CHoCH break for Trend Breakout.
    - **Gate 6: Batch Concurrency & Daily Rounds Quota**: Executes `concurrent_batch_size` trades simultaneously per setup across `daily_rounds` sessions, strictly bounded by `max_trades = batch_size * daily_rounds`.
-   - **Gate 7: Gold Profit Target Clamping**: Initial Gold profit target locked at $+\$25.00$ per 0.01 micro lot ($+\$125.00$ per 5x batch).
-   - **Gate 8: Dynamic Decimal Precision & Strict Lot Clamping**: Formats prices using native `symbol_info.digits` (5 for FX, 2 for Metals).
+   - **Gate 7: Symmetrical Risk-to-Reward Realignment**: Pegs maximum Stop Loss distance to Take Profit distance, guaranteeing $\text{R:R} \ge 1.0:1$.
+   - **Gate 8: Free Margin Buffer & Projected Margin Level Gate**: Requires Free Margin $\ge 3\times$ required margin and Projected Margin Level $\ge 400\%$ after order placement. Caps total batch risk at $\le 15\%$ of account equity on micro accounts.
    - **Gate 9: Dynamic Broker Filling Mode**: Automatically selects `ORDER_FILLING_FOK` or `ORDER_FILLING_IOC` from broker `symbol_info.filling_mode` flag.
    - **Gate 10: Mandatory Telegram Broadcast on Modification**: Every skill or engine parameter change triggers an instant detailed Telegram broadcast.
    - **Gate 11: Cryptographic Anti-Tamper Protection**: Validates SHA-256 signatures before every trade execution; freezes trading if unauthorized file tampering is detected.
    - **Gate 12: Automated Market Close Shutdown**: Halts scanning, sends weekly/daily audit report, and executes process kill switch on Friday weekend close.
-    - **Gate 13: 80/70 Asymmetric Profit Guard (v3.9.0 - Server-Side Matching Engine Execution)**: The moment an active trade reaches ≥ 80% of TP distance, it instantly modifies the broker's server-side Stop Loss directly to the 70% profit floor on the MT5 matching engine (`TRADE_ACTION_SLTP`). Guarantees zero latency and immunity to network/client downtime, backed by a secondary local market-close failsafe.
+   - **Gate 13: 80/70 Asymmetric Profit Guard (v3.9.0 - Server-Side Matching Engine Execution)**: The moment an active trade reaches ≥ 80% of TP distance, it instantly modifies the broker's server-side Stop Loss directly to the 70% profit floor on the MT5 matching engine (`TRADE_ACTION_SLTP`). Guarantees zero latency and immunity to network/client downtime, backed by a secondary local market-close failsafe.
 4. **Real-Time Deal Streaming & Server-Side Profit Protection Engine (`trade_monitor.py`)**: Continuously polls MT5 open positions and closed deals every 3 seconds to enforce the server-side 80/70 Asymmetric Profit Guard and guarantee instantaneous Telegram broadcasts on every TP, SL, Server-Side Profit Protection, or Break-Even exit.
 5. If all gates pass → **auto-executes in MT5** and sends trade alert to Telegram.
 6. If any gate fails → logs reason, sends monitoring update to Telegram, waits for next scan.

@@ -7,14 +7,14 @@
 ## 📌 Executive Summary & Live System Status
 
 * **Firm / Skill Name:** AI Autonomous Trading Firm (`techwaves-egy/trading-team-skills`)
-* **Current Architectural Version:** `v3.9.0` (Tag: `v3.9.0`)
+* **Current Architectural Version:** `v4.0.0` (Tag: `v4.0.0`)
 * **Repository Working Branch:** `master` (Synchronized with `origin master`)
 * **Active Broker / Execution Gateway:** MetaTrader 5 Desktop IPC (`MetaQuotes-Demo`)
 * **Live Target Account:** `#113155651`
-* **Account Balance & Equity:** **`$1,026.66`** (100% Capital Preserved, Net Weekly Profit: `+$26.66` / `+2.66%`)
+* **Account Balance & Equity:** **`$946.54`** (100% Capital Preserved)
 * **Open Market Exposure:** **`0` Positions (100% Flat)**
-* **Current Operational State:** **Active Live Operations & Monitoring** (v3.9.0 Server-Side 80/70 Protection Armed).
-* **Target Universe:** `XAUUSD (Gold Only)` (2x Dual Batch, 5 Daily Rounds, $25 TP / trade).
+* **Current Operational State:** **Active Live Operations & Monitoring** (v4.0.0 Institutional 7-Pillar Resilience Engine Armed).
+* **Target Universe:** `XAUUSD (Gold Only)` (Dynamic Account-Scaled Batch, 5 Daily Rounds, Session-Restricted).
 * **Executive Leadership & Security Routing:**
   * **Lead Administrator & CRO:** `@wtalaat` (`chat_id: 1264076025`)
   * **VIP Signals Broadcast Channel:** `-1003989306390`
@@ -82,6 +82,27 @@ flowchart TD
 ---
 
 ## 📜 Chronological Evolution & Version Milestones
+
+### **[v4.0.0] — 2026-10-01 (Institutional 7-Pillar Resilience Engine & Micro-Account Sizing Standard)**
+* **Context & Forensic Trigger:** Comprehensive post-mortem audit of secondary PC account (`#113282478`, $50 initial capital, leverage 1:500) which suffered margin stop-out down to $2.08 during an overnight Asian session after previously achieving +$100.20 in profit during liquid London/NY sessions.
+* **Root Causes Diagnosed:**
+  1. *The Ghost Gate:* `max_daily_loss` was retrieved in `auto_scanner.py` but never checked anywhere in the script.
+  2. *Zero Account Equity / Free Margin Awareness:* Fixed 3x batch sizing required ~$25 margin, leaving only $7.24 free margin on a $32 balance, triggering 25% margin liquidation on a minor $2.40 fluctuation.
+  3. *Inverted Risk-to-Reward Ratio:* Targets clamped to $15 while ATR stops sat at ~$26, creating an unfavorable 0.58:1 ratio requiring a >63.7% break-even win rate.
+  4. *Correlated Multi-Order Batching:* 3 orders fired simultaneously risked 70.9% of account equity on a single setup without diversification.
+  5. *Flawed Batch Deal Processing in 2-Strike Lockout:* Only checked the single last deal (`deals[-1]`), causing all 3 closing deals of a batch to increment the loss counter by 1 instead of 3, failing to lock out the asset.
+  6. *Absence of Session / Time-of-Day Filter:* Mean reversion on Gold during Asian illiquidity (19:00–07:00 UTC) carries negative statistical expectancy due to unilateral drift and shallow liquidity.
+  7. *Single-Candle M15 Confirmation Trap:* Reversal entry triggered on a single $0.10 green M15 candle into a 400-point macro 1H/4H waterfall sell-off ("catching falling knives").
+* **Institutional 7-Pillar Upgrades Implemented:**
+  1. **Enforced Real-Time Daily Loss Circuit Breaker (Gate 0.00):** Realized daily PnL calculated directly from broker deals (`00:00:00 UTC` to now) plus floating PnL; halts scanning immediately for 24 hours if breached and broadcasts emergency Telegram alert.
+  2. **Asian Session Freeze for Gold (Gate 0.05):** Strictly restricts XAUUSD trades to liquid European/NY sessions (`07:00 - 19:00 UTC`). Automatically returns `OFF_SESSION_GOLD` during Asian/overnight hours.
+  3. **Equity-Based Dynamic Batch Scaling & Capital Floor (Gate 0.0):** Absolute $25 equity floor. Dynamic scaling: Equity < $150 $\to$ 1x (0.01 lot); < $300 $\to$ 2x; < $500 $\to$ 3x; $\ge$ $500 $\to$ configured. Maximum batch dollar risk capped at 15% of equity.
+  4. **Strict Symmetrical Risk-to-Reward ($\ge 1.0:1$) (Gate 7):** Hard cap ensuring Stop Loss distance never exceeds Take Profit distance (`sl_distance <= target_dist`), enforcing $\text{R:R} \ge 1.0:1$.
+  5. **Pre-Execution Free Margin & Margin Level Gate (Gate 8):** Requires `margin_free >= 3 * margin_required` and projected margin level $\ge 400\%$.
+  6. **1H Macro Waterfall Cascade Filter & Robust M15 Reversal Confirmation:** Rejects counter-trend entries if previous 3 consecutive 1H bars were expansion bars ($>2\times\text{ATR}$). Requires M15 rejection wick $\ge 35\%$, engulfing body, or 2 consecutive directional closes.
+  7. **Persistent Batch-Aware 2-Strike Lockout:** Created persistent `config/loss_state.json`. Aggregates all closed deals within a 5-second window, detects every losing ticket in a batch, and locks out the asset for 12 hours upon 2 strikes even across Python restarts.
+* **Files Modified:** `scripts/auto_scanner.py`, `scripts/mt5_connector.py`, `config/loss_state.json`, `docs/03_RISK_ENGINE_POSITION_SIZING.md`, `SKILL.md`, `WORK_LOG.md`.
+* **Git Commit / Tag:** `v4.0.0`
 
 ### **[v3.9.0] — 2026-09-29 (Institutional Server-Side 80/70 Profit Protection)**
 * **Feature:** Instant Broker Server-Side Stop Loss Modification directly to 70% Profit Floor.

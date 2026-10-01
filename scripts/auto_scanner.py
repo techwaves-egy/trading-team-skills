@@ -107,7 +107,8 @@ def run_scan_and_execute(symbol_override=None):
 
     from mt5_connector import (
         MT5Bridge, calculate_atr, detect_regime,
-        check_confirmation, check_asset_lockout, execute_mt5_order
+        check_confirmation, check_asset_lockout, execute_mt5_order,
+        get_daily_realized_pnl
     )
     from send_alert import broadcast_telegram
 
@@ -137,6 +138,71 @@ def run_scan_and_execute(symbol_override=None):
         return "MT5_ERROR"
 
     try:
+        # === v4.0.0 GATE 0.00: Real-Time Max Daily Loss Circuit Breaker ===
+        today_realized_pnl = get_daily_realized_pnl()
+        open_pos_all = mt5.positions_get()
+        floating_pnl = sum(p.profit for p in open_pos_all) if open_pos_all else 0.0
+        total_today_pnl = round(today_realized_pnl + floating_pnl, 2)
+
+        if total_today_pnl <= -max_daily_loss:
+            logger.critical(
+                f"[CIRCUIT BREAKER TRIGGERED] Max daily loss ceiling breached! "
+                f"Realized: ${today_realized_pnl:.2f}, Floating: ${floating_pnl:.2f}, Net Today: ${total_today_pnl:.2f} "
+                f"<= Ceiling: -${max_daily_loss:.2f}. Halting automated trading."
+            )
+            broadcast_telegram(
+                f"🛑 <b>CIRCUIT BREAKER: MAX DAILY LOSS BREACHED</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"<b>Today Realized PnL:</b> <code>${today_realized_pnl:.2f}</code>\n"
+                f"<b>Floating PnL:</b> <code>${floating_pnl:.2f}</code>\n"
+                f"<b>Net Today:</b> <b>${total_today_pnl:.2f} USD</b>\n"
+                f"<b>Daily Loss Ceiling:</b> <code>-${max_daily_loss:.2f} USD</code>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"<b>Status:</b> 🔒 <b>AUTOMATED TRADING HALTED FOR 24H</b>\n"
+                f"<i>Capital preservation rule enforced. No further orders permitted.</i>"
+            )
+            return "MAX_DAILY_LOSS_EXCEEDED"
+
+        # === v4.0.0 GATE 0.05: Institutional Liquidity & Session Time-of-Day Filter ===
+        now_utc = datetime.now(timezone.utc)
+        cur_hour = now_utc.hour
+        is_gold = "XAU" in symbol.upper() or "GOLD" in symbol.upper()
+
+        if is_gold:
+            # Active Institutional Window: 07:00 UTC (London Open) to 19:00 UTC (NY Afternoon)
+            # Freeze Window: 19:00 UTC to 07:00 UTC (Asian Session & NY-Close Liquidation Drift)
+            if cur_hour >= 19 or cur_hour < 7:
+                logger.info(
+                    f"[SESSION FILTER] Gold (XAUUSD) trading is FROZEN outside institutional liquidity hours "
+                    f"(Current: {now_utc.strftime('%H:%M UTC')} | Active: 07:00 - 19:00 UTC). "
+                    f"Mean reversion has negative statistical expectancy during Asian illiquidity. Skipping."
+                )
+                return "OFF_SESSION_GOLD"
+
+        # === v4.0.0 GATE 0.0: Account Equity Floor & Dynamic Batch Scaling ===
+        acc = mt5.account_info()
+        if not acc:
+            logger.error("Failed to query MT5 account info for equity check")
+            return "ACCOUNT_INFO_ERROR"
+
+        if acc.equity < 25.0:
+            logger.critical(f"[EQUITY GATE] Account equity (${acc.equity:.2f}) below operating floor ($25.00). Aborting to prevent liquidation.")
+            return "INSUFFICIENT_EQUITY"
+
+        configured_batch = int(session.get("concurrent_batch_size", 1))
+        if acc.equity < 150.0:
+            max_safe_batch = 1
+        elif acc.equity < 300.0:
+            max_safe_batch = 2
+        elif acc.equity < 500.0:
+            max_safe_batch = 3
+        else:
+            max_safe_batch = configured_batch
+
+        batch_size = min(configured_batch, max_safe_batch)
+        if batch_size < configured_batch:
+            logger.info(f"[EQUITY SIZING] Configured batch ({configured_batch}x) scaled down to {batch_size}x due to equity (${acc.equity:.2f} < threshold).")
+
         tick = mt5.symbol_info_tick(symbol)
         if not tick:
             logger.error(f"No tick data for {symbol}")
@@ -165,7 +231,6 @@ def run_scan_and_execute(symbol_override=None):
                 return "OFF_SESSION"
 
         # === v3.8.10 GATE 0.1: Concurrency Batch Engine ===
-        batch_size = int(session.get("concurrent_batch_size", 1))
         all_open_pos = mt5.positions_get()
         open_count = len(all_open_pos) if all_open_pos else 0
         if open_count >= batch_size:
@@ -319,6 +384,12 @@ def run_scan_and_execute(symbol_override=None):
                 sl_level = round(price + min_stop, digits)
                 sl_distance = min_stop
 
+            # Symmetrical R:R Capping: Stop Loss distance cannot exceed Target Profit distance!
+            if is_gold or target_dist > 0:
+                if sl_distance > target_dist:
+                    sl_distance = target_dist
+                    sl_level = round(price + sl_distance, digits)
+
             if is_gold:
                 # Target $25.00 profit dynamically sized per lot
                 tp1 = round(price - target_dist, digits)
@@ -346,6 +417,12 @@ def run_scan_and_execute(symbol_override=None):
                 sl_level = round(price - min_stop, digits)
                 sl_distance = min_stop
 
+            # Symmetrical R:R Capping: Stop Loss distance cannot exceed Target Profit distance!
+            if is_gold or target_dist > 0:
+                if sl_distance > target_dist:
+                    sl_distance = target_dist
+                    sl_level = round(price - sl_distance, digits)
+
             if is_gold:
                 # Target $25.00 profit dynamically sized per lot
                 tp1 = round(price + target_dist, digits)
@@ -363,19 +440,63 @@ def run_scan_and_execute(symbol_override=None):
         # === v3.8.3 Execution & Risk Evaluation ===
         actual_risk = round(safe_lots * contract_size * sl_distance, 2)
 
-        # === v3.6.0 GATE 7: R:R Check ===
+        # === v4.0.0 GATE 7: Symmetrical R:R Check (Minimum 1.0:1 Standard) ===
         rr_ratio = round((abs(tp1 - price)) / sl_distance, 2) if sl_distance > 0 else 0
-        min_req_rr = 0.7 if is_gold else (0.8 if strategy_active == "Bollinger_Mean_Reversion" else 0.95)
+        min_req_rr = 1.0  # Institutional 1.0:1 standard (Never risk more than reward)
         if rr_ratio < min_req_rr:
-            logger.info(f"R:R ratio {rr_ratio} below minimum {min_req_rr}, rejecting")
+            logger.info(f"[R:R GATE] Symmetrical R:R ratio {rr_ratio}:1 below minimum {min_req_rr}:1, rejecting trade")
             return "LOW_RR"
 
-        # === ALL GATES PASSED — EXECUTE CONCURRENT BATCH ===
+        # === ALL GATES PASSED — PREPARE CONCURRENT BATCH ===
         trades_to_open = max(1, min(batch_size - open_count, max_trades - trades_done))
+
+        # === v4.0.0 GATE 8: Free Margin Buffer & Projected Margin Level Check ===
+        mt5_order_type = mt5.ORDER_TYPE_BUY if direction == "BUY" else mt5.ORDER_TYPE_SELL
+        margin_per_trade = mt5.order_calc_margin(mt5_order_type, symbol, safe_lots, price)
+        if margin_per_trade is None or margin_per_trade <= 0:
+            margin_per_trade = (safe_lots * contract_size * price) / (acc.leverage or 100)
+
+        total_required_margin = margin_per_trade * trades_to_open
+
+        # Free Margin Buffer Check (3x required margin)
+        if acc.margin_free < 3.0 * total_required_margin:
+            logger.warning(
+                f"[MARGIN BUFFER GATE] Free margin (${acc.margin_free:.2f}) < 3x required margin "
+                f"(${total_required_margin:.2f} for {trades_to_open} trades). Downscaling batch..."
+            )
+            safe_cnt = int(acc.margin_free // (3.0 * margin_per_trade))
+            trades_to_open = max(1, safe_cnt) if safe_cnt > 0 else 1
+            total_required_margin = margin_per_trade * trades_to_open
+            if acc.margin_free < 2.0 * total_required_margin:
+                logger.error(f"[MARGIN GATE REJECTION] Insufficient free margin (${acc.margin_free:.2f}) for even 1 safe trade. Aborting.")
+                return "INSUFFICIENT_MARGIN"
+
+        # Projected Margin Level Check (Minimum 400% after opening)
+        projected_used_margin = acc.margin + total_required_margin
+        projected_margin_level = (acc.equity / projected_used_margin) * 100.0 if projected_used_margin > 0 else 9999.0
+        if projected_margin_level < 400.0:
+            logger.error(
+                f"[MARGIN LEVEL GATE] Projected margin level ({projected_margin_level:.1f}%) < 400% safety buffer "
+                f"(Equity: ${acc.equity:.2f}, Projected Margin: ${projected_used_margin:.2f}). Rejecting to prevent stop-out."
+            )
+            return "LOW_PROJECTED_MARGIN_LEVEL"
+
+        # Account Equity Risk Capping: Max allowed batch risk in dollars (Max 15% equity on small accounts)
+        max_batch_risk_allowed = min(max_daily_loss * 0.5, acc.equity * 0.15)
+        if (actual_risk * trades_to_open) > max_batch_risk_allowed:
+            safe_trades = int(max_batch_risk_allowed // actual_risk)
+            if safe_trades < 1:
+                logger.error(
+                    f"[EQUITY RISK REJECTION] Single trade risk (${actual_risk:.2f}) exceeds max allowed batch risk "
+                    f"(${max_batch_risk_allowed:.2f} = 15% of equity ${acc.equity:.2f}). Rejecting to prevent account liquidation."
+                )
+                return "RISK_EXCEEDS_EQUITY_LIMIT"
+            trades_to_open = safe_trades
+
         executed_orders = []
         now_ts = datetime.now(timezone.utc).strftime('%H%M%S')
 
-        logger.info(f"ALL v3.8.10 GATES PASSED — Executing batch of {trades_to_open} {direction} {symbol} orders @ {price}")
+        logger.info(f"ALL v4.0.0 GATES PASSED — Executing batch of {trades_to_open} {direction} {symbol} orders @ {price}")
         logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} / trade | Risk=${actual_risk} | Target=${target_dollars}/trade")
 
         last_fail_reason = "Order rejected by MT5 terminal"

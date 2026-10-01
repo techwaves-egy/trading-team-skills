@@ -3,7 +3,7 @@ import json
 import logging
 import time
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import os
 
 # -----------------------------------------------------------------------------
@@ -50,9 +50,51 @@ class MT5Bridge:
 # Global singletons
 bridge = MT5Bridge()
 _loss_tracker = {}
+LOSS_STATE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "loss_state.json")
+
+def load_loss_tracker():
+    if os.path.exists(LOSS_STATE_FILE):
+        try:
+            with open(LOSS_STATE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading loss state: {e}")
+    return {}
+
+def save_loss_tracker(state):
+    try:
+        os.makedirs(os.path.dirname(LOSS_STATE_FILE), exist_ok=True)
+        with open(LOSS_STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving loss state: {e}")
+
+def get_daily_realized_pnl():
+    """
+    Computes today's net realized PnL across all closed deals from 00:00:00 UTC to now.
+    Includes profit, swap, fee, and commission.
+    """
+    bridge.initialize()
+    now_utc = datetime.now(timezone.utc)
+    start_of_day_utc = datetime(now_utc.year, now_utc.month, now_utc.day, 0, 0, 0, tzinfo=timezone.utc)
+    start_ts = int(start_of_day_utc.timestamp())
+    end_ts = int(now_utc.timestamp()) + 300
+
+    deals = mt5.history_deals_get(start_ts, end_ts)
+    if not deals:
+        return 0.0
+
+    out_entries = [mt5.DEAL_ENTRY_OUT, getattr(mt5, "DEAL_ENTRY_OUT_BY", 2)]
+    net_pnl = 0.0
+    for d in deals:
+        if d.entry in out_entries:
+            deal_net = d.profit + getattr(d, "swap", 0.0) + getattr(d, "fee", 0.0) + getattr(d, "commission", 0.0)
+            net_pnl += deal_net
+
+    return round(net_pnl, 2)
 
 def get_session_state():
-    config_path = r"d:\Techwaves-egy\Trading Team Skills\config\session_state.json"
+    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "session_state.json")
     try:
         if os.path.exists(config_path):
             with open(config_path, "r", encoding="utf-8") as f:
@@ -147,11 +189,12 @@ def check_confirmation(symbol, direction, timeframe=mt5.TIMEFRAME_M15):
 
 def check_bollinger_confirmation(symbol, direction):
     """
-    Closed-Candle Reversal Confirmation for Bollinger Mean Reversion (v3.8.7)
+    Multi-Candle Reversal Confirmation & Waterfall Filter for Bollinger Mean Reversion (v4.0.0)
     Guarantees:
     1. Upper/Lower band was tested by a recent closed candle (1H or 15M).
-    2. The most recent completed 15M candle closed in the reversal direction (Bearish/Red for SELL, Bullish/Green for BUY).
-    3. Current live price is confirming momentum in the trade direction (price <= M15 close for SELL, price >= M15 close for BUY).
+    2. Anti-Waterfall Cascade Filter: Rejects fading if last 3 1H bars were unidirectional waterfall bars.
+    3. Multi-Candle Reversal on M15: Requires rejection wick >= 35%, engulfing, or 2 consecutive directional closes.
+    4. Price Action Alignment: Live price confirms momentum and does not break beyond the extreme of the reversal candle.
     """
     bridge.initialize()
     rates_1h = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 30)
@@ -171,11 +214,27 @@ def check_bollinger_confirmation(symbol, direction):
     bb_std = variance ** 0.5
     bb_upper = bb_mid + 2.0 * bb_std
     bb_lower = bb_mid - 2.0 * bb_std
+    atr_est = max(0.01, (bb_upper - bb_lower) / 4.0)
 
     last_closed_m15 = rates_m15[-2]  # index -1 is forming candle; -2 is last closed candle
     prev_closed_m15 = rates_m15[-3]
     last_closed_1h = rates_1h[-2]
 
+    # --- 1. Waterfall Cascade Filter ("No Falling Knives Policy") ---
+    if len(rates_1h) >= 5:
+        c_3h = rates_1h[-4:-1]
+        if direction.upper() == "BUY":
+            waterfall_down = all(r['close'] < r['open'] for r in c_3h)
+            drop_pts = rates_1h[-4]['open'] - rates_1h[-2]['close']
+            if waterfall_down and drop_pts > 2.0 * atr_est:
+                return False, f"FALLING KNIFE FILTER: 3 consecutive 1H drop bars ({drop_pts:.2f} pts). Reversion BUY blocked until base forms."
+        elif direction.upper() == "SELL":
+            waterfall_up = all(r['close'] > r['open'] for r in c_3h)
+            rally_pts = rates_1h[-2]['close'] - rates_1h[-4]['open']
+            if waterfall_up and rally_pts > 2.0 * atr_est:
+                return False, f"PARABOLIC RALLY FILTER: 3 consecutive 1H expansion bars ({rally_pts:.2f} pts). Reversion SELL blocked."
+
+    # --- 2. Directional Confirmation & Multi-Candle Reversal ---
     if direction.upper() == "SELL":
         band_tested = (
             last_closed_1h['high'] >= bb_upper or
@@ -190,11 +249,21 @@ def check_bollinger_confirmation(symbol, direction):
         if last_closed_m15['close'] >= last_closed_m15['open']:
             return False, f"Awaiting closed-candle confirmation: Last 15M candle closed bullish (O:{last_closed_m15['open']:.2f}, C:{last_closed_m15['close']:.2f}). Sellers not confirmed."
 
+        # Multi-candle structure requirement:
+        candle_range = last_closed_m15['high'] - last_closed_m15['low']
+        upper_wick = last_closed_m15['high'] - max(last_closed_m15['open'], last_closed_m15['close'])
+        is_rejection_wick = (upper_wick >= 0.35 * candle_range) if candle_range > 0 else False
+        is_engulfing = last_closed_m15['close'] < prev_closed_m15['open']
+        two_red = (last_closed_m15['close'] < last_closed_m15['open']) and (prev_closed_m15['close'] < prev_closed_m15['open'])
+
+        if not (is_rejection_wick or is_engulfing or two_red):
+            return False, f"Awaiting structural reversal confirmation: M15 candle lacks upper rejection wick (<35%), engulfing, or 2nd red bar."
+
         # Live price must not be spiking above rejection candle high
         if price > last_closed_m15['high']:
             return False, f"Price breakout detected: live price ({price:.2f}) broke above rejection high ({last_closed_m15['high']:.2f}). Mean reversion aborted."
 
-        return True, f"Closed-Candle Reversal Confirmed (15M Bearish Close {last_closed_m15['close']:.2f}, Live {price:.2f})"
+        return True, f"Multi-Candle Reversal Confirmed (15M Bearish Close {last_closed_m15['close']:.2f}, Live {price:.2f})"
 
     elif direction.upper() == "BUY":
         band_tested = (
@@ -210,64 +279,103 @@ def check_bollinger_confirmation(symbol, direction):
         if last_closed_m15['close'] <= last_closed_m15['open']:
             return False, f"Awaiting closed-candle confirmation: Last 15M candle closed bearish (O:{last_closed_m15['open']:.2f}, C:{last_closed_m15['close']:.2f}). Buyers not confirmed."
 
+        # Multi-candle structure requirement:
+        candle_range = last_closed_m15['high'] - last_closed_m15['low']
+        lower_wick = min(last_closed_m15['open'], last_closed_m15['close']) - last_closed_m15['low']
+        is_rejection_wick = (lower_wick >= 0.35 * candle_range) if candle_range > 0 else False
+        is_engulfing = last_closed_m15['close'] > prev_closed_m15['open']
+        two_green = (last_closed_m15['close'] > last_closed_m15['open']) and (prev_closed_m15['close'] > prev_closed_m15['open'])
+
+        if not (is_rejection_wick or is_engulfing or two_green):
+            return False, f"Awaiting structural reversal confirmation: M15 candle lacks lower rejection wick (<35%), engulfing, or 2nd green bar."
+
         # Live price must not be falling below rejection candle low
         if price < last_closed_m15['low']:
             return False, f"Price drop detected: live price ({price:.2f}) broke below rejection low ({last_closed_m15['low']:.2f}). Mean reversion aborted."
 
-        return True, f"Closed-Candle Reversal Confirmed (15M Bullish Close {last_closed_m15['close']:.2f}, Live {price:.2f})"
+        return True, f"Multi-Candle Reversal Confirmed (15M Bullish Close {last_closed_m15['close']:.2f}, Live {price:.2f})"
 
     return False, "Invalid direction"
 
 def update_loss_tracker(symbol):
-    """Checks recent deal history to update the 2-Strike lockout tracker."""
+    """
+    Batch-Aware & Persistent 2-Strike Lockout Tracker (v4.0.0).
+    Inspects all closed deals in the last 24h, detects batch multi-losses,
+    and locks symbol for 60 minutes if 2 or more consecutive losses occur.
+    """
     bridge.initialize()
-    now = datetime.now()
-    from_date = now - timedelta(days=1)
-    deals = mt5.history_deals_get(from_date, now, group=f"*{symbol}*")
+    loss_state = load_loss_tracker()
+    sym_state = loss_state.get(symbol, {"count": 0, "locked_until": None, "last_processed_deal": 0})
     
+    now_utc = datetime.now(timezone.utc)
+    from_date = now_utc - timedelta(days=1)
+    deals = mt5.history_deals_get(int(from_date.timestamp()), int(now_utc.timestamp()) + 300, group=f"*{symbol}*")
     if not deals:
         return
-
-    # Look at the most recent closed deal for the symbol
-    out_deals = [d for d in deals if d.entry == mt5.DEAL_ENTRY_OUT or d.entry == mt5.DEAL_ENTRY_OUT_BY]
+        
+    out_entries = [mt5.DEAL_ENTRY_OUT, getattr(mt5, "DEAL_ENTRY_OUT_BY", 2)]
+    out_deals = [d for d in deals if d.entry in out_entries]
     if not out_deals:
         return
         
-    last_deal = sorted(out_deals, key=lambda x: x.time)[-1]
-    
-    if symbol not in _loss_tracker:
-        _loss_tracker[symbol] = {'count': 0, 'locked_until': None}
+    out_deals_sorted = sorted(out_deals, key=lambda x: x.time)
+    last_seen = sym_state.get("last_processed_deal", 0)
+    new_deals = [d for d in out_deals_sorted if d.ticket > last_seen]
+    if not new_deals:
+        return
         
-    if last_deal.profit < 0:
-        if getattr(update_loss_tracker, "last_processed_deal", {}).get(symbol) == last_deal.ticket:
-            return
+    # Group new deals by timestamp to recognize batches (deals within 5 seconds of each other)
+    batches = []
+    current_batch = []
+    for d in new_deals:
+        if not current_batch:
+            current_batch.append(d)
+        elif abs(d.time - current_batch[-1].time) <= 5:
+            current_batch.append(d)
+        else:
+            batches.append(current_batch)
+            current_batch = [d]
+    if current_batch:
+        batches.append(current_batch)
+        
+    for b in batches:
+        net_batch_profit = sum(d.profit + getattr(d, 'swap', 0) + getattr(d, 'fee', 0) + getattr(d, 'commission', 0) for d in b)
+        losing_deals_in_batch = [d for d in b if (d.profit + getattr(d, 'swap', 0) + getattr(d, 'fee', 0) + getattr(d, 'commission', 0)) < 0]
+        
+        if net_batch_profit < 0:
+            loss_count_inc = max(1, len(losing_deals_in_batch))
+            sym_state["count"] += loss_count_inc
+            logger.info(f"[LOSS TRACKER] Loss batch detected on {symbol} ({loss_count_inc} losing tickets). Consecutive losses now: {sym_state['count']}")
             
-        _loss_tracker[symbol]['count'] += 1
-        if getattr(update_loss_tracker, "last_processed_deal", None) is None:
-            update_loss_tracker.last_processed_deal = {}
-        update_loss_tracker.last_processed_deal[symbol] = last_deal.ticket
-        
-        logger.info(f"Loss detected on {symbol}. Consecutive losses: {_loss_tracker[symbol]['count']}")
-        
-        if _loss_tracker[symbol]['count'] >= 2:
-            _loss_tracker[symbol]['locked_until'] = datetime.now() + timedelta(minutes=60)
-            logger.warning(f"Asset {symbol} locked for 60 minutes due to 2 consecutive losses.")
-    elif last_deal.profit > 0:
-        _loss_tracker[symbol]['count'] = 0
-        if getattr(update_loss_tracker, "last_processed_deal", None) is None:
-            update_loss_tracker.last_processed_deal = {}
-        update_loss_tracker.last_processed_deal[symbol] = last_deal.ticket
+            if sym_state["count"] >= 2:
+                lock_expiry = datetime.now(timezone.utc) + timedelta(minutes=60)
+                sym_state["locked_until"] = lock_expiry.isoformat()
+                logger.warning(f"[2-STRIKE LOCKOUT TRIGGERED] {symbol} locked for 60 minutes until {sym_state['locked_until']} due to {sym_state['count']} losses.")
+        elif net_batch_profit > 0:
+            sym_state["count"] = 0
+            
+    sym_state["last_processed_deal"] = max(d.ticket for d in new_deals)
+    loss_state[symbol] = sym_state
+    save_loss_tracker(loss_state)
 
 def check_asset_lockout(symbol):
-    """2-Strike Asset Lockout Enforcement"""
+    """2-Strike Asset Lockout Enforcement (Persistent v4.0.0)"""
     update_loss_tracker(symbol)
-    if symbol in _loss_tracker:
-        tracker = _loss_tracker[symbol]
-        if tracker['count'] >= 2 and tracker['locked_until'] is not None:
-            if datetime.now() < tracker['locked_until']:
-                return True, f"Asset locked until {tracker['locked_until']}"
-            else:
-                _loss_tracker[symbol] = {'count': 0, 'locked_until': None}
+    loss_state = load_loss_tracker()
+    if symbol in loss_state:
+        sym_state = loss_state[symbol]
+        if sym_state.get("count", 0) >= 2 and sym_state.get("locked_until"):
+            try:
+                lock_until = datetime.fromisoformat(sym_state["locked_until"])
+                if datetime.now(timezone.utc) < lock_until:
+                    return True, f"Asset locked until {lock_until.strftime('%H:%M:%S UTC')} due to 2-Strike rule"
+                else:
+                    sym_state["count"] = 0
+                    sym_state["locked_until"] = None
+                    loss_state[symbol] = sym_state
+                    save_loss_tracker(loss_state)
+            except Exception:
+                pass
     return False, ""
 
 def detect_regime(symbol):
