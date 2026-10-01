@@ -26,5 +26,5 @@
   "approved_leverage_tier": "2x (5R)",
   "margin_stress_score": "5.4% (Institutional A+ Rating)",
   "start_time": "2026-09-29T11:17:34.439043+00:00",
-  "is_active": true
+  "is_active": false
 }
