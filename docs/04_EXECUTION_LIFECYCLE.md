@@ -128,15 +128,19 @@ $$\text{Order Hash} = \text{SHA256}(\text{Session ID} + \text{Instrument} + \tex
 
 ---
 
-## 5. High-Impact News & Event Blackout Protection
+## 5. High-Impact News & Event Blackout Protection (Gate 0.02 — Automated Enforcement)
 
-### Blackout Event Types ($\pm 30\text{ minutes}$ window):
-1. **Tier-1 Economic Releases**: Non-Farm Payrolls (NFP), Consumer Price Index (CPI / Core CPI), GDP, Retail Sales, Unemployment claims.
-2. **Central Bank Events**: FOMC / ECB / BOE / BOJ Rate decisions, statements, and live press conferences.
+Automated news protection is enforced before every scan iteration via `scripts/news_analyzer.py` (**Gate 0.02**).
+
+### Blackout Event Types ($\pm 30\text{ minutes}$ window pre/post event):
+1. **Tier-1 Economic Releases**: Non-Farm Payrolls (NFP), Consumer Price Index (CPI / Core CPI), Personal Consumption Expenditures (PCE), GDP, Retail Sales, Unemployment claims.
+2. **Central Bank Events**: FOMC / ECB / BOE / BOJ Rate decisions, statements, and live press conferences (e.g. Fed Chair Powell, ECB President Lagarde).
 3. **Corporate Earnings**: Quarterly earnings releases (for affected equities and closely linked index components).
 4. **Regulatory & Geopolitical Events**: Emergency government/regulatory announcements, market circuit breaker halts, or active geopolitical escalations.
 
-*Action during Blackout: Suspend new entries unless using a dedicated, approved **Event-Driven Strategy** with tightened risk parameters.*
+*Automated Gate 0.02 Enforcement:*
+- If a High-Impact event is scheduled within $\le 30\text{ mins}$ or was released $< 15\text{ mins}$ ago, `auto_scanner.py` automatically returns `NEWS_BLACKOUT` and halts order submission.
+- An emergency advisory is dispatched directly to Chief Risk Officer `@wtalaat` via Telegram with macro mechanism analysis and open position risk guidance.
 
 ---
 

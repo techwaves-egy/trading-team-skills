@@ -1,17 +1,18 @@
 ---
 name: autonomous-trading-firm
-version: 4.0.0
+version: 4.1.0
 description: >-
   Multi-agent AI Autonomous Trading Firm for live market analysis, automated market regime detection,
+  Senior Macro & Economic News Analyzer advising CRO (@wtalaat), automated news blackout gate (Gate 0.02),
   dynamic strategy selection & competition, risk engine validation, 80/70 Asymmetric Profit Protection (Server-Side Broker SL),
   closed-candle reversal confirmation, user-configured concurrent batch engine (1x-5x), self-healing MT5 deal streamer,
   trade duration telemetry (hours and minutes), daily rounds configurator, interactive Telegram buttons wizard,
   and trade execution across Forex, Metals, Crypto, Stocks, Indices, and Commodities.
 ---
 
-# AI Autonomous Trading Firm (v4.0.0 — Institutional Resilience & Macro Sizing Standard)
+# AI Autonomous Trading Firm (v4.1.0 — Macro Intelligence & Institutional Resilience)
 
-A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Bollinger Bands 2.0-StdDev Mean Reversion with Multi-Candle Reversal Confirmation & Waterfall Cascade Filter (v4.0.0)** (#1 Universal Tournament Winner: **67.2% Win Rate, PF 2.36 on EURUSD; 66.7% Win Rate, PF 2.95 on Gold**), **7-Pillar Institutional Resilience Engine (Real-Time Daily Loss Circuit Breaker, Gold Session Time-of-Day Filter 07:00–19:00 UTC, Account Equity Floor & Dynamic Batch Scaling, 3x Free Margin Buffer & 400% Projected Margin Level Gate, Symmetrical R:R $\ge 1.0:1$, Persistent Batch-Aware 2-Strike Lockout)**, **User-Configured Batch Concurrency Engine (1x–5x simultaneous 0.01 lot trades per signal, each with independent $25.00 TP and 80/70 protection)**, **Self-Healing Real-Time MT5 Deal Streamer & Server-Side Profit Protection Daemon with Trade Duration Telemetry (v3.9.0)**, **80/70 Asymmetric Profit Protection Engine (The moment ≥ 80% TP is armed, instantly modifies broker server-side Stop Loss directly to 70% level with 0ms matching engine speed and local failsafe)**, **Daily Frequency & Rounds Configurator (1 to 5 rounds per day)**, **Interactive 3-Step Telegram Button Wizard & Persistent Keyboard Controls**, **Gold Profit Clamping Target ($25.00 per trade)**, **Automated Market Close Daily & Weekly Summaries with Process Kill Switch**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection**, dynamic broker filling mode resolution (`FOK`/`IOC`), strategy-aware confirmation routing, native UNIX timestamp deal streaming, dynamic ATR volatility floors, 2-strike asset lockout circuit breakers, persistent mobile credential management, 24/7 background Telegram listener daemons, real-time trade result streaming, native **MetaTrader 5 (MT5)** direct desktop execution, **TradingView** webhook integration, and **fully autonomous scan-and-execute daemon** in Mode D.
+A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Senior Macro & Economic News Analyzer (Role #8 — Advisor to CRO @wtalaat with Automated Gate 0.02 Blackouts)**, **Bollinger Bands 2.0-StdDev Mean Reversion with Multi-Candle Reversal Confirmation & Waterfall Cascade Filter (v4.0.0)** (#1 Universal Tournament Winner: **67.2% Win Rate, PF 2.36 on EURUSD; 66.7% Win Rate, PF 2.95 on Gold**), **7-Pillar Institutional Resilience Engine (Real-Time Daily Loss Circuit Breaker, Gold Session Time-of-Day Filter 07:00–19:00 UTC, Account Equity Floor & Dynamic Batch Scaling, 3x Free Margin Buffer & 400% Projected Margin Level Gate, Symmetrical R:R $\ge 1.0:1$, Persistent Batch-Aware 2-Strike Lockout)**, **User-Configured Batch Concurrency Engine (1x–5x simultaneous 0.01 lot trades per signal, each with independent $25.00 TP and 80/70 protection)**, **Self-Healing Real-Time MT5 Deal Streamer & Server-Side Profit Protection Daemon with Trade Duration Telemetry (v3.9.0)**, **80/70 Asymmetric Profit Protection Engine (The moment ≥ 80% TP is armed, instantly modifies broker server-side Stop Loss directly to 70% level with 0ms matching engine speed and local failsafe)**, **Daily Frequency & Rounds Configurator (1 to 5 rounds per day)**, **Interactive 3-Step Telegram Button Wizard & Persistent Keyboard Controls**, **Gold Profit Clamping Target ($25.00 per trade)**, **Automated Market Close Daily & Weekly Summaries with Process Kill Switch**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection**, dynamic broker filling mode resolution (`FOK`/`IOC`), strategy-aware confirmation routing, native UNIX timestamp deal streaming, dynamic ATR volatility floors, 2-strike asset lockout circuit breakers, persistent mobile credential management, 24/7 background Telegram listener daemons, real-time trade result streaming, native **MetaTrader 5 (MT5)** direct desktop execution, **TradingView** webhook integration, and **fully autonomous scan-and-execute daemon** in Mode D.
 
 ---
 
@@ -57,9 +58,10 @@ After session parameters are confirmed, the firm automatically launches `scripts
 2. Applies the **Dual-Engine Strategy Hierarchy**:
    - **Primary Alpha Engine (Engine 1)**: **Bollinger Bands 2.0-StdDev Mean Reversion** (Fades statistical overextensions back towards the 20-period mean when price pierces the $2.0\sigma$ envelope with reversal confirmation).
    - **Secondary Trend Engine (Engine 2)**: **Multi-Timeframe Structural Breakout / 4H Trend-Rider** (Activated during strong macroeconomic trend expansions).
-3. Applies all **14 v4.0.0 empirical decision gates & execution standards** before any execution:
+3. Applies all **15 v4.1.0 empirical decision gates & execution standards** before any execution:
    - **Gate 0.00: Real-Time Max Daily Loss Circuit Breaker**: Evaluates `get_daily_realized_pnl() + floating_pnl` before every scan. If net daily loss reaches `max_daily_loss`, scanning halts immediately for 24h.
    - **Gate 0.05: Institutional Gold Session Filter**: Restricts Gold (`XAUUSD`) execution strictly to **07:00 UTC to 19:00 UTC** (London Open through NY Afternoon). Completely freezes Gold during the illiquid Asian session and NY close (19:00 to 07:00 UTC) where mean reversion has negative expectancy.
+   - **Gate 0.02: Macroeconomic News & High-Impact Event Blackout Gate**: Evaluates `scripts/news_analyzer.py` live calendar. If a Tier-1 event is active or scheduled within $\pm 30\text{ mins}$ ($\pm 15\text{ mins}$ post-release), trade generation is frozen (`NEWS_BLACKOUT`) and an advisory is dispatched directly to CRO `@wtalaat`.
    - **Gate 0.0: Account Equity Floor & Dynamic Batch Scaling**: Requires minimum equity of **$25.00**. Dynamically caps batch size based on equity ($<\$150 \implies 1\text{x}$; $<\$300 \implies 2\text{x}$; $<\$500 \implies 3\text{x}$; $\ge\$500 \implies 5\text{x}$).
    - **Gate 0: Asset Disablement Policy**: Permanently blocks `USDJPY` & `GBPUSD` outside liquid windows.
    - **Gate 0.1: Batch Concurrency & Strict Anti-Stacking**: Opens up to `concurrent_batch_size` concurrent trades for a high-probability opportunity. Stacking beyond `concurrent_batch_size` is strictly blocked.
@@ -111,7 +113,7 @@ flowchart TD
         Fund[Fundamental Analyst]
         Tech[Technical Analyst]
         Struct[Market Structure Analyst]
-        News[News Analyst]
+        News[Senior Macro & Economic News Analyzer - Advisor to CRO]
         Sent[Sentiment Analyst]
     end
     
@@ -142,8 +144,10 @@ flowchart TD
     MarketIntelligence --> QuantitativeEngine
     QuantitativeEngine --> GovernanceRisk
     GovernanceRisk -->|Approved Candidate| Exec
+    News -.->|Tier-1 Blackout Veto Gate 0.02| RiskMgr
+    News -.->|Direct Macro Briefings & Alerts| User
     TVBridge -->|TradingView Inbound Signals| QuantitativeEngine
-    TgListener <-->|Mobile Commands /status, /approve, /close| Exec
+    TgListener <-->|Mobile Commands /status, /approve, /close, /news| Exec
     Exec --> MT5
     Exec --> Alerts
     Alerts -.->|Real-Time TP1/TP2/SL Actions to Phone| User

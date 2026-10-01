@@ -63,10 +63,18 @@ The **AI Autonomous Trading Firm** functions as a coordinated multi-disciplinary
 * **Scope**: Price structure, liquidity dynamics, and supply/demand mechanics.
 * **Coverage**: Structural high/low sequences (HH, HL, LH, LL), Break of Structure (BOS), Change of Character (CHoCH), Order Blocks, Fair Value Gaps (FVG), liquidity pools (equal highs/lows), and consolidation boundaries.
 
-### 8. News Analyst
-* **Scope**: Real-time news aggregation and economic calendar monitoring.
-* **Coverage**: High-impact economic releases (CPI, Rate decisions, FOMC/ECB minutes, NFP), corporate earnings, regulatory interventions, and breaking geopolitical events.
-* *Rule*: Zero fabrication of news items. Strictly enforces event blackout buffers ($\pm 30\text{ mins}$) around high-impact announcements.
+### 8. Senior Macro & Economic News Analyzer (Advisor to Chief Risk Officer)
+* **Mission**: Ingests live macroeconomic calendars (`scripts/news_analyzer.py` via ForexFactory JSON/XML/CSV multi-tier feeds and local caching in `config/economic_calendar.json`), monitors real-time event countdowns, enforces automated high-impact event blackouts ($\pm 30\text{ mins}$ pre/post event), and provides strategic counsel directly to Chief Risk Officer `@wtalaat`.
+* **Coverage**:
+  - **Inflation & Price Indices**: Consumer Price Index (CPI / Core CPI), Producer Price Index (PPI), Personal Consumption Expenditures (PCE / Core PCE).
+  - **Labor & Employment**: Non-Farm Employment Change (NFP), Unemployment Rate, Average Hourly Earnings, Initial Jobless Claims.
+  - **Central Bank Monetary Policy**: FOMC Interest Rate Decisions, FOMC Minutes, Fed Chair Powell Press Conferences, ECB Rate Decisions & President Lagarde Speeches.
+  - **Macro Activity & Sentiment**: Gross Domestic Product (GDP / Advance GDP), Retail Sales, ISM Manufacturing & Services PMI.
+* **CRO Advisory Threat Level Protocol**:
+  - 🔴 **`RED (CRITICAL NEWS BLACKOUT)`**: High-impact event active or releasing within $\le 30$ mins (or within 15 mins post-event). **Enforcement:** Automated Gate 0.02 blocks all new entries; advises CRO to advance open positions to Server-Side 80/70 SL or exit.
+  - 🟡 **`YELLOW (ELEVATED MACRO WATCH)`**: High-impact release in 31–120 mins, or medium-impact release in $\le 30$ mins. **Enforcement:** Restricts batch concurrency to single 0.01 micro-lots; prepares for shutdown countdown.
+  - 🟢 **`GREEN (CLEAR SAILING)`**: No high-impact events scheduled within the next 2+ hours. **Enforcement:** Full algorithmic clearance for Bollinger Bands 2.0-$\sigma$ Mean Reversion and standard dynamic batch sizing.
+* **Trade Committee Precedence**: Holds unilateral suspension advisory authority to the CRO. If the News Analyzer flags `RED`, the Risk Manager and CRO instantly veto trade generation regardless of technical setups.
 
 ### 9. Sentiment Analyst
 * **Scope**: Market sentiment and positioning extremes.

@@ -166,7 +166,10 @@ def make_reply_keyboard():
                 {"text": "🛑 Close All (Kill)"}
             ],
             [
-                {"text": "🛡️ Verify Security"},
+                {"text": "📰 News & CRO Advisory"},
+                {"text": "🛡️ Verify Security"}
+            ],
+            [
                 {"text": "❓ Help / Menu"}
             ]
         ],
@@ -207,7 +210,10 @@ def make_main_keyboard():
                 {"text": "🛑 Close All (Kill)", "callback_data": "cb_close"}
             ],
             [
-                {"text": "🛡️ Verify Security", "callback_data": "cb_integrity"},
+                {"text": "📰 News & CRO Advisory", "callback_data": "cb_news"},
+                {"text": "🛡️ Verify Security", "callback_data": "cb_integrity"}
+            ],
+            [
                 {"text": "⏹️ Stop Scanner", "callback_data": "cb_stop"}
             ]
         ]
@@ -924,6 +930,7 @@ def handle_help_cmd(chat_id, bot_token):
         f"  • <code>/scan</code> — Force immediate market sweep on EURUSD & Gold\n"
         f"  • <code>/close</code> — <b>Kill Switch:</b> Emergency close all open positions\n\n"
         f"<b>📊 Reports &amp; Security:</b>\n"
+        f"  • <code>/news [symbol]</code> — Live Macro &amp; Economic News Advisory for CRO\n"
         f"  • <code>/summary</code> — Today's performance summary\n"
         f"  • <code>/weekly</code> — Full weekly audit report\n"
         f"  • <code>/integrity</code> — Verify SHA-256 anti-tamper status\n"
@@ -969,6 +976,11 @@ def process_update(update, bot_token, config):
             send_market_close_summary(is_weekend=True, kill_processes=False)
         elif data == "cb_integrity":
             handle_integrity_cmd(chat_id, bot_token)
+        elif data == "cb_news":
+            from news_analyzer import get_analyzer
+            analyzer = get_analyzer()
+            report = analyzer.format_telegram_advisory("XAUUSD")
+            send_tg_message(bot_token, chat_id, report, reply_markup=make_main_keyboard())
         elif data == "wiz_start":
             send_wizard_step1(chat_id, bot_token, msg_id)
         elif data.startswith("wiz_m_"):
@@ -1113,6 +1125,12 @@ def process_update(update, bot_token, config):
             "⚡ sell gold (0.02)": "/sell XAUUSD 0.02",
             "⚡ sell gold": "/sell XAUUSD 0.01",
             "sell gold": "/sell XAUUSD 0.01",
+            "📰 news & cro advisory": "/news",
+            "📰 news advisory": "/news",
+            "📰 news": "/news",
+            "news": "/news",
+            "macro": "/news",
+            "economic news": "/news",
             "🛡️ verify security": "/integrity",
             "🛡️ integrity": "/integrity",
             "verify security": "/integrity",
@@ -1177,6 +1195,12 @@ def process_update(update, bot_token, config):
             send_market_close_summary(is_weekend=True, kill_processes=False)
         elif cmd == "/integrity":
             handle_integrity_cmd(chat_id, bot_token)
+        elif cmd in ("/news", "/macro"):
+            sym = args[0].upper() if args else "XAUUSD"
+            from news_analyzer import get_analyzer
+            analyzer = get_analyzer()
+            report = analyzer.format_telegram_advisory(sym)
+            send_tg_message(bot_token, chat_id, report, reply_markup=make_main_keyboard())
         elif cmd in ("/approve", "/authorize", "/certify"):
             if not is_admin(user_id, config):
                 send_tg_message(bot_token, chat_id, "⛔ Permission Denied: Only Administrator @wtalaat can authorize modifications.")

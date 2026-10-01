@@ -179,6 +179,26 @@ def run_scan_and_execute(symbol_override=None):
                 )
                 return "OFF_SESSION_GOLD"
 
+        # === v4.1.0 GATE 0.02: Macroeconomic News & High-Impact Event Blackout Gate ===
+        try:
+            from news_analyzer import check_news_blackout
+            is_blackout, blackout_event, blackout_reason, diff_m = check_news_blackout(symbol)
+            if is_blackout:
+                logger.warning(f"[NEWS BLACKOUT] Trading suspended on {symbol}: {blackout_reason}")
+                evt_title = blackout_event.get('title', 'Tier-1 News') if blackout_event else 'Tier-1 News'
+                evt_country = blackout_event.get('country', 'USD') if blackout_event else 'USD'
+                broadcast_telegram(
+                    f"📰 <b>MACRO NEWS BLACKOUT: {symbol}</b>\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"<b>Event:</b> <code>{evt_title}</code> [{evt_country}]\n"
+                    f"<b>Status:</b> 🔴 <b>{blackout_reason}</b>\n"
+                    f"<b>Action:</b> Automated order execution suspended to prevent slippage and spread spikes.\n"
+                    f"<i>Advisory dispatched to Chief Risk Officer @wtalaat.</i>"
+                )
+                return "NEWS_BLACKOUT"
+        except Exception as ex_news:
+            logger.warning(f"[NEWS GATE] Could not evaluate news calendar: {ex_news}")
+
         # === v4.0.0 GATE 0.0: Account Equity Floor & Dynamic Batch Scaling ===
         acc = mt5.account_info()
         if not acc:

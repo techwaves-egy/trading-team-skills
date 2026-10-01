@@ -30,6 +30,7 @@ CHECKSUM_FILE = os.path.join(BASE_DIR, "config", "skill_checksums.json")
 PROTECTED_FILES = [
     os.path.join(BASE_DIR, "SKILL.md"),
     os.path.join(BASE_DIR, "scripts", "auto_scanner.py"),
+    os.path.join(BASE_DIR, "scripts", "news_analyzer.py"),
     os.path.join(BASE_DIR, "scripts", "mt5_connector.py"),
     os.path.join(BASE_DIR, "scripts", "trade_monitor.py"),
     os.path.join(BASE_DIR, "scripts", "send_alert.py"),

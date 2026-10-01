@@ -7,14 +7,14 @@
 ## 📌 Executive Summary & Live System Status
 
 * **Firm / Skill Name:** AI Autonomous Trading Firm (`techwaves-egy/trading-team-skills`)
-* **Current Architectural Version:** `v4.0.0` (Tag: `v4.0.0`)
+* **Current Architectural Version:** `v4.1.0` (Tag: `v4.1.0`)
 * **Repository Working Branch:** `master` (Synchronized with `origin master`)
 * **Active Broker / Execution Gateway:** MetaTrader 5 Desktop IPC (`MetaQuotes-Demo`)
 * **Live Target Account:** `#113155651`
 * **Account Balance & Equity:** **`$946.54`** (100% Capital Preserved)
 * **Open Market Exposure:** **`0` Positions (100% Flat)**
-* **Current Operational State:** **Active Live Operations & Monitoring** (v4.0.0 Institutional 7-Pillar Resilience Engine Armed).
-* **Target Universe:** `XAUUSD (Gold Only)` (Dynamic Account-Scaled Batch, 5 Daily Rounds, Session-Restricted).
+* **Current Operational State:** **Active Live Operations & Monitoring** (v4.1.0 Macro Intelligence & 7-Pillar Resilience Engine Armed).
+* **Target Universe:** `XAUUSD (Gold Only)` (Dynamic Account-Scaled Batch, 5 Daily Rounds, Session-Restricted, Gate 0.02 News Blackout Protected).
 * **Executive Leadership & Security Routing:**
   * **Lead Administrator & CRO:** `@wtalaat` (`chat_id: 1264076025`)
   * **VIP Signals Broadcast Channel:** `-1003989306390`
@@ -82,6 +82,24 @@ flowchart TD
 ---
 
 ## 📜 Chronological Evolution & Version Milestones
+
+### **[v4.1.0] — 2026-10-01 (Senior Macro & Economic News Analyzer Integration — Advisor to CRO)**
+* **Feature:** Addition of specialized quantitative AI team member: **Senior Macro & Economic News Analyzer (Role #8)**.
+* **Architecture & Capabilities:**
+  1. **Multi-Source Calendar Ingestion:** Ingests live macroeconomic events from ForexFactory JSON, XML, and CSV feeds with automatic failover and local caching in `config/economic_calendar.json` (TTL: 4 hours, rate-limit resilient).
+  2. **Automated Blackout Gate (Gate 0.02):** Evaluates upcoming releases before every scan in `scripts/auto_scanner.py`. If a Tier-1 High-Impact release is active or scheduled within $\pm 30\text{ mins}$ ($\pm 15\text{ mins}$ post-release), trade generation is immediately frozen (`NEWS_BLACKOUT`), protecting the account from spread blowout and slippage whipsaws.
+  3. **Executive CRO Strategic Advisory Engine:** Synthesizes real-time macro conditions (inflation, employment, central bank guidance, real yields, safe-haven flows) and generates structured, actionable counsel directly for Chief Risk Officer `@wtalaat`:
+     - 🔴 `RED (CRITICAL NEWS BLACKOUT)`: High-Impact release within $\pm 30\text{ mins}$ $\implies$ Mandatory trade freeze & SL tightening.
+     - 🟡 `YELLOW (ELEVATED MACRO WATCH)`: High-Impact within 31–120 mins or Medium-Impact within 30 mins $\implies$ Restrict batch sizing to 1x micro-lot.
+     - 🟢 `GREEN (CLEAR SAILING)`: No Tier-1 events in next 2+ hours $\implies$ Full algorithmic clearance for Bollinger Mean Reversion.
+  4. **Two-Way Telegram Integration:**
+     - Added `/news [symbol]` and `/macro` commands to `telegram_listener.py`.
+     - Added persistent mobile keyboard button `📰 News & CRO Advisory` and inline callback `cb_news`.
+     - Direct alert dispatching to CRO `@wtalaat` via `python scripts/news_analyzer.py --alert`.
+* **Files Added / Modified:**
+  - Added: `scripts/news_analyzer.py`, `config/economic_calendar.json`
+  - Modified: `scripts/auto_scanner.py` (Gate 0.02), `scripts/telegram_listener.py` (/news commands & keyboards), `scripts/skill_integrity_guard.py` (added news_analyzer.py to protected manifest), `docs/01_ORGANIZATION_ROLES.md`, `docs/04_EXECUTION_LIFECYCLE.md`, `SKILL.md`, `WORK_LOG.md`.
+* **Git Commit / Tag:** `v4.1.0`
 
 ### **[v4.0.0] — 2026-10-01 (Institutional 7-Pillar Resilience Engine & Micro-Account Sizing Standard)**
 * **Context & Forensic Trigger:** Comprehensive post-mortem audit of secondary PC account (`#113282478`, $50 initial capital, leverage 1:500) which suffered margin stop-out down to $2.08 during an overnight Asian session after previously achieving +$100.20 in profit during liquid London/NY sessions.
