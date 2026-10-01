@@ -38,3 +38,19 @@ All AI assistants and agents operating on this repository MUST strictly follow t
 ### 4. Admin Security Isolation
 * All anti-tamper warnings, authorization tokens, and `/approve` commands MUST route **strictly and exclusively** to Administrator `@wtalaat` (`chat_id: 1264076025`).
 * Never broadcast sensitive tokens or internal exceptions to the public VIP Signals channel (`-1003989306390`).
+
+### 5. Multi-PC Hardware Node Lock (Secondary Machine Read-Only Protocol)
+* **Master Primary Workstation Identification:**
+  * Hostname: `WALEED-IT`
+  * Authorized User: `WALEED.TALAAT`
+  * Machine GUID: `0e29ba84-3fba-49c9-8f41-2d25a81989b8`
+* **Mandatory Secondary Machine Restrictions:**
+  * Any agent, AI assistant, or software operating on ANY PC other than `Waleed-IT` is **strictly forbidden from modifying, committing, or certifying code**.
+  * **No File Modifications:** Do not edit `SKILL.md`, `scripts/*.py`, `docs/*.md`, or configuration files on secondary machines.
+  * **No Local Re-Certification:** Running `python scripts/skill_integrity_guard.py --authorize` is hard-blocked and automatically aborts on secondary nodes with an emergency alert sent to `@wtalaat`.
+  * **No Git Commits or Pushes:** Git pre-commit and pre-push hooks strictly block commits on secondary nodes.
+  * **Synchronization Protocol:** Secondary machines operate strictly in **READ-ONLY Execution Mode**. They must receive updates exclusively via:
+    ```bash
+    git pull origin master
+    git reset --hard origin/master
+    ```

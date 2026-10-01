@@ -7,13 +7,13 @@
 ## 📌 Executive Summary & Live System Status
 
 * **Firm / Skill Name:** AI Autonomous Trading Firm (`techwaves-egy/trading-team-skills`)
-* **Current Architectural Version:** `v4.1.0` (Tag: `v4.1.0`)
+* **Current Architectural Version:** `v4.2.0` (Tag: `v4.2.0`)
 * **Repository Working Branch:** `master` (Synchronized with `origin master`)
 * **Active Broker / Execution Gateway:** MetaTrader 5 Desktop IPC (`MetaQuotes-Demo`)
 * **Live Target Account:** `#113155651`
 * **Account Balance & Equity:** **`$946.54`** (100% Capital Preserved)
 * **Open Market Exposure:** **`0` Positions (100% Flat)**
-* **Current Operational State:** **Active Live Operations & Monitoring** (v4.1.0 Macro Intelligence & 7-Pillar Resilience Engine Armed).
+* **Current Operational State:** **Active Live Operations & Monitoring** (v4.2.0 Hardware Node Lock & Multi-PC Read-Only Protocol Armed).
 * **Target Universe:** `XAUUSD (Gold Only)` (Dynamic Account-Scaled Batch, 5 Daily Rounds, Session-Restricted, Gate 0.02 News Blackout Protected).
 * **Executive Leadership & Security Routing:**
   * **Lead Administrator & CRO:** `@wtalaat` (`chat_id: 1264076025`)
@@ -82,6 +82,20 @@ flowchart TD
 ---
 
 ## 📜 Chronological Evolution & Version Milestones
+
+### **[v4.2.0] — 2026-10-01 (Hardware-Bound Node Lock & Multi-PC Read-Only Protocol)**
+* **Context & Security Objective:** Prevent any secondary PC, laptop, or unauthorized agent from modifying the skill, signing manifests, or committing unauthorized code changes.
+* **Architecture & Security Layers Implemented:**
+  1. **Hardware-Bound Primary Workstation Fingerprint:** Binds modification and certification authority strictly to Master Primary Workstation (`Hostname: WALEED-IT`, `User: WALEED.TALAAT`, `Machine GUID: 0e29ba84-3fba-49c9-8f41-2d25a81989b8`).
+  2. **Hard-Blocked Local Re-Certification (`--authorize`):** If `--authorize` is executed on any secondary machine, it immediately aborts, locks execution, and dispatches a critical Telegram alert to Administrator `@wtalaat` (`1264076025`).
+  3. **Hardware-Bound Git Node Guard (`scripts/git_node_guard.py`):** Installed as `.git/hooks/pre-commit` and `.git/hooks/pre-push`. Prevents `git commit` and `git push` on any secondary PC.
+  4. **Master Node Cryptographic Signature Verification:** Embeds `master_node: WALEED-IT` and hardware fingerprint hash in `config/skill_checksums.json`. Secondary PCs verify that manifests originate exclusively from the Master Node.
+  5. **Agent Operational Directives (`AGENTS.md` Section 5):** Establishes mandatory rules binding all AI assistants on secondary PCs to strict **READ-ONLY Execution Mode** (`git pull origin master` only).
+  6. **CLI Node Status Inspection:** Added `python scripts/skill_integrity_guard.py --node-status` to inspect node hardware status and authorization classification.
+* **Files Added / Modified:**
+  - Added: `scripts/git_node_guard.py`, `.git/hooks/pre-commit`, `.git/hooks/pre-push`
+  - Modified: `scripts/skill_integrity_guard.py`, `AGENTS.md`, `SKILL.md`, `WORK_LOG.md`.
+* **Git Commit / Tag:** `v4.2.0`
 
 ### **[v4.1.0] — 2026-10-01 (Senior Macro & Economic News Analyzer Integration — Advisor to CRO)**
 * **Feature:** Addition of specialized quantitative AI team member: **Senior Macro & Economic News Analyzer (Role #8)**.
