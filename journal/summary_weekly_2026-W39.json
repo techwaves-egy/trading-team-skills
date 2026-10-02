@@ -1,0 +1,20 @@
+{
+  "week": "2026-W39",
+  "date_range": "Sep 28 \u2013 Oct 02, 2026",
+  "timestamp": "2026-10-02T21:55:00.218522+00:00",
+  "account_balance": 200.0,
+  "account_equity": 200.0,
+  "total_trades": 0,
+  "wins": 0,
+  "losses": 0,
+  "breakeven": 0,
+  "total_profit": 0.0,
+  "total_loss": 0.0,
+  "net_pnl": 0.0,
+  "largest_win": 0.0,
+  "largest_loss": 0.0,
+  "win_rate": 0.0,
+  "profit_factor": 0.0,
+  "trades": [],
+  "status": "PROFIT"
+}

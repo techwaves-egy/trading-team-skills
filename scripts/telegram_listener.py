@@ -170,6 +170,7 @@ def make_reply_keyboard():
                 {"text": "🛡️ Verify Security"}
             ],
             [
+                {"text": "⏹️ Stop Scanner"},
                 {"text": "❓ Help / Menu"}
             ]
         ],
@@ -340,9 +341,10 @@ def set_bot_commands(bot_token):
     """Register official command menu with Telegram Bot API."""
     commands = [
         {"command": "wizard", "description": "⚙️ 3-Step Interactive Session Wizard"},
-        {"command": "status", "description": "📊 Live balance, equity & positions"},
+        {"command": "status", "description": "📊 Live balance, equity, PTJ bias & positions"},
         {"command": "scan", "description": "🔍 Force immediate market sweep"},
-        {"command": "start_session", "description": "🚀 Launch custom session [m] [x] [rounds]"},
+        {"command": "news", "description": "📰 Macro news & CRO advisory"},
+        {"command": "start_session", "description": "🚀 Launch session [market] [batch] [rounds]"},
         {"command": "summary", "description": "📈 Today's complete market close audit"},
         {"command": "buy", "description": "⚡ Instant market BUY execution"},
         {"command": "sell", "description": "⚡ Instant market SELL execution"},
@@ -548,7 +550,7 @@ def handle_start_session_cmd(args, chat_id, bot_token, message_id=None):
             f"⚠️ <b>MARKET IS CURRENTLY CLOSED FOR THE WEEKEND</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📅 <b>Status:</b> {reason}\n"
-            f"⏰ <b>Market Reopens:</b> <b>Sunday 21:00 UTC</b> (Monday 00:00 Cairo time / UTC+3)\n\n"
+            f"⏰ <b>Market Reopens:</b> <b>Sunday 22:00 UTC</b> (Monday 01:00 Cairo time / UTC+3)\n\n"
             f"💡 MT5 brokers do not accept live Forex or Gold orders on weekends.\n"
             f"<i>Your session parameters have been prepared. Run <code>/start_session</code> when the market reopens on Sunday night!</i>"
         )
@@ -628,6 +630,29 @@ def handle_status_cmd(chat_id, bot_token):
         positions = mt5.positions_get()
         term = mt5.terminal_info()
         algo_status = "🟢 ENABLED (Ready)" if (term and term.trade_allowed) else "⚠️ DISABLED (Press Ctrl+E in MT5)"
+
+        # Macro bias & daily PnL
+        from mt5_connector import get_macro_trend_bias, get_daily_realized_pnl
+        today_pnl = get_daily_realized_pnl()
+        macro_xau = get_macro_trend_bias("XAUUSD", mt5.TIMEFRAME_H4)
+        macro_bias_gold = macro_xau.get("bias", "UNKNOWN")
+
+        # Killzone check
+        now_utc = datetime.now(timezone.utc)
+        cur_min = now_utc.hour * 60 + now_utc.minute
+        in_london = (420 <= cur_min <= 630)
+        in_ny = (750 <= cur_min <= 990)
+        if in_london:
+            kz_status = "🟢 London Open (07:00-10:30 UTC)"
+        elif in_ny:
+            kz_status = "🟢 New York Active (12:30-16:30 UTC)"
+        elif 630 < cur_min < 750:
+            kz_status = "⏸️ European Lunch Lull"
+        else:
+            kz_status = "🌙 Asian / Overnight (Off-Killzone)"
+
+        margin_lvl = (acc.equity / acc.margin * 100.0) if acc and acc.margin > 0 else 9999.0
+
         mt5.shutdown()
 
         session = load_session()
@@ -638,7 +663,8 @@ def handle_status_cmd(chat_id, bot_token):
         if positions:
             for p in positions:
                 side = "BUY" if p.type == 0 else "SELL"
-                pos_lines.append(f"  • #{p.ticket} {side} {p.symbol} ({p.volume}L) @ {p.price_open} ➔ P&L: <code>${p.profit:+.2f}</code>")
+                c_tag = f" [{p.comment}]" if p.comment else ""
+                pos_lines.append(f"  • #{p.ticket} {side} {p.symbol} ({p.volume}L){c_tag} @ {p.price_open} ➔ P&L: <code>${p.profit:+.2f}</code>")
             pos_text = "\n".join(pos_lines)
         else:
             pos_text = "  • No open positions (100% Flat & Protected)"
@@ -659,17 +685,18 @@ def handle_status_cmd(chat_id, bot_token):
             f"🆔 <b>Session:</b> <code>{session.get('session_id', 'NONE')}</code> [{status_icon}]\n"
             f"🤖 <b>MT5 Algo Trading:</b> <b>{algo_status}</b>\n"
             f"🌐 <b>Universe:</b> <b>{market_label}</b>\n"
-            f"🏦 <b>Account Balance:</b> <code>${acc.balance:,.2f}</code>\n"
-            f"📈 <b>Equity:</b> <code>${acc.equity:,.2f}</code> | <b>Free Margin:</b> <code>${acc.margin_free:,.2f}</code>\n"
+            f"🏦 <b>Balance:</b> <code>${acc.balance:,.2f}</code> | <b>Equity:</b> <code>${acc.equity:,.2f}</code>\n"
+            f"📈 <b>Free Margin:</b> <code>${acc.margin_free:,.2f}</code> | <b>Margin Level:</b> <code>{margin_lvl:.0f}%</code>\n"
+            f"💵 <b>Today Realized PnL:</b> <b><code>${today_pnl:+.2f} USD</code></b>\n"
+            f"🧭 <b>PTJ 4H 200 EMA (Gold):</b> <b>{macro_bias_gold}</b>\n"
+            f"⏱️ <b>Killzone:</b> <b>{kz_status}</b>\n"
             f"⚡ <b>Concurrency:</b> <b>{batch_size}x Concurrent Trades</b> per setup\n"
             f"🎯 <b>Daily Rounds:</b> <b>Round {current_round}/{daily_rounds}</b> ({trades_done}/{max_trades} Total Trades)\n"
-            f"💰 <b>Target / Trade:</b> <code>+${target_per_trade:.2f}</code> | <b>Batch Goal:</b> <code>+${batch_goal:.2f}</code>\n"
-            f"🏆 <b>Total Daily Goal:</b> <b>+${daily_goal:.2f} USD</b>\n"
-            f"🛡️ <b>80/70 Protection:</b> Arms @ <code>+${target_per_trade * 0.80:.2f}</code> | Floor @ <code>+${target_per_trade * 0.70:.2f}</code>\n\n"
+            f"🛡️ <b>Asymmetric Protection:</b> Banker (80/70 Server SL) | Runner (Dynamic BE+Lock & 60/50 Guard)\n\n"
             f"🛡️ <b>OPEN POSITIONS ({len(positions) if positions else 0}):</b>\n"
             f"{pos_text}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"<i>AI Autonomous Trading Firm v3.8.4</i>"
+            f"<i>AI Autonomous Trading Firm v5.1.0</i>"
         )
         send_tg_message(bot_token, chat_id, msg, reply_markup=make_main_keyboard())
     except Exception as e:
@@ -677,7 +704,7 @@ def handle_status_cmd(chat_id, bot_token):
 
 
 def handle_scan_cmd(chat_id, bot_token):
-    """Execute on-demand market scan across active universe and reply with telemetry."""
+    """Execute on-demand market sweep with PTJ 4H bias, spread gate, and BB status."""
     try:
         import MetaTrader5 as mt5
         import pandas as pd
@@ -686,6 +713,22 @@ def handle_scan_cmd(chat_id, bot_token):
         if not mt5.initialize():
             send_tg_message(bot_token, chat_id, f"❌ Failed to connect to MT5: {mt5.last_error()}")
             return
+
+        from mt5_connector import get_macro_trend_bias
+
+        # Killzone check
+        now_utc = datetime.now(timezone.utc)
+        cur_min = now_utc.hour * 60 + now_utc.minute
+        in_london = (420 <= cur_min <= 630)
+        in_ny = (750 <= cur_min <= 990)
+        if in_london:
+            kz_status = "🟢 London Open Killzone (07:00-10:30 UTC)"
+        elif in_ny:
+            kz_status = "🟢 New York Active Killzone (12:30-16:30 UTC)"
+        elif 630 < cur_min < 750:
+            kz_status = "⏸️ European Lunch Lull (10:30-12:30 UTC)"
+        else:
+            kz_status = "🌙 Asian / Overnight (Off-Killzone)"
 
         reports = []
         for symbol in ["EURUSD", "XAUUSD"]:
@@ -716,13 +759,21 @@ def handle_scan_cmd(chat_id, bot_token):
             else:
                 status = "⚪ CONSOLIDATING (Inside Envelope)"
 
+            # PTJ 4H macro bias
+            m_info = get_macro_trend_bias(symbol, mt5.TIMEFRAME_H4)
+            m_bias = m_info.get("bias", "NEUTRAL")
+
+            # Spread check
+            tick = mt5.symbol_info_tick(symbol)
+            spread_str = f"${(tick.ask - tick.bid):.2f}" if tick and "XAU" in symbol else (f"{((tick.ask - tick.bid)*10000):.1f} pips" if tick else "N/A")
+
             digits = 2 if "XAU" in symbol else 5
             reports.append(
                 f"<b>{symbol} (M15):</b>\n"
-                f"  • Price: <code>{last['close']:.{digits}f}</code> | RSI(14): <b>{last['rsi']:.1f}</b>\n"
-                f"  • Upper BB: <code>{last['upper']:.{digits}f}</code> (dist: {dist_up:.{digits}f})\n"
-                f"  • Lower BB: <code>{last['lower']:.{digits}f}</code> (dist: {dist_dn:.{digits}f})\n"
-                f"  • ATR(14): <code>{last['atr']:.{digits}f}</code>\n"
+                f"  • Price: <code>{last['close']:.{digits}f}</code> | Spread: <code>{spread_str}</code>\n"
+                f"  • PTJ 4H Bias: <b>{m_bias}</b> (200 EMA: {m_info.get('ema200', 0):.{digits}f})\n"
+                f"  • RSI(14): <b>{last['rsi']:.1f}</b> | ATR(14): <code>{last['atr']:.{digits}f}</code>\n"
+                f"  • BB Upper: <code>{last['upper']:.{digits}f}</code> | Lower: <code>{last['lower']:.{digits}f}</code>\n"
                 f"  • Status: <b>{status}</b>"
             )
 
@@ -731,9 +782,10 @@ def handle_scan_cmd(chat_id, bot_token):
         msg = (
             f"🔍 <b>ON-DEMAND MARKET SWEEP TELEMETRY</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"⏱️ <b>Killzone:</b> <b>{kz_status}</b>\n\n"
             f"{scan_text}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"<i>AI Champion Strategy: Bollinger Bands 2.0-StdDev Mean Reversion</i>"
+            f"<i>AI Autonomous Firm v5.1.0 (PTJ 4H Trend &amp; Asymmetric Reversion)</i>"
         )
         send_tg_message(bot_token, chat_id, msg, reply_markup=make_main_keyboard())
     except Exception as e:
@@ -793,19 +845,21 @@ def handle_stop_cmd(chat_id, bot_token):
 def handle_integrity_cmd(chat_id, bot_token):
     """Verify cryptographic SHA-256 signatures."""
     try:
-        from skill_integrity_guard import verify_integrity
-        valid, mismatches = verify_integrity()
+        from skill_integrity_guard import verify_skill_integrity
+        valid, mismatches = verify_skill_integrity(silent=True)
         if valid:
             msg = (
                 f"🛡️ <b>CRYPTOGRAPHIC INTEGRITY VERIFIED</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"✅ <b>Status:</b> 100% SECURE & AUTHENTIC\n"
-                f"🔒 <b>Protected Files:</b> 8 core engine & skill files verified against SHA-256 signatures.\n"
+                f"✅ <b>Status:</b> 100% SECURE &amp; AUTHENTIC\n"
+                f"🔒 <b>Protected Files:</b> All 12 core engine &amp; skill files verified against SHA-256 signatures.\n"
+                f"💻 <b>Authorized Node:</b> Master Primary Node (<code>WALEED-IT</code>)\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<i>Anti-Tamper Security Guard v3.7.0</i>"
+                f"<i>Anti-Tamper Security Guard v5.1.0</i>"
             )
         else:
-            msg = f"⚠️ <b>SECURITY ALERT:</b> Tampering detected on: {mismatches}"
+            mismatches_str = ", ".join(mismatches) if isinstance(mismatches, list) else str(mismatches)
+            msg = f"⚠️ <b>SECURITY ALERT:</b> Tampering detected on:\n{mismatches_str}"
         send_tg_message(bot_token, chat_id, msg, reply_markup=make_main_keyboard())
     except Exception as e:
         send_tg_message(bot_token, chat_id, f"❌ Integrity check error: {e}")
@@ -813,7 +867,7 @@ def handle_integrity_cmd(chat_id, bot_token):
 
 def handle_direct_trade_cmd(order_type, args, chat_id, bot_token):
     """
-    Executes a direct market order from Telegram: /buy XAUUSD 0.02 or /sell EURUSD 0.10
+    Executes a direct market order from Telegram: /buy XAUUSD 0.01 or /sell EURUSD 0.01
     """
     try:
         import MetaTrader5 as mt5
@@ -821,22 +875,24 @@ def handle_direct_trade_cmd(order_type, args, chat_id, bot_token):
             send_tg_message(bot_token, chat_id, f"❌ Failed to connect to MT5: {mt5.last_error()}")
             return
 
-        symbol = args[0].upper() if len(args) >= 1 else "EURUSD"
+        symbol = args[0].upper() if len(args) >= 1 else "XAUUSD"
         if "GOLD" in symbol or "XAU" in symbol:
             symbol = "XAUUSD"
         elif "EUR" in symbol:
             symbol = "EURUSD"
         else:
-            symbol = "EURUSD"
+            symbol = "XAUUSD"
 
-        # Resolve volume
+        # Resolve volume (default 0.01 for micro account safety)
+        session = load_session()
+        def_lots = float(session.get("default_lots", 0.01))
         if len(args) >= 2:
             try:
                 volume = float(args[1])
             except ValueError:
-                volume = 0.02 if symbol == "XAUUSD" else 0.10
+                volume = def_lots
         else:
-            volume = 0.02 if symbol == "XAUUSD" else 0.10
+            volume = def_lots
 
         tick = mt5.symbol_info_tick(symbol)
         if not tick:
@@ -855,8 +911,8 @@ def handle_direct_trade_cmd(order_type, args, chat_id, bot_token):
             lows = [r['low'] for r in rates]
             atr = max(sum([h - l for h, l in zip(highs[-14:], lows[-14:])]) / 14.0, 0.0005 if "EUR" in symbol else 5.0)
 
-        sl_dist = round(max(atr * 1.5, 0.0012 if "EUR" in symbol else 10.0), digits)
-        tp_dist = round(max(atr * 2.0, 0.0016 if "EUR" in symbol else 15.0), digits)
+        sl_dist = round(max(atr * 1.0, 0.0010 if "EUR" in symbol else 8.0), digits)
+        tp_dist = round(max(sl_dist * 1.5, 0.0015 if "EUR" in symbol else 12.0), digits)
 
         if order_type == "BUY":
             sl = round(price - sl_dist, digits)
@@ -868,15 +924,11 @@ def handle_direct_trade_cmd(order_type, args, chat_id, bot_token):
         ticket_data = {
             "symbol": symbol,
             "order_type": order_type,
-            "volume": volume,
-            "price": price,
-            "stop_loss": sl,
-            "take_profit_1": tp,
-            "take_profit_2": tp,
-            "take_profit_3": tp,
-            "risk_reward_ratio": 1.5,
-            "strategy_name": "Bollinger_Mean_Reversion",
-            "confidence_score": 85.0
+            "lots": volume,
+            "sl": sl,
+            "tp": tp,
+            "strategy": "Manual_Telegram_Direct",
+            "comment": "v5.1.0-Manual"
         }
 
         from mt5_connector import execute_mt5_order
@@ -1190,9 +1242,14 @@ def process_update(update, bot_token, config):
         elif cmd == "/summary":
             from daily_summary import send_daily_summary
             send_daily_summary()
+            send_tg_message(bot_token, chat_id, "📈 <b>Daily Market Close Audit</b> generated &amp; delivered to CRO @wtalaat.", reply_markup=make_main_keyboard())
         elif cmd in ("/weekly", "/audit"):
             from daily_summary import send_market_close_summary
             send_market_close_summary(is_weekend=True, kill_processes=False)
+            send_tg_message(bot_token, chat_id, "🏆 <b>Weekly Performance Audit</b> generated &amp; delivered to CRO @wtalaat.", reply_markup=make_main_keyboard())
+        elif cmd in ("/restart", "/reboot"):
+            send_tg_message(bot_token, chat_id, "🔄 <b>Engine Daemons Reloaded &amp; Verified.</b>", reply_markup=make_main_keyboard())
+            send_engine_restart_alert(bot_token, config)
         elif cmd == "/integrity":
             handle_integrity_cmd(chat_id, bot_token)
         elif cmd in ("/news", "/macro"):

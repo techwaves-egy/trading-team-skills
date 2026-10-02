@@ -3,7 +3,7 @@
   "master_node": "WALEED-IT",
   "node_fingerprint_hash": "060769f5823f3c94",
   "authorized_by": "Admin / Lead Architect",
-  "authorized_at": "2026-10-02T19:51:10.639980+00:00",
+  "authorized_at": "2026-10-02T22:37:13.718497+00:00",
   "files": {
     "SKILL.md": "1f8691e9a4a7a50450e0a75ba761de13f569505bd607ed250a026ddae94a0d5b",
     "scripts\\auto_scanner.py": "7c109edeacb4d856e7447b5528e962f1b72f86c3d9253245f355315f0f353295",
@@ -13,7 +13,7 @@
     "scripts\\trade_monitor.py": "7b53e14cfd9d6605a7ab7d72445587bc9520302827786000dc0f9febe412c231",
     "scripts\\send_alert.py": "1d8136639f0efef345ef99d343667ba57f1142ecca567657b38040c6fd44e232",
     "scripts\\daily_summary.py": "2ce99c681a2eb290249875c934a7bfa74e620d105c1030853a6db8fd1d7ffa04",
-    "scripts\\telegram_listener.py": "95609e0488bf3f75cd080cb296e28179b9f8f6e2c9f979cbceaa9b248017a1de",
+    "scripts\\telegram_listener.py": "14b52127199895b401d17fbb6b26cbc0c82eddcddb6ac39af2d062fda54c76a0",
     "scripts\\start_session.py": "50d38f95697cb141b981efadb7a89a3cfb1f9a1d9a7741c2d1f6752a87eb6999",
     "docs\\01_ORGANIZATION_ROLES.md": "fa1b5fc9538f3c4ad37da1b874dc7d8da4922e55e8934e774bcb32f4be86158f",
     "docs\\02_REGIME_STRATEGY_ENGINE.md": "01c0d1572fd35d10fd7c8a97220fab93afa761f1bddc210b0b419a1606aa8c2d"
