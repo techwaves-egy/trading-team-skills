@@ -526,8 +526,8 @@ def is_market_closed_now():
         return True, "Friday post-settlement close"
     if weekday == 5:
         return True, "Saturday full-day close"
-    if weekday == 6 and (hour < 20 or (hour == 20 and minute < 55)):
-        return True, "Sunday pre-open close"
+    if weekday == 6 and hour < 22:
+        return True, "Sunday pre-open close (Gold & FX open at 22:00 UTC)"
     return False, "Market is OPEN"
 
 
