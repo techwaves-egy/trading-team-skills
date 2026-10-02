@@ -123,6 +123,133 @@ def calculate_atr(symbol, timeframe=mt5.TIMEFRAME_H1, period=14):
     atr = sum(true_ranges[-period:]) / period
     return atr
 
+def get_macro_trend_bias(symbol, timeframe=mt5.TIMEFRAME_H4):
+    """
+    Paul Tudor Jones 200 EMA & 4H Macro Trend Bias Engine (v5.0.0)
+    PTJ Golden Rule: 'Nothing good happens below the 200-day/200-period moving average.'
+    Returns:
+        dict: {
+            "bias": "BULLISH" | "BEARISH" | "NEUTRAL",
+            "ema200": float,
+            "ema50": float,
+            "price": float,
+            "reason": str
+        }
+    """
+    bridge.initialize()
+    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 250)
+    if rates is None or len(rates) < 60:
+        return {"bias": "NEUTRAL", "ema200": 0.0, "ema50": 0.0, "price": 0.0, "reason": "Insufficient 4H rates"}
+
+    closes = [r['close'] for r in rates]
+    price = closes[-1]
+
+    def calc_ema(series, period):
+        k = 2.0 / (period + 1.0)
+        ema = series[0]
+        for val in series[1:]:
+            ema = (val * k) + (ema * (1.0 - k))
+        return ema
+
+    ema50 = calc_ema(closes, min(50, len(closes)))
+    ema200 = calc_ema(closes, min(200, len(closes)))
+
+    is_below_200 = price < ema200
+    is_below_50 = price < ema50
+    is_above_200 = price > ema200
+    is_above_50 = price > ema50
+
+    if is_below_200 and is_below_50:
+        bias = "BEARISH"
+        reason = f"Price ({price:.2f}) < 4H 200 EMA ({ema200:.2f}) & 50 EMA ({ema50:.2f}) — Strong Macro Downtrend"
+    elif is_above_200 and is_above_50:
+        bias = "BULLISH"
+        reason = f"Price ({price:.2f}) > 4H 200 EMA ({ema200:.2f}) & 50 EMA ({ema50:.2f}) — Strong Macro Uptrend"
+    elif is_below_200:
+        bias = "BEARISH"
+        reason = f"Price ({price:.2f}) < 4H 200 EMA ({ema200:.2f}) — PTJ Macro Bear Bias"
+    elif is_above_200:
+        bias = "BULLISH"
+        reason = f"Price ({price:.2f}) > 4H 200 EMA ({ema200:.2f}) — PTJ Macro Bull Bias"
+    else:
+        bias = "NEUTRAL"
+        reason = f"Price ({price:.2f}) consolidating near 4H EMAs (50 EMA: {ema50:.2f}, 200 EMA: {ema200:.2f})"
+
+    return {
+        "bias": bias,
+        "ema200": round(ema200, 2),
+        "ema50": round(ema50, 2),
+        "price": round(price, 2),
+        "reason": reason
+    }
+
+def get_asian_range(symbol):
+    """
+    Computes Asian Session High, Low, and Mid for today (00:00 - 06:00 UTC).
+    """
+    bridge.initialize()
+    now_utc = datetime.now(timezone.utc)
+    start_asian = datetime(now_utc.year, now_utc.month, now_utc.day, 0, 0, tzinfo=timezone.utc)
+    end_asian = datetime(now_utc.year, now_utc.month, now_utc.day, 6, 0, tzinfo=timezone.utc)
+
+    rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M15, start_asian, end_asian)
+    if rates is None or len(rates) < 4:
+        return {"valid": False, "high": 0.0, "low": 0.0, "mid": 0.0, "range": 0.0}
+
+    asian_high = max(r['high'] for r in rates)
+    asian_low = min(r['low'] for r in rates)
+    asian_mid = (asian_high + asian_low) / 2.0
+    asian_range = asian_high - asian_low
+
+    return {
+        "valid": True,
+        "high": round(asian_high, 2),
+        "low": round(asian_low, 2),
+        "mid": round(asian_mid, 2),
+        "range": round(asian_range, 2)
+    }
+
+def check_liquidity_sweep(symbol, direction):
+    """
+    Institutional ICT Liquidity Sweep / Judas Swing Engine (v5.0.0)
+    Checks if London or NY session swept the Asian High/Low and rejected back inside.
+    - Bearish Judas Swing (SELL): Price spiked ABOVE Asian High, swept buy stops, and closed back BELOW Asian High.
+    - Bullish Judas Swing (BUY): Price spiked BELOW Asian Low, swept sell stops, and closed back ABOVE Asian Low.
+    """
+    asian = get_asian_range(symbol)
+    if not asian.get("valid"):
+        return False, 0.0, "Asian range not established or insufficient bars"
+
+    bridge.initialize()
+    rates_m15 = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, 20)
+    if rates_m15 is None or len(rates_m15) < 5:
+        return False, 0.0, "Insufficient M15 bars for liquidity sweep"
+
+    last_closed = rates_m15[-2]
+    recent_bars = rates_m15[-8:-1]
+
+    if direction.upper() == "SELL":
+        highest_recent = max(r['high'] for r in recent_bars)
+        if highest_recent > asian['high']:
+            if last_closed['close'] < asian['high']:
+                return True, highest_recent, (
+                    f"Bearish Judas Swing: Asian High ({asian['high']:.2f}) swept by spike to "
+                    f"{highest_recent:.2f}, closed back below ({last_closed['close']:.2f})"
+                )
+        return False, 0.0, f"No Asian High sweep detected (Asian High: {asian['high']:.2f}, High: {highest_recent:.2f})"
+
+    elif direction.upper() == "BUY":
+        lowest_recent = min(r['low'] for r in recent_bars)
+        if lowest_recent < asian['low']:
+            if last_closed['close'] > asian['low']:
+                return True, lowest_recent, (
+                    f"Bullish Judas Swing: Asian Low ({asian['low']:.2f}) swept by spike to "
+                    f"{lowest_recent:.2f}, closed back above ({last_closed['close']:.2f})"
+                )
+        return False, 0.0, f"No Asian Low sweep detected (Asian Low: {asian['low']:.2f}, Low: {lowest_recent:.2f})"
+
+    return False, 0.0, "Invalid direction"
+
 def check_confirmation(symbol, direction, timeframe=mt5.TIMEFRAME_M15):
     """
     Multi-Timeframe Structural Confirmation & Trap Filter Gate (v3.1.0)
@@ -233,6 +360,14 @@ def check_bollinger_confirmation(symbol, direction):
             rally_pts = rates_1h[-2]['close'] - rates_1h[-4]['open']
             if waterfall_up and rally_pts > 2.0 * atr_est:
                 return False, f"PARABOLIC RALLY FILTER: 3 consecutive 1H expansion bars ({rally_pts:.2f} pts). Reversion SELL blocked."
+
+    # --- 1.1 Paul Tudor Jones 4H 200 EMA Macro Bias Gate ---
+    macro_info = get_macro_trend_bias(symbol, mt5.TIMEFRAME_H4)
+    m_bias = macro_info.get("bias", "NEUTRAL")
+    if direction.upper() == "BUY" and m_bias == "BEARISH":
+        return False, f"PTJ 200 EMA FILTER: Counter-trend BUY blocked. 4H Macro Bias is BEARISH ({macro_info.get('reason')})."
+    elif direction.upper() == "SELL" and m_bias == "BULLISH":
+        return False, f"PTJ 200 EMA FILTER: Counter-trend SELL blocked. 4H Macro Bias is BULLISH ({macro_info.get('reason')})."
 
     # --- 2. Directional Confirmation & Multi-Candle Reversal ---
     if direction.upper() == "SELL":
@@ -518,17 +653,13 @@ def execute_mt5_order(ticket):
             # Adjust if slightly under floor
             sl_dist = min_safe
 
-        # 7. Point-Based SL/TP Calculation & 8. Multi-TP Support
+        # 7. Dynamic Structure & Volatility-Based SL/TP Calculation (v5.0.0)
         is_gold = "XAU" in symbol or "GOLD" in symbol
         sl_points = sl_dist / point
-        if is_gold:
-            tp1_dist = 25.00 # Target $25 profit ($20-$30 window)
-            tp2_dist = 30.00
-            tp3_dist = 35.00
-        else:
-            tp1_dist = 1.0 * sl_dist # Fast 1.0R initial target
-            tp2_dist = 2.0 * sl_dist
-            tp3_dist = 3.0 * sl_dist
+        # Dynamic TP distances: Minimum 1.2R for TP1 (Banker), 2.0R for TP2, 3.5R for TP3 (Runner)
+        tp1_dist = max(sl_dist * 1.2, atr * 1.2)
+        tp2_dist = max(sl_dist * 2.0, atr * 2.0)
+        tp3_dist = max(sl_dist * 3.5, atr * 3.5)
         
         if order_type_str == "BUY":
             sl_price = price - sl_dist

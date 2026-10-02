@@ -163,19 +163,29 @@ def run_scan_and_execute(symbol_override=None):
             )
             return "MAX_DAILY_LOSS_EXCEEDED"
 
-        # === v4.0.0 GATE 0.05: Institutional Liquidity & Session Time-of-Day Filter ===
+        # === v5.0.0 GATE 0.06: Precision Institutional Killzones & Session Filter ===
         now_utc = datetime.now(timezone.utc)
-        cur_hour = now_utc.hour
+        cur_min_of_day = now_utc.hour * 60 + now_utc.minute
         is_gold = "XAU" in symbol.upper() or "GOLD" in symbol.upper()
 
         if is_gold:
-            # Active Institutional Window: 07:00 UTC (London Open) to 19:00 UTC (NY Afternoon)
-            # Freeze Window: 19:00 UTC to 07:00 UTC (Asian Session & NY-Close Liquidation Drift)
-            if cur_hour >= 19 or cur_hour < 7:
+            # London Open Killzone: 07:00 UTC (420 min) to 10:30 UTC (630 min)
+            # New York Active Killzone: 12:30 UTC (750 min) to 16:30 UTC (990 min)
+            in_london_kz = (420 <= cur_min_of_day <= 630)
+            in_ny_kz = (750 <= cur_min_of_day <= 990)
+
+            if not (in_london_kz or in_ny_kz):
+                if 630 < cur_min_of_day < 750:
+                    kz_reason = "European Midday Lunch Lull (10:30 - 12:30 UTC)"
+                elif cur_min_of_day > 990 or cur_min_of_day < 420:
+                    kz_reason = "Asian / Overnight Illiquidity & NY-Close (16:30 - 07:00 UTC)"
+                else:
+                    kz_reason = "Off-Killzone Consolidation"
+
                 logger.info(
-                    f"[SESSION FILTER] Gold (XAUUSD) trading is FROZEN outside institutional liquidity hours "
-                    f"(Current: {now_utc.strftime('%H:%M UTC')} | Active: 07:00 - 19:00 UTC). "
-                    f"Mean reversion has negative statistical expectancy during Asian illiquidity. Skipping."
+                    f"[PRECISION KILLZONE] Gold (XAUUSD) trading suspended outside institutional killzones "
+                    f"(Current: {now_utc.strftime('%H:%M UTC')} | {kz_reason}). "
+                    f"Active Killzones: London Open (07:00-10:30 UTC) & New York Active (12:30-16:30 UTC). Skipping."
                 )
                 return "OFF_SESSION_GOLD"
 
@@ -329,6 +339,36 @@ def run_scan_and_execute(symbol_override=None):
             logger.info("Market consolidating inside Bollinger Bands or awaiting closed-candle rejection — skipping")
             return "NO_TRADE_CONSOLIDATION"
 
+        # === v5.0.0 GATE 2.1: Paul Tudor Jones 4H 200 EMA Macro Bias Gate ===
+        from mt5_connector import get_macro_trend_bias
+        macro_info = get_macro_trend_bias(symbol, mt5.TIMEFRAME_H4)
+        macro_bias = macro_info.get("bias", "NEUTRAL")
+        logger.info(f"[PTJ MACRO GATE] {symbol} 4H Macro Bias: {macro_bias} ({macro_info.get('reason')})")
+
+        if direction == "BUY" and macro_bias == "BEARISH":
+            logger.warning(f"[PTJ MACRO REJECTION] Counter-trend BUY blocked on {symbol}: {macro_info.get('reason')}")
+            broadcast_telegram(
+                f"<b>SCAN {now_str} — {symbol}</b>\n"
+                f"VERDICT: REJECTED (PTJ 4H 200 EMA RULE)\n"
+                f"Direction: BUY (Lower Band Bounce Attempt)\n"
+                f"Status: 🔒 <b>COUNTER-TREND BUY BLOCKED</b>\n"
+                f"Reason: <i>{escape_html(macro_info.get('reason'))}</i>\n"
+                f"<i>Paul Tudor Jones Rule: Never buy in a macro 4H bear regime below 200 EMA.</i>"
+            )
+            return "PTJ_MACRO_BEAR_BUY_REJECTED"
+
+        if direction == "SELL" and macro_bias == "BULLISH":
+            logger.warning(f"[PTJ MACRO REJECTION] Counter-trend SELL blocked on {symbol}: {macro_info.get('reason')}")
+            broadcast_telegram(
+                f"<b>SCAN {now_str} — {symbol}</b>\n"
+                f"VERDICT: REJECTED (PTJ 4H 200 EMA RULE)\n"
+                f"Direction: SELL (Upper Band Bounce Attempt)\n"
+                f"Status: 🔒 <b>COUNTER-TREND SELL BLOCKED</b>\n"
+                f"Reason: <i>{escape_html(macro_info.get('reason'))}</i>\n"
+                f"<i>Paul Tudor Jones Rule: Never short in a macro 4H bull regime above 200 EMA.</i>"
+            )
+            return "PTJ_MACRO_BULL_SELL_REJECTED"
+
         # === v3.8.7 GATE 4: Multi-Timeframe Closed-Candle Confirmation ===
         if strategy_active == "Bollinger_Mean_Reversion":
             from mt5_connector import check_bollinger_confirmation
@@ -388,11 +428,11 @@ def run_scan_and_execute(symbol_override=None):
                 safe_lots = round(safe_lots / step) * step
             safe_lots = min(safe_lots, 0.50)
 
-        # Dynamic target distance in price to produce EXACTLY target_dollars ($25.00)
-        target_dist = round(target_dollars / (safe_lots * contract_size), digits)
+        # === v5.0.0 Dynamic Structure & Volatility-Based SL / TP Engine ===
+        # Min SL distance: 1.0 * ATR_1H
+        min_stop = max(min_stop, atr_1h * 1.0)
 
         if direction == "SELL":
-            # SL above nearest swing high + ATR buffer
             candidates = [h for h in swing_highs if h > price]
             if not candidates:
                 sl_level = round(price + min_stop, digits)
@@ -404,28 +444,21 @@ def run_scan_and_execute(symbol_override=None):
                 sl_level = round(price + min_stop, digits)
                 sl_distance = min_stop
 
-            # Symmetrical R:R Capping: Stop Loss distance cannot exceed Target Profit distance!
-            if is_gold or target_dist > 0:
-                if sl_distance > target_dist:
-                    sl_distance = target_dist
-                    sl_level = round(price + sl_distance, digits)
+            # Engine-Decided Dynamic Targets:
+            # Banker Leg (TP1): Minimum 1.2R or distance to Bollinger midline
+            bb_target_dist = abs(price - bb_mid) if (strategy_active == "Bollinger_Mean_Reversion" and bb_mid < price) else (sl_distance * 1.2)
+            banker_dist = round(max(sl_distance * 1.2, bb_target_dist), digits)
+            tp_banker = round(price - banker_dist, digits)
 
-            if is_gold:
-                # Target $25.00 profit dynamically sized per lot
-                tp1 = round(price - target_dist, digits)
-                tp2 = round(price - target_dist * 1.25, digits)
-                tp3 = round(price - target_dist * 1.50, digits)
-            elif strategy_active == "Bollinger_Mean_Reversion" and bb_mid < price:
-                tp1 = round(bb_mid, digits)
-                tp2 = round(bb_lower, digits) if bb_lower < bb_mid else round(price - sl_distance * 1.8, digits)
-                tp3 = round(price - sl_distance * 2.5, digits)
-            else:
-                tp1 = round(price - sl_distance * 1.0, digits) # Fast 1.0R initial target
-                tp2 = round(price - sl_distance * 2.0, digits)
-                tp3 = round(price - sl_distance * 3.0, digits)
+            # Runner Leg (TP2): 3.5R extension (uncapped runner trailed by trade_monitor)
+            runner_dist = round(sl_distance * 3.5, digits)
+            tp_runner = round(price - runner_dist, digits)
+
+            tp1 = tp_banker
+            tp2 = tp_runner
+            tp3 = round(price - sl_distance * 5.0, digits)
 
         else:  # BUY
-            # SL below nearest swing low - ATR buffer
             candidates = [l for l in swing_lows if l < price]
             if not candidates:
                 sl_level = round(price - min_stop, digits)
@@ -437,34 +470,30 @@ def run_scan_and_execute(symbol_override=None):
                 sl_level = round(price - min_stop, digits)
                 sl_distance = min_stop
 
-            # Symmetrical R:R Capping: Stop Loss distance cannot exceed Target Profit distance!
-            if is_gold or target_dist > 0:
-                if sl_distance > target_dist:
-                    sl_distance = target_dist
-                    sl_level = round(price - sl_distance, digits)
+            # Engine-Decided Dynamic Targets:
+            # Banker Leg (TP1): Minimum 1.2R or distance to Bollinger midline
+            bb_target_dist = abs(bb_mid - price) if (strategy_active == "Bollinger_Mean_Reversion" and bb_mid > price) else (sl_distance * 1.2)
+            banker_dist = round(max(sl_distance * 1.2, bb_target_dist), digits)
+            tp_banker = round(price + banker_dist, digits)
 
-            if is_gold:
-                # Target $25.00 profit dynamically sized per lot
-                tp1 = round(price + target_dist, digits)
-                tp2 = round(price + target_dist * 1.25, digits)
-                tp3 = round(price + target_dist * 1.50, digits)
-            elif strategy_active == "Bollinger_Mean_Reversion" and bb_mid > price:
-                tp1 = round(bb_mid, digits)
-                tp2 = round(bb_upper, digits) if bb_upper > bb_mid else round(price + sl_distance * 1.8, digits)
-                tp3 = round(price + sl_distance * 2.5, digits)
-            else:
-                tp1 = round(price + sl_distance * 1.0, digits) # Fast 1.0R initial target
-                tp2 = round(price + sl_distance * 2.0, digits)
-                tp3 = round(price + sl_distance * 3.0, digits)
+            # Runner Leg (TP2): 3.5R extension (uncapped runner trailed by trade_monitor)
+            runner_dist = round(sl_distance * 3.5, digits)
+            tp_runner = round(price + runner_dist, digits)
 
-        # === v3.8.3 Execution & Risk Evaluation ===
+            tp1 = tp_banker
+            tp2 = tp_runner
+            tp3 = round(price + sl_distance * 5.0, digits)
+
+        # === v5.0.0 Execution & Risk Evaluation ===
         actual_risk = round(safe_lots * contract_size * sl_distance, 2)
+        banker_dollars = round(safe_lots * contract_size * (abs(tp_banker - price)), 2)
+        runner_dollars = round(safe_lots * contract_size * (abs(tp_runner - price)), 2)
 
         # === v4.0.0 GATE 7: Symmetrical R:R Check (Minimum 1.0:1 Standard) ===
-        rr_ratio = round((abs(tp1 - price)) / sl_distance, 2) if sl_distance > 0 else 0
+        rr_ratio = round((abs(tp_banker - price)) / sl_distance, 2) if sl_distance > 0 else 0
         min_req_rr = 1.0  # Institutional 1.0:1 standard (Never risk more than reward)
         if rr_ratio < min_req_rr:
-            logger.info(f"[R:R GATE] Symmetrical R:R ratio {rr_ratio}:1 below minimum {min_req_rr}:1, rejecting trade")
+            logger.info(f"[R:R GATE] Dynamic R:R ratio {rr_ratio}:1 below minimum {min_req_rr}:1, rejecting trade")
             return "LOW_RR"
 
         # === ALL GATES PASSED — PREPARE CONCURRENT BATCH ===
@@ -516,27 +545,32 @@ def run_scan_and_execute(symbol_override=None):
         executed_orders = []
         now_ts = datetime.now(timezone.utc).strftime('%H%M%S')
 
-        logger.info(f"ALL v4.0.0 GATES PASSED — Executing batch of {trades_to_open} {direction} {symbol} orders @ {price}")
-        logger.info(f"SL={sl_level} ({sl_distance} dist) | TP1={tp1} | Lots={safe_lots} / trade | Risk=${actual_risk} | Target=${target_dollars}/trade")
+        logger.info(f"ALL v5.0.0 GATES PASSED — Executing batch of {trades_to_open} {direction} {symbol} orders @ {price}")
+        logger.info(f"SL={sl_level} ({sl_distance} dist) | Banker TP={tp_banker} (+${banker_dollars}) | Runner TP={tp_runner} (+${runner_dollars}) | Lots={safe_lots}/trade")
 
         last_fail_reason = "Order rejected by MT5 terminal"
         for idx in range(trades_to_open):
             ticket_id = f"TRD-{symbol[:3]}-{now_ts}-{idx+1}"
+            is_runner = (idx > 0)
+            target_tp = tp_runner if is_runner else tp_banker
+            leg_name = "Runner" if is_runner else "Banker"
+
             ticket = {
                 "ticket_id": ticket_id,
                 "symbol": symbol,
                 "order_type": direction,
                 "sl": float(sl_level),
-                "tp": float(tp1),
+                "tp": float(target_tp),
                 "lots": float(safe_lots),
                 "strategy": strategy_active,
                 "batch_size": batch_size,
+                "comment": f"v5.0.0-{leg_name}"
             }
             res = execute_mt5_order(ticket)
-            logger.info(f"MT5 execution result ({idx+1}/{trades_to_open}): {res}")
+            logger.info(f"MT5 execution result ({idx+1}/{trades_to_open}) [{leg_name}]: {res}")
             if isinstance(res, dict):
                 if res.get("status") == "SUCCESS":
-                    executed_orders.append((ticket_id, res))
+                    executed_orders.append((ticket_id, res, leg_name, target_tp))
                     session["trades_executed"] = int(session.get("trades_executed", 0)) + 1
                     session["leverage_trades_used"] = used + len(executed_orders)
                     save_session(session)
@@ -565,28 +599,27 @@ def run_scan_and_execute(symbol_override=None):
 
             # Send execution alert to Telegram
             dir_emoji = "🔴 SHORT" if direction == "SELL" else "🟢 LONG"
-            ticket_ids_str = ", ".join([f"<code>{t[0]}</code>" for t in executed_orders])
-            total_batch_target = target_dollars * len(executed_orders)
-            daily_goal = target_dollars * max_trades
+            ticket_ids_str = ", ".join([f"<code>{t[0]}</code> ({t[2]})" for t in executed_orders])
+            leg_details = f"<b>Leg 1 (Banker TP):</b> <code>${tp_banker}</code> (<b>+${banker_dollars:.2f} USD</b> | 1:{round(abs(tp_banker-price)/sl_distance, 1)}R)\n"
+            if len(executed_orders) > 1:
+                leg_details += f"<b>Leg 2 (Runner TP):</b> <code>${tp_runner}</code> (<b>+${runner_dollars:.2f} USD</b> | 1:{round(abs(tp_runner-price)/sl_distance, 1)}R Uncapped)\n"
 
             alert_msg = (
-                f"<b>🚀 BATCH TRADE EXECUTED — {symbol} {dir_emoji}</b>\n"
+                f"<b>🚀 ASYMMETRIC BATCH EXECUTED — {symbol} {dir_emoji}</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<b>Batch Size:</b> <b>{len(executed_orders)}x Concurrent Trades</b>\n"
+                f"<b>Batch Structure:</b> <b>{len(executed_orders)}x Concurrent Orders</b>\n"
                 f"<b>Tickets:</b> {ticket_ids_str}\n"
-                f"<b>Direction:</b> {direction}\n"
+                f"<b>Direction:</b> {direction} | <b>Strategy:</b> <code>{strategy_active}</code>\n"
                 f"<b>Entry Price:</b> <code>${price:.2f}</code>\n"
                 f"<b>Stop Loss:</b> <code>${sl_level}</code> (${sl_distance:.2f} distance)\n"
-                f"<b>Take Profit:</b> <code>${tp1}</code> (<b>+${target_dollars:.2f} / trade</b>)\n"
-                f"<b>Batch Profit Target:</b> <b>+${total_batch_target:.2f}</b>\n"
-                f"<b>Profit Guard:</b> 80/70 (Arm: +${target_dollars * 0.80:.2f} | Floor: +${target_dollars * 0.70:.2f} per trade)\n"
+                f"{leg_details}"
+                f"<b>Profit Protection:</b> 80/70 Server SL Armed on Banker | BE+$2 Lock on Runner\n"
                 f"<b>Lots:</b> <code>{safe_lots}</code> each (Total: <code>{safe_lots * len(executed_orders):.2f}</code>) | <b>Risk:</b> <code>${actual_risk * len(executed_orders):.2f}</code>\n"
-                f"<b>R:R:</b> <code>1:{rr_ratio}</code> | <b>Regime:</b> <code>{regime}</code>\n"
+                f"<b>4H Macro Trend:</b> <code>{macro_bias}</code>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"<b>Execution Progress:</b> <b>Round {current_round}/{total_rounds}</b> ({trades_done_now}/{max_trades} Total Trades)\n"
-                f"<b>Daily Profit Goal:</b> <b>+${daily_goal:.2f}</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<i>v3.8.4 Batch Concurrency & Multi-Round Architecture Active</i>"
+                f"<i>v5.0.0 Institutional Trend & Asymmetric Runner Engine</i>"
             )
             broadcast_telegram(alert_msg)
             logger.info(f"Batch executed ({len(executed_orders)} trades): {ticket_ids_str}. Round {current_round}/{total_rounds}")

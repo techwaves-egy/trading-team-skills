@@ -265,6 +265,62 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
         save_profit_protection_state(protection_state)
 
 
+def check_and_upgrade_runners(closed_deal, open_positions):
+    """
+    Druckenmiller Asymmetric Runner Engine (v5.0.0):
+    When a winning trade closes (Leg 1 Banker), immediately find remaining positions
+    on the same symbol (Leg 2 Runner).
+    1. Instantly upgrade its MT5 server-side Stop Loss to Break-Even + profit lock floor.
+    2. Broadcast Telegram alert confirming runner activation (Zero Risk, Uncapped Upside).
+    """
+    if not open_positions or closed_deal.profit <= 0:
+        return
+
+    symbol = closed_deal.symbol
+    for pos in open_positions:
+        if pos.symbol == symbol:
+            sym_info = mt5.symbol_info(symbol)
+            digits = sym_info.digits if sym_info else 2
+
+            # Profit lock offset: $2.00 on Gold, or 20 points / 2 pips on FX
+            offset = 2.0 if ("XAU" in symbol.upper() or "GOLD" in symbol.upper()) else (20 * sym_info.point)
+
+            if pos.type == mt5.ORDER_TYPE_BUY:
+                floor_sl = round(pos.price_open + offset, digits)
+                if pos.sl < floor_sl:
+                    logger.info(f"[RUNNER UPGRADE] Upgrading Runner #{pos.ticket} SL to BE+lock: {floor_sl}")
+                    res = modify_mt5_sl(pos.ticket, floor_sl)
+                    if res.get("status") == "SUCCESS":
+                        broadcast_telegram(
+                            f"🏃 <b>DRUCKENMILLER RUNNER ARMED: ZERO RISK ACTIVE</b>\n"
+                            f"━━━━━━━━━━━━━━━━━━━━\n"
+                            f"<b>Asset:</b> <code>{symbol}</code> (BUY)\n"
+                            f"<b>Trigger:</b> Leg 1 Banked (+${closed_deal.profit:.2f} USD)!\n"
+                            f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (BE + Profit Lock)\n"
+                            f"<b>Remaining Downside:</b> <b>$0.00 (Protected)</b>\n"
+                            f"<b>Upside Potential:</b> 🚀 <b>Uncapped Macro Runner</b>\n"
+                            f"━━━━━━━━━━━━━━━━━━━━\n"
+                            f"<i>Institutional Asymmetry: Base win banked; trailing runner for macro expansion.</i>"
+                        )
+            elif pos.type == mt5.ORDER_TYPE_SELL:
+                floor_sl = round(pos.price_open - offset, digits)
+                if pos.sl == 0.0 or pos.sl > floor_sl:
+                    logger.info(f"[RUNNER UPGRADE] Upgrading Runner #{pos.ticket} SL to BE+lock: {floor_sl}")
+                    res = modify_mt5_sl(pos.ticket, floor_sl)
+                    if res.get("status") == "SUCCESS":
+                        broadcast_telegram(
+                            f"🏃 <b>DRUCKENMILLER RUNNER ARMED: ZERO RISK ACTIVE</b>\n"
+                            f"━━━━━━━━━━━━━━━━━━━━\n"
+                            f"<b>Asset:</b> <code>{symbol}</code> (SELL)\n"
+                            f"<b>Trigger:</b> Leg 1 Banked (+${closed_deal.profit:.2f} USD)!\n"
+                            f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (BE + Profit Lock)\n"
+                            f"<b>Remaining Downside:</b> <b>$0.00 (Protected)</b>\n"
+                            f"<b>Upside Potential:</b> 🚀 <b>Uncapped Macro Runner</b>\n"
+                            f"━━━━━━━━━━━━━━━━━━━━\n"
+                            f"<i>Institutional Asymmetry: Base win banked; trailing runner for macro expansion.</i>"
+                        )
+
+
 def determine_exit_type(deal, armed_history=None):
     """Determine whether TP, SL, BE, Profit Protection, or Manual closed the deal."""
     comment = str(deal.comment).lower()
@@ -451,6 +507,11 @@ def monitor_loop():
                         alert_msg = format_telegram_alert(deal, account_info, armed_history)
 
                         broadcast_telegram(alert_msg)
+
+                        # Druckenmiller Runner Engine: If closed in profit, upgrade remaining runners to BE+lock
+                        if deal.profit > 0:
+                            live_positions = mt5.positions_get()
+                            check_and_upgrade_runners(deal, live_positions)
 
                         processed_tickets.add(deal.ticket)
                         save_processed_tickets(processed_tickets)
