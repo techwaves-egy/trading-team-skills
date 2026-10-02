@@ -306,7 +306,6 @@ def run_scan_and_execute(symbol_override=None):
         if atr_1h is None or atr_1h <= 0:
             logger.error("Could not compute ATR")
             return "ATR_ERROR"
-        min_stop = atr_1h * 1.5
         logger.info(f"[BB] Mid={bb_mid:.4f} | Upper={bb_upper:.4f} | Lower={bb_lower:.4f} | ATR={atr_1h:.4f}")
 
         # Strategy Selection:
@@ -430,7 +429,7 @@ def run_scan_and_execute(symbol_override=None):
 
         # === v5.0.0 Dynamic Structure & Volatility-Based SL / TP Engine ===
         # Min SL distance: 1.0 * ATR_1H
-        min_stop = max(min_stop, atr_1h * 1.0)
+        min_stop = atr_1h * 1.0
 
         if direction == "SELL":
             candidates = [h for h in swing_highs if h > price]
@@ -665,8 +664,8 @@ def is_market_closed():
     # Saturday (all day)
     if weekday == 5:
         return True, "WEEKEND_CLOSE_SATURDAY"
-    # Sunday before 21:00 UTC
-    if weekday == 6 and (hour < 20 or (hour == 20 and minute < 55)):
+    # Sunday before 22:00 UTC (Gold opens at 5:00 PM New York = 22:00 UTC)
+    if weekday == 6 and hour < 22:
         return True, "WEEKEND_CLOSE_SUNDAY"
 
     return False, "MARKET_OPEN"
@@ -695,7 +694,7 @@ def start_auto_scanner(interval_minutes=15):
                     # Weekend Standby (Saturday or Sunday before 20:55 UTC)
                     # Calculate time remaining until Sunday 20:55 UTC
                     days_ahead = (6 - now_utc.weekday()) % 7
-                    target_open = now_utc.replace(hour=20, minute=55, second=0, microsecond=0) + timedelta(days=days_ahead)
+                    target_open = now_utc.replace(hour=22, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
                     if target_open <= now_utc:
                         target_open += timedelta(days=7)
                     wait_sec = max(60, int((target_open - now_utc).total_seconds()))

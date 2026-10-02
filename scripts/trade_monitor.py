@@ -139,32 +139,44 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
         entry = protection_state[ticket_str]
         entry["peak_progress"] = max(entry.get("peak_progress", 0.0), progress)
 
-        # Gate 1: Check Arming Threshold (>= 80% of TP)
-        if progress >= 0.80 and not entry.get("armed", False):
+        # C-5 fix: Leg-specific arming thresholds
+        # Banker (default): arm at 80%, lock at 70%
+        # Runner: arm at 60%, lock at 50% (wider TP needs earlier protection)
+        pos_comment = str(getattr(pos, "comment", "")).lower()
+        is_runner_leg = "runner" in pos_comment
+        arm_threshold = 0.60 if is_runner_leg else 0.80
+        lock_threshold = 0.50 if is_runner_leg else 0.70
+        entry["arm_threshold"] = arm_threshold
+        entry["lock_threshold"] = lock_threshold
+
+        # Gate 1: Check Arming Threshold
+        if progress >= arm_threshold and not entry.get("armed", False):
             entry["armed"] = True
             entry["armed_at"] = datetime.now(timezone.utc).isoformat()
             state_modified = True
+            leg_label = "Runner" if is_runner_leg else "Banker"
             logger.info(
-                f"[PROFIT PROTECTION ARMED] Position #{pos.ticket} ({pos.symbol} {pos_dir}) reached "
-                f"{progress * 100:.1f}% of TP distance. Arming 70% server-side Stop Loss..."
+                f"[PROFIT PROTECTION ARMED] Position #{pos.ticket} ({pos.symbol} {pos_dir} {leg_label}) reached "
+                f"{progress * 100:.1f}% of TP distance (threshold: {arm_threshold*100:.0f}%). Arming {lock_threshold*100:.0f}% server-side Stop Loss..."
             )
 
-        # Instant Server-Side Stop Loss Modification directly to 70% Floor
+        # Instant Server-Side Stop Loss Modification to dynamic profit floor
         if entry.get("armed", False) and not entry.get("sl_modified_to_70", False):
             sym_info = mt5.symbol_info(pos.symbol)
             digits = sym_info.digits if sym_info else 2
+            floor_pct = entry.get("lock_threshold", 0.70)
 
             if pos.type == mt5.ORDER_TYPE_BUY:
-                floor_price = round(pos.price_open + (0.70 * total_dist), digits)
+                floor_price = round(pos.price_open + (floor_pct * total_dist), digits)
                 is_better = floor_price > pos.sl
             else:
-                floor_price = round(pos.price_open - (0.70 * total_dist), digits)
+                floor_price = round(pos.price_open - (floor_pct * total_dist), digits)
                 is_better = (pos.sl == 0.0) or (floor_price < pos.sl)
 
             if is_better:
                 logger.info(
                     f"[SERVER-SIDE SL MODIFICATION] Modifying Position #{pos.ticket} ({pos.symbol} {pos_dir}) "
-                    f"Stop Loss from {pos.sl} -> {floor_price} (70% Profit Floor)..."
+                    f"Stop Loss from {pos.sl} -> {floor_price} ({floor_pct*100:.0f}% Profit Floor)..."
                 )
                 mod_res = modify_mt5_sl(pos.ticket, floor_price)
                 if mod_res.get("status") == "SUCCESS":
@@ -177,7 +189,7 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
                         locked_usd = mt5.order_calc_profit(pos.type, pos.symbol, pos.volume, pos.price_open, floor_price)
                     except Exception:
                         locked_usd = None
-                    locked_usd_str = f"+${locked_usd:,.2f} USD" if locked_usd is not None else "+70% Target Profit"
+                    locked_usd_str = f"+${locked_usd:,.2f} USD" if locked_usd is not None else f"+{floor_pct*100:.0f}% Target Profit"
 
                     logger.info(
                         f"[SERVER-SIDE SL LOCKED] Position #{pos.ticket} Stop Loss successfully locked at "
@@ -186,8 +198,9 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
 
                     # Dispatch Instant Telegram Notification
                     peak_pct = entry.get("peak_progress", progress) * 100
+                    leg_label = "Runner (60/50)" if is_runner_leg else "Banker (80/70)"
                     alert_msg = (
-                        f"🛡️ <b>80/70 PROFIT GUARD ARMED — SERVER SL LOCKED</b>\n"
+                        f"🛡️ <b>PROFIT GUARD ARMED — SERVER SL LOCKED ({leg_label})</b>\n"
                         f"━━━━━━━━━━━━━━━━━━━━\n"
                         f"<b>Asset:</b> <code>{pos.symbol}</code> ({pos_dir})\n"
                         f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS UPGRADED</b>\n"
@@ -195,7 +208,7 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
                         f"<b>Live Price:</b> <code>{pos.price_current}</code>\n"
                         f"<b>Entry Price:</b> <code>{pos.price_open}</code>\n"
                         f"<b>Take Profit Target:</b> <code>{pos.tp}</code>\n"
-                        f"<b>New Server SL (70% Floor):</b> <code>{floor_price}</code>\n"
+                        f"<b>New Server SL ({floor_pct*100:.0f}% Floor):</b> <code>{floor_price}</code>\n"
                         f"<b>Guaranteed Locked Win:</b> <b>{locked_usd_str}</b> (Minimum)\n"
                         f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>\n"
                         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -208,13 +221,14 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
                         f"Will retry next cycle while Gate 2 market close remains active."
                     )
             else:
-                # Already at or better than 70% floor
+                # Already at or better than floor
                 entry["sl_modified_to_70"] = True
                 entry["sl_70_price"] = floor_price
                 state_modified = True
 
-        # Gate 2: Retracement Exit Threshold (Armed + <= 70% of TP) — Local Failsafe
-        if entry.get("armed", False) and progress <= 0.70:
+        # Gate 2: Retracement Exit Threshold (Armed + <= lock_threshold) — Local Failsafe
+        retracement_threshold = entry.get("lock_threshold", 0.70)
+        if entry.get("armed", False) and progress <= retracement_threshold:
             peak_pct = entry.get("peak_progress", progress) * 100
             current_pct = progress * 100
             logger.warning(
@@ -267,58 +281,83 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
 
 def check_and_upgrade_runners(closed_deal, open_positions):
     """
-    Druckenmiller Asymmetric Runner Engine (v5.0.0):
+    Druckenmiller Asymmetric Runner Engine (v5.1.0):
     When a winning trade closes (Leg 1 Banker), immediately find remaining positions
-    on the same symbol (Leg 2 Runner).
-    1. Instantly upgrade its MT5 server-side Stop Loss to Break-Even + profit lock floor.
-    2. Broadcast Telegram alert confirming runner activation (Zero Risk, Uncapped Upside).
+    on the same symbol tagged as Runner (via order comment).
+    1. Instantly upgrade its MT5 server-side Stop Loss to Break-Even + dynamic profit lock floor.
+    2. Dynamic offset: max($2.00, 0.15 × ATR_1H) adapts to volatility.
+    3. Broadcast Telegram alert confirming runner activation (Zero Risk, Uncapped Upside).
     """
     if not open_positions or closed_deal.profit <= 0:
         return
 
     symbol = closed_deal.symbol
+
+    # Calculate dynamic offset based on ATR
+    try:
+        from mt5_connector import calculate_atr
+        atr = calculate_atr(symbol, mt5.TIMEFRAME_H1, 14)
+    except Exception:
+        atr = None
+
+    is_gold = "XAU" in symbol.upper() or "GOLD" in symbol.upper()
+    if atr and atr > 0:
+        offset = max(2.0 if is_gold else (20 * (mt5.symbol_info(symbol).point if mt5.symbol_info(symbol) else 0.0001)),
+                     0.15 * atr)
+    else:
+        offset = 2.0 if is_gold else 0.0020
+
     for pos in open_positions:
-        if pos.symbol == symbol:
-            sym_info = mt5.symbol_info(symbol)
-            digits = sym_info.digits if sym_info else 2
+        if pos.symbol != symbol:
+            continue
 
-            # Profit lock offset: $2.00 on Gold, or 20 points / 2 pips on FX
-            offset = 2.0 if ("XAU" in symbol.upper() or "GOLD" in symbol.upper()) else (20 * sym_info.point)
+        # H-3 fix: Only upgrade positions tagged as Runner (from scanner comment)
+        pos_comment = str(getattr(pos, "comment", "")).lower()
+        is_runner = "runner" in pos_comment
+        # Fallback: if comment not available or not tagged, upgrade any same-symbol position
+        # (preserves backward compatibility with older trades)
+        if not is_runner and pos_comment and ("banker" in pos_comment):
+            continue  # Skip positions explicitly tagged as Banker
 
-            if pos.type == mt5.ORDER_TYPE_BUY:
-                floor_sl = round(pos.price_open + offset, digits)
-                if pos.sl < floor_sl:
-                    logger.info(f"[RUNNER UPGRADE] Upgrading Runner #{pos.ticket} SL to BE+lock: {floor_sl}")
-                    res = modify_mt5_sl(pos.ticket, floor_sl)
-                    if res.get("status") == "SUCCESS":
-                        broadcast_telegram(
-                            f"🏃 <b>DRUCKENMILLER RUNNER ARMED: ZERO RISK ACTIVE</b>\n"
-                            f"━━━━━━━━━━━━━━━━━━━━\n"
-                            f"<b>Asset:</b> <code>{symbol}</code> (BUY)\n"
-                            f"<b>Trigger:</b> Leg 1 Banked (+${closed_deal.profit:.2f} USD)!\n"
-                            f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (BE + Profit Lock)\n"
-                            f"<b>Remaining Downside:</b> <b>$0.00 (Protected)</b>\n"
-                            f"<b>Upside Potential:</b> 🚀 <b>Uncapped Macro Runner</b>\n"
-                            f"━━━━━━━━━━━━━━━━━━━━\n"
-                            f"<i>Institutional Asymmetry: Base win banked; trailing runner for macro expansion.</i>"
-                        )
-            elif pos.type == mt5.ORDER_TYPE_SELL:
-                floor_sl = round(pos.price_open - offset, digits)
-                if pos.sl == 0.0 or pos.sl > floor_sl:
-                    logger.info(f"[RUNNER UPGRADE] Upgrading Runner #{pos.ticket} SL to BE+lock: {floor_sl}")
-                    res = modify_mt5_sl(pos.ticket, floor_sl)
-                    if res.get("status") == "SUCCESS":
-                        broadcast_telegram(
-                            f"🏃 <b>DRUCKENMILLER RUNNER ARMED: ZERO RISK ACTIVE</b>\n"
-                            f"━━━━━━━━━━━━━━━━━━━━\n"
-                            f"<b>Asset:</b> <code>{symbol}</code> (SELL)\n"
-                            f"<b>Trigger:</b> Leg 1 Banked (+${closed_deal.profit:.2f} USD)!\n"
-                            f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (BE + Profit Lock)\n"
-                            f"<b>Remaining Downside:</b> <b>$0.00 (Protected)</b>\n"
-                            f"<b>Upside Potential:</b> 🚀 <b>Uncapped Macro Runner</b>\n"
-                            f"━━━━━━━━━━━━━━━━━━━━\n"
-                            f"<i>Institutional Asymmetry: Base win banked; trailing runner for macro expansion.</i>"
-                        )
+        sym_info = mt5.symbol_info(symbol)
+        digits = sym_info.digits if sym_info else 2
+
+        if pos.type == mt5.ORDER_TYPE_BUY:
+            floor_sl = round(pos.price_open + offset, digits)
+            if pos.sl < floor_sl:
+                logger.info(f"[RUNNER UPGRADE] Upgrading Runner #{pos.ticket} SL to BE+lock: {floor_sl} (offset={offset:.2f})")
+                res = modify_mt5_sl(pos.ticket, floor_sl)
+                if res.get("status") == "SUCCESS":
+                    broadcast_telegram(
+                        f"🏃 <b>DRUCKENMILLER RUNNER ARMED: ZERO RISK ACTIVE</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<b>Asset:</b> <code>{symbol}</code> (BUY)\n"
+                        f"<b>Trigger:</b> Leg 1 Banked (+${closed_deal.profit:.2f} USD)!\n"
+                        f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (BE + Dynamic Lock)\n"
+                        f"<b>Dynamic Offset:</b> <code>${offset:.2f}</code> (max($2, 0.15×ATR))\n"
+                        f"<b>Remaining Downside:</b> <b>$0.00 (Protected)</b>\n"
+                        f"<b>Upside Potential:</b> 🚀 <b>Uncapped Macro Runner</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<i>Institutional Asymmetry: Base win banked; trailing runner for macro expansion.</i>"
+                    )
+        elif pos.type == mt5.ORDER_TYPE_SELL:
+            floor_sl = round(pos.price_open - offset, digits)
+            if pos.sl == 0.0 or pos.sl > floor_sl:
+                logger.info(f"[RUNNER UPGRADE] Upgrading Runner #{pos.ticket} SL to BE+lock: {floor_sl} (offset={offset:.2f})")
+                res = modify_mt5_sl(pos.ticket, floor_sl)
+                if res.get("status") == "SUCCESS":
+                    broadcast_telegram(
+                        f"🏃 <b>DRUCKENMILLER RUNNER ARMED: ZERO RISK ACTIVE</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<b>Asset:</b> <code>{symbol}</code> (SELL)\n"
+                        f"<b>Trigger:</b> Leg 1 Banked (+${closed_deal.profit:.2f} USD)!\n"
+                        f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (BE + Dynamic Lock)\n"
+                        f"<b>Dynamic Offset:</b> <code>${offset:.2f}</code> (max($2, 0.15×ATR))\n"
+                        f"<b>Remaining Downside:</b> <b>$0.00 (Protected)</b>\n"
+                        f"<b>Upside Potential:</b> 🚀 <b>Uncapped Macro Runner</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<i>Institutional Asymmetry: Base win banked; trailing runner for macro expansion.</i>"
+                    )
 
 
 def determine_exit_type(deal, armed_history=None):

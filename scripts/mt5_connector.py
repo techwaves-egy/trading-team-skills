@@ -559,20 +559,32 @@ def detect_regime(symbol):
 
 def execute_mt5_order(ticket):
     """
-    Risk-Validated Order Execution Engine - v3.1.0
+    Risk-Validated Order Execution Engine - v5.1.0
+    When called from auto_scanner with pre-computed SL/TP/lots, acts as a trusted
+    executor without re-calculating entry parameters or re-checking confirmation.
+    Fallback SL/TP calculation retained for standalone/manual callers.
     """
     try:
         bridge.initialize()
-        
+
         symbol = ticket.get("symbol")
         if not symbol:
             return {"status": "ERROR", "reason": "Symbol missing in ticket."}
-            
+
         order_type_str = ticket.get("order_type", "BUY").upper()
-        
+        strat_type = ticket.get("strategy", "Structural_Trend_Breakout")
+
+        # Detect if called from scanner (pre-validated) vs. standalone
+        scanner_prevalidated = ("sl" in ticket and ticket["sl"] > 0
+                                and "tp" in ticket and ticket["tp"] > 0
+                                and "lots" in ticket and float(ticket.get("lots", 0)) > 0)
+
         # 0. Asset Policy Disablement Gate
         if symbol.upper() == "USDJPY":
             reason = "ASSET POLICY: USDJPY is disabled due to negative empirical expectancy (7-Year Benchmark PF 0.75)."
+            logger.warning(f"Order REJECTED: {reason}")
+            return {"status": "REJECTED", "reason": reason}
+
         # 0.0 Anti-Tamper & Skill Integrity Gate
         from skill_integrity_guard import verify_skill_integrity
         is_intact, discrepancies = verify_skill_integrity(silent=False)
@@ -581,8 +593,7 @@ def execute_mt5_order(ticket):
             logger.critical(reason)
             return {"status": "REJECTED", "reason": reason}
 
-        # 0.1 Dynamic Anti-Stacking & Concurrency Gate:
-        # Allows up to concurrent_batch_size positions for the symbol
+        # 0.1 Dynamic Anti-Stacking & Concurrency Gate
         state = get_session_state()
         batch_size = int(ticket.get("batch_size", state.get("concurrent_batch_size", 1)))
         symbol_pos = mt5.positions_get(symbol=symbol)
@@ -597,118 +608,134 @@ def execute_mt5_order(ticket):
             reason = f"PORTFOLIO CONCURRENCY: Limit reached ({total_open}/{batch_size} open positions). Waiting for open trade to close."
             logger.warning(f"Order REJECTED: {reason}")
             return {"status": "REJECTED", "reason": reason}
-        
-        # 6. Multi-Timeframe Regime Detection
-        regime = detect_regime(symbol)
-        logger.info(f"[{symbol}] Multi-Timeframe Regime: {regime}")
-        
-        # 5. 2-Strike Asset Lockout Check
+
+        # 2-Strike Asset Lockout Check
         locked, lock_reason = check_asset_lockout(symbol)
         if locked:
             logger.warning(f"Order REJECTED: {lock_reason}")
             return {"status": "REJECTED", "reason": lock_reason}
-            
-        # 4. Strategy-Aware Confirmation Entry & Trap Filter Gate
-        strat_type = ticket.get("strategy", "Structural_Trend_Breakout")
-        if strat_type == "Bollinger_Mean_Reversion":
-            confirmed, conf_reason = check_bollinger_confirmation(symbol, order_type_str)
-            if not confirmed:
-                logger.warning(f"Order REJECTED (Bollinger Closed-Candle Confirmation): {conf_reason}")
-                return {"status": "REJECTED", "reason": conf_reason}
-        else:
-            confirmed, conf_reason = check_confirmation(symbol, order_type_str)
-            if not confirmed:
-                logger.warning(f"Order REJECTED (Structural Confirmation): {conf_reason}")
-                return {"status": "REJECTED", "reason": conf_reason}
-            
-        # 2. Real ATR Calculation
-        atr = calculate_atr(symbol, mt5.TIMEFRAME_H1, 14)
-        if atr is None:
-            return {"status": "ERROR", "reason": "Failed to calculate ATR"}
-            
+
+        # Symbol info & tick data (always needed)
         symbol_info = mt5.symbol_info(symbol)
         if symbol_info is None:
             return {"status": "ERROR", "reason": f"Symbol {symbol} not found"}
-            
-        point = symbol_info.point
+
         tick_info = mt5.symbol_info_tick(symbol)
         if tick_info is None:
             return {"status": "ERROR", "reason": f"Failed to get tick info for {symbol}"}
-            
-        # Stop Distance logic
-        if "sl" in ticket and ticket["sl"] > 0:
+
+        digits = symbol_info.digits
+        point = symbol_info.point
+        price = tick_info.ask if order_type_str == "BUY" else tick_info.bid
+
+        # === v5.1.0 SPREAD GATE (H-4): Reject on abnormal spread ===
+        spread_points = tick_info.ask - tick_info.bid
+        atr = calculate_atr(symbol, mt5.TIMEFRAME_H1, 14)
+        if atr is None:
+            return {"status": "ERROR", "reason": "Failed to calculate ATR"}
+
+        is_gold = "XAU" in symbol.upper() or "GOLD" in symbol.upper()
+        max_spread = min(0.5 * atr, 3.0 if is_gold else 0.0010)
+        if spread_points > max_spread:
+            reason = (f"SPREAD GATE: Current spread ({spread_points:.2f}) exceeds max allowed "
+                      f"({max_spread:.2f} = min(0.5×ATR, {'$3.00' if is_gold else '10 pips'})). "
+                      f"Entry blocked to avoid slippage.")
+            logger.warning(f"Order REJECTED: {reason}")
+            return {"status": "REJECTED", "reason": reason}
+
+        mt5_order_type = mt5.ORDER_TYPE_BUY if order_type_str == "BUY" else mt5.ORDER_TYPE_SELL
+
+        if scanner_prevalidated:
+            # === SCANNER PRE-VALIDATED PATH (C-1 fix): Trust scanner SL/TP/lots ===
+            # No re-confirmation (C-3 fix), no SL recalculation
+            sl_price = float(ticket["sl"])
+            tp1_price = float(ticket["tp"])
+            lots = float(ticket["lots"])
+
+            # Minimal lot clamping to broker limits only
+            lots = max(symbol_info.volume_min, min(symbol_info.volume_max, lots))
+            step = symbol_info.volume_step
+            if step > 0:
+                lots = round(lots / step) * step
+
+            # Compute informational TP2/TP3 distances for response
             if order_type_str == "BUY":
-                price = tick_info.ask
-                sl_dist = price - ticket["sl"]
+                sl_dist = price - sl_price
             else:
-                price = tick_info.bid
-                sl_dist = ticket["sl"] - price
-        else:
-            price = tick_info.ask if order_type_str == "BUY" else tick_info.bid
-            sl_dist = 2.0 * atr
+                sl_dist = sl_price - price
+            tp2_price = (price + sl_dist * 2.0) if order_type_str == "BUY" else (price - sl_dist * 2.0)
+            tp3_price = (price + sl_dist * 3.5) if order_type_str == "BUY" else (price - sl_dist * 3.5)
 
-        # 3. ATR Volatility Floor Enforcement
-        min_safe = 1.5 * atr
-        if sl_dist < min_safe:
-            # Adjust if slightly under floor
-            sl_dist = min_safe
+            logger.info(f"[SCANNER EXECUTOR] Trusted SL={sl_price}, TP={tp1_price}, Lots={lots} (no re-calc)")
 
-        # 7. Dynamic Structure & Volatility-Based SL/TP Calculation (v5.0.0)
-        is_gold = "XAU" in symbol or "GOLD" in symbol
-        sl_points = sl_dist / point
-        # Dynamic TP distances: Minimum 1.2R for TP1 (Banker), 2.0R for TP2, 3.5R for TP3 (Runner)
-        tp1_dist = max(sl_dist * 1.2, atr * 1.2)
-        tp2_dist = max(sl_dist * 2.0, atr * 2.0)
-        tp3_dist = max(sl_dist * 3.5, atr * 3.5)
-        
-        if order_type_str == "BUY":
-            sl_price = price - sl_dist
-            tp1_price = ticket.get("tp", price + tp1_dist)
-            tp2_price = price + tp2_dist
-            tp3_price = price + tp3_dist
-            mt5_order_type = mt5.ORDER_TYPE_BUY
         else:
-            sl_price = price + sl_dist
-            tp1_price = ticket.get("tp", price - tp1_dist)
-            tp2_price = price - tp2_dist
-            tp3_price = price - tp3_dist
-            mt5_order_type = mt5.ORDER_TYPE_SELL
-            
-        # 9. Dollar Risk Ceiling & Lot Sizing
-        state = get_session_state()
-        risk_dollars = float(state.get("risk_per_trade_dollars", state.get("risk_amount", 5.0)))
-        contract_size = symbol_info.trade_contract_size if symbol_info.trade_contract_size > 0 else 100.0
-
-        # Prioritize explicit lots passed in ticket (e.g. from auto_scanner)
-        ticket_lots = ticket.get("lots") or ticket.get("volume")
-        if ticket_lots and float(ticket_lots) > 0:
-            lots = float(ticket_lots)
-        else:
-            if sl_dist > 0 and contract_size > 0:
-                lots = risk_dollars / (sl_dist * contract_size)
+            # === STANDALONE / MANUAL PATH: Full calculation with confirmation ===
+            # Confirmation check (only for non-scanner calls)
+            if strat_type == "Bollinger_Mean_Reversion":
+                confirmed, conf_reason = check_bollinger_confirmation(symbol, order_type_str)
+                if not confirmed:
+                    logger.warning(f"Order REJECTED (Bollinger Confirmation): {conf_reason}")
+                    return {"status": "REJECTED", "reason": conf_reason}
             else:
-                lots = symbol_info.volume_min
+                confirmed, conf_reason = check_confirmation(symbol, order_type_str)
+                if not confirmed:
+                    logger.warning(f"Order REJECTED (Structural Confirmation): {conf_reason}")
+                    return {"status": "REJECTED", "reason": conf_reason}
 
-        # Clamp lots to min/max/step
-        lots = max(symbol_info.volume_min, min(symbol_info.volume_max, lots))
-        step = symbol_info.volume_step
-        if step > 0:
-            lots = round(lots / step) * step
-            
-        # Hard sanity limit: For micro/mini accounts, cap at 0.10 lots max to prevent account drain
-        lots = min(lots, 0.10)
+            # SL/TP calculation
+            if "sl" in ticket and ticket["sl"] > 0:
+                if order_type_str == "BUY":
+                    sl_dist = price - ticket["sl"]
+                else:
+                    sl_dist = ticket["sl"] - price
+            else:
+                sl_dist = 2.0 * atr
+
+            min_safe = 1.0 * atr
+            if sl_dist < min_safe:
+                sl_dist = min_safe
+
+            tp1_dist = max(sl_dist * 1.2, atr * 1.2)
+            tp2_dist = max(sl_dist * 2.0, atr * 2.0)
+            tp3_dist = max(sl_dist * 3.5, atr * 3.5)
+
+            if order_type_str == "BUY":
+                sl_price = price - sl_dist
+                tp1_price = ticket.get("tp", price + tp1_dist)
+                tp2_price = price + tp2_dist
+                tp3_price = price + tp3_dist
+            else:
+                sl_price = price + sl_dist
+                tp1_price = ticket.get("tp", price - tp1_dist)
+                tp2_price = price - tp2_dist
+                tp3_price = price - tp3_dist
+
+            # Lot sizing
+            contract_size = symbol_info.trade_contract_size if symbol_info.trade_contract_size > 0 else 100.0
+            risk_dollars = float(state.get("risk_per_trade_dollars", state.get("risk_amount", 5.0)))
+
+            ticket_lots = ticket.get("lots") or ticket.get("volume")
+            if ticket_lots and float(ticket_lots) > 0:
+                lots = float(ticket_lots)
+            else:
+                if sl_dist > 0 and contract_size > 0:
+                    lots = risk_dollars / (sl_dist * contract_size)
+                else:
+                    lots = symbol_info.volume_min
+
+            lots = max(symbol_info.volume_min, min(symbol_info.volume_max, lots))
+            step = symbol_info.volume_step
+            if step > 0:
+                lots = round(lots / step) * step
 
         # Dynamic Broker Filling Mode Resolution
         filling_mode_flag = symbol_info.filling_mode
-        if filling_mode_flag & 2: # IOC supported
+        if filling_mode_flag & 2:
             type_filling = mt5.ORDER_FILLING_IOC
-        elif filling_mode_flag & 1: # FOK supported
+        elif filling_mode_flag & 1:
             type_filling = mt5.ORDER_FILLING_FOK
         else:
             type_filling = mt5.ORDER_FILLING_RETURN
-
-        # Digits precision rounding
-        digits = symbol_info.digits
 
         # Check MT5 terminal automated trading permission
         term = mt5.terminal_info()
@@ -716,6 +743,9 @@ def execute_mt5_order(ticket):
             err_msg = "AutoTrading disabled by client in MT5 terminal (Enable 'Algo Trading' button in MT5 toolbar or press Ctrl+E)"
             logger.error(err_msg)
             return {"status": "ERROR", "reason": err_msg, "retcode": 10027}
+
+        # === v5.1.0 (H-2 fix): Preserve scanner's comment (Banker/Runner tag) ===
+        order_comment = ticket.get("comment", f"v5.1.0 {strat_type[:10]}")
 
         # Execution request
         request = {
@@ -725,26 +755,26 @@ def execute_mt5_order(ticket):
             "type": mt5_order_type,
             "price": float(round(price, digits)),
             "sl": float(round(sl_price, digits)),
-            "tp": float(round(tp1_price, digits)), # Initial TP at TP1
+            "tp": float(round(tp1_price, digits)),
             "deviation": 20,
             "magic": 300000,
-            "comment": f"v3.4.0 {strat_type[:10]}",
+            "comment": order_comment,
             "type_time": mt5.ORDER_TIME_GTC,
             "type_filling": type_filling,
         }
-        
+
         result = mt5.order_send(request)
         if result is None:
             err = mt5.last_error()
             return {"status": "ERROR", "reason": f"Order send failed. Code: {err}"}
-            
+
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             comment = result.comment or "Order rejected"
             if result.retcode == 10027 or "autotrading disabled" in comment.lower():
                 comment = "AutoTrading disabled by client (Enable 'Algo Trading' button in MT5 toolbar or press Ctrl+E)"
             logger.error(f"Order failed: {comment} (code {result.retcode})")
             return {"status": "ERROR", "reason": comment, "retcode": result.retcode}
-            
+
         return {
             "status": "SUCCESS",
             "ticket": result.order,
@@ -752,9 +782,9 @@ def execute_mt5_order(ticket):
             "price": result.price,
             "sl": request["sl"],
             "tp1": request["tp"],
-            "tp2": float(tp2_price),
-            "tp3": float(tp3_price),
-            "message": "Order executed successfully (v3.0.0)"
+            "tp2": float(round(tp2_price, digits)),
+            "tp3": float(round(tp3_price, digits)),
+            "message": "Order executed successfully (v5.1.0)"
         }
     except Exception as e:
         logger.exception("Unexpected error in execute_mt5_order")
