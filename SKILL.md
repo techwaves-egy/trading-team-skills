@@ -1,6 +1,6 @@
 ---
 name: autonomous-trading-firm
-version: 5.0.0
+version: 5.1.0
 description: >-
   Multi-agent AI Autonomous Trading Firm for live market analysis, automated market regime detection,
   Senior Macro & Economic News Analyzer advising CRO (@wtalaat), automated news blackout gate (Gate 0.02),
@@ -12,7 +12,7 @@ description: >-
   and trade execution across Forex, Metals, Crypto, Stocks, Indices, and Commodities.
 ---
 
-# AI Autonomous Trading Firm (v5.0.0 — Institutional Asymmetric Trend & Runner Engine)
+# AI Autonomous Trading Firm (v5.1.0 — Institutional Trusted Executor, Dynamic Runner & Asymmetric Profit Protection)
 
 A professional multi-agent autonomous trading organization operating under institutional risk management, rigorous quantitative validation across 11 major strategy archetypes (2020–2026 YTD), deploying **Paul Tudor Jones 4H 200 EMA Macro Trend Filter (Gate 2.1 — 'Never Fight the Macro Trend')**, **Precision Institutional Killzones (Gate 0.06 — London Open 07:00–10:30 UTC & New York Active 12:30–16:30 UTC)**, **ICT Asian Range Liquidity Sweep / Judas Swing Detector**, **Stanley Druckenmiller Asymmetric Runner Engine (Leg 1 Banker at 1.2R + Leg 2 Uncapped Runner at 3.5R+ with BE+$2 Server-Side Lock & Trailing Stop)**, **Senior Macro & Economic News Analyzer (Role #8 — Advisor to CRO @wtalaat with Automated Gate 0.02 Blackouts)**, **Bollinger Bands 2.0-StdDev Mean Reversion with Multi-Candle Reversal Confirmation & Waterfall Cascade Filter**, **7-Pillar Institutional Resilience Engine (Real-Time Daily Loss Circuit Breaker, Account Equity Floor & Dynamic Batch Scaling, 3x Free Margin Buffer & 400% Projected Margin Level Gate, Symmetrical R:R $\ge 1.0:1$, Persistent Batch-Aware 2-Strike Lockout)**, **User-Configured Batch Concurrency Engine (1x–5x simultaneous trades per signal)**, **Self-Healing Real-Time MT5 Deal Streamer & Server-Side Profit Protection Daemon with Trade Duration Telemetry (v3.9.0)**, **80/70 Asymmetric Profit Protection Engine (The moment ≥ 80% TP is armed, instantly modifies broker server-side Stop Loss directly to 70% level with 0ms matching engine speed and local failsafe)**, **Interactive 3-Step Telegram Button Wizard & Persistent Keyboard Controls**, **Mandatory Real-Time Telegram Broadcast on Every Skill/Engine Modification**, **Cryptographic SHA-256 Anti-Tamper Protection & Hardware Node Lock bound to Master Workstation (`Waleed-IT`)**, and **MetaTrader 5 (MT5)** desktop execution.
 
@@ -60,7 +60,7 @@ After session parameters are confirmed, the firm automatically launches `scripts
 2. Applies the **Dual-Engine Strategy Hierarchy**:
    - **Primary Alpha Engine (Engine 1)**: **Bollinger Bands 2.0-StdDev Mean Reversion** (Fades statistical overextensions back towards the 20-period mean when price pierces the $2.0\sigma$ envelope with reversal confirmation).
    - **Secondary Trend Engine (Engine 2)**: **Multi-Timeframe Structural Breakout / 4H Trend-Rider** (Activated during strong macroeconomic trend expansions).
-3. Applies all **18 v5.0.0 empirical decision gates & execution standards** before any execution:
+3. Applies all **19 v5.1.0 empirical decision gates & execution standards** before any execution:
    - **Gate 0.00: Real-Time Max Daily Loss Circuit Breaker**: Evaluates `get_daily_realized_pnl() + floating_pnl` before every scan. If net daily loss reaches `max_daily_loss`, scanning halts immediately for 24h.
    - **Gate 0.06: Precision Institutional Killzones**: Restricts Gold (`XAUUSD`) execution strictly to **London Open (07:00–10:30 UTC)** and **New York Active (12:30–16:30 UTC)**. Freezes all execution during the European lunch lull (10:30–12:30 UTC), post-NY fade (16:30–19:00 UTC), and Asian overnight illiquidity (19:00–07:00 UTC).
    - **Gate 0.02: Macroeconomic News & High-Impact Event Blackout Gate**: Evaluates `scripts/news_analyzer.py` live calendar. If a Tier-1 event is active or scheduled within $\pm 30\text{ mins}$ ($\pm 15\text{ mins}$ post-release), trade generation is frozen (`NEWS_BLACKOUT`) and an advisory is dispatched directly to CRO `@wtalaat`.
@@ -74,15 +74,17 @@ After session parameters are confirmed, the firm automatically launches `scripts
    - **Gate 4: Multi-Candle Reversal & Waterfall Cascade Filter**: Rejects fading against 3 consecutive 1H drop bars ($>2\times\text{ATR}$). Requires completed M15 reversal candle with rejection wick $\ge 35\%$, engulfing structure, or 2 consecutive directional closes.
    - **Gate 4.1: ICT Asian Range Liquidity Sweep / Judas Swing Detector**: Detects false breakouts beyond Asian session High/Low (00:00–06:00 UTC) with immediate reclaim, providing high-probability institutional entry confluence.
    - **Gate 5: Strategy-Aware Confirmation Entry**: Validates envelope bounce for Mean Reversion or 15M CHoCH break for Trend Breakout.
-   - **Gate 6: Two-Tier Asymmetric Batch Execution**: Orders are dispatched as **Leg 1 (Banker)** and **Leg 2 (Runner)**. Banker targets dynamic $1.2\text{R}$ to pay for risk, Runner targets $3.5\text{R}+$ with trailing server-side stop loss.
+   - **Gate 6: Two-Tier Asymmetric Batch Execution**: Orders are dispatched as **Leg 1 (Banker)** and **Leg 2 (Runner)**. Banker targets dynamic $1.2\text{R}$ to pay for risk, Runner targets $3.5\text{R}+$ with dynamic trailing server-side stop loss.
    - **Gate 7: Dynamic Structure & Volatility-Based Take Profit**: Replaces rigid static dollar targets with ATR and structure-calibrated targets, guaranteeing $\text{R:R} \ge 1.2:1$ on Banker and $\ge 3.5:1$ on Runner.
    - **Gate 8: Free Margin Buffer & Projected Margin Level Gate**: Requires Free Margin $\ge 3\times$ required margin and Projected Margin Level $\ge 400\%$ after order placement. Caps total batch risk at $\le 15\%$ of account equity on micro accounts.
    - **Gate 9: Dynamic Broker Filling Mode**: Automatically selects `ORDER_FILLING_FOK` or `ORDER_FILLING_IOC` from broker `symbol_info.filling_mode` flag.
+   - **Gate 9.1: Institutional Spread Gate (v5.1.0)**: Rejects execution if live $\text{Spread} > \min(0.5 \times \text{ATR}, \$3.00\text{ on Gold})$, protecting entries against slippage.
    - **Gate 10: Mandatory Telegram Broadcast on Modification**: Every skill or engine parameter change triggers an instant detailed Telegram broadcast.
    - **Gate 11: Cryptographic Anti-Tamper Protection & Hardware Node Lock (v4.2.0)**: Validates SHA-256 signatures before every trade execution; binds skill modification, git commits, and manifest re-certification (`--authorize`) strictly to the Master Primary Workstation (`Waleed-IT`). All secondary machines run in strictly READ-ONLY execution mode and are prevented from altering or committing code.
-   - **Gate 12: Automated Market Close Shutdown**: Halts scanning, sends weekly/daily audit report, and executes process kill switch on Friday weekend close.
-   - **Gate 13: Druckenmiller Asymmetric Runner Trailing Engine (v5.0.0)**: The moment Leg 1 Banker closes in profit, the monitor automatically upgrades Leg 2 Runner's MT5 server-side Stop Loss to **Break-Even + $2.00 profit lock** (zero downside risk), while trailing 1H fractal swing points to capture multi-hundred pip expansions.
-4. **Real-Time Deal Streaming & Server-Side Profit Protection Engine (`trade_monitor.py`)**: Continuously polls MT5 open positions and closed deals every 3 seconds to enforce the server-side 80/70 Asymmetric Profit Guard and guarantee instantaneous Telegram broadcasts on every TP, SL, Server-Side Profit Protection, or Break-Even exit.
+   - **Gate 12: Automated Market Close Shutdown & Reopen Protocol**: Halts scanning, sends weekly/daily audit report, and executes process kill switch on Friday weekend close (21:55 UTC). Standby until Sunday cash reopen at **22:00 UTC**.
+   - **Gate 13: Druckenmiller Asymmetric Runner Trailing Engine (v5.1.0)**: The moment Leg 1 Banker closes in profit, the monitor automatically upgrades Leg 2 Runner's MT5 server-side Stop Loss to **Break-Even + dynamic profit lock** ($\max(\$2.00, 0.15 \times \text{ATR}_{\text{1H}})$) (zero downside risk), while enforcing leg-specific **60/50 Profit Protection** (arms at 60% TP progress, locks 50% profit floor).
+   - **Gate 14: Trusted Executor Execution Pipeline (v5.1.0)**: Eliminates parameter recalculation drift and double-confirmation latency between scanner and connector. Scanner-validated tickets execute with 0ms delay at exact computed levels.
+4. **Real-Time Deal Streaming & Server-Side Profit Protection Engine (`trade_monitor.py`)**: Continuously polls MT5 open positions and closed deals every 3 seconds to enforce the server-side Banker (80/70) and Runner (60/50) Asymmetric Profit Guard and guarantee instantaneous Telegram broadcasts on every TP, SL, Server-Side Profit Protection, or Break-Even exit.
 5. If all gates pass → **auto-executes in MT5** and sends trade alert to Telegram.
 6. If any gate fails → logs reason, sends monitoring update to Telegram, waits for next scan.
 7. Stops automatically when `trades_executed >= max_trades` or market closes.
