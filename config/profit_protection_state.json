@@ -1,24 +1,15 @@
 {
-  "10734823751": {
-    "symbol": "XAUUSD",
+  "58778301525": {
+    "symbol": "EURUSD",
     "direction": "SELL",
-    "open_price": 4163.87,
-    "tp_price": 4138.87,
+    "open_price": 1.12292,
+    "tp_price": 1.12158,
     "armed": false,
-    "peak_progress": 0.007599999999983993,
+    "peak_progress": 0.0,
     "armed_at": null,
     "sl_modified_to_70": false,
-    "sl_70_price": null
-  },
-  "10734823793": {
-    "symbol": "XAUUSD",
-    "direction": "SELL",
-    "open_price": 4163.87,
-    "tp_price": 4138.87,
-    "armed": false,
-    "peak_progress": 0.007599999999983993,
-    "armed_at": null,
-    "sl_modified_to_70": false,
-    "sl_70_price": null
+    "sl_70_price": null,
+    "arm_threshold": 0.8,
+    "lock_threshold": 0.7
   }
 }
