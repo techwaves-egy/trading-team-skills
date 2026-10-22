@@ -1,20 +1,20 @@
 {
   "version": "4.2.0-node-locked",
   "master_node": "WALEED-IT",
-  "node_fingerprint_hash": "24a299261512f546",
+  "node_fingerprint_hash": "060769f5823f3c94",
   "authorized_by": "Admin / Lead Architect",
-  "authorized_at": "2026-10-22T09:23:03.987143+00:00",
+  "authorized_at": "2026-10-22T09:44:53.531727+00:00",
   "files": {
-    "SKILL.md": "308c0eaae9264ec8d39c97bb6a034bdabfc5b8f762a11e100fc745752410cb4b",
-    "scripts\\auto_scanner.py": "10c27c9141171a0cd682f71b97d99a0c83716e38da23e17a627c6af24b48d462",
+    "SKILL.md": "14f9162a2982a33c5f27e984020c49e1b03070bf8e8ac3a2c27e568614e0ce48",
+    "scripts\\auto_scanner.py": "6f61a42cc47cd290f512382cc3d9f174f1a69945db67674a5714e849992f497a",
     "scripts\\news_analyzer.py": "7fbe54d135f72722ead9e9a31abd16e1c7c4c136e9437480fd9a9e61d47e3153",
     "scripts\\git_node_guard.py": "5080191fffc457242f69dab236f5229c49f7b9bc0e96004021b7b1aaf7944406",
-    "scripts\\mt5_connector.py": "8865fe31ecec3422cf7055cc45f283361e0f73243fc64050fa5459fdc8834921",
+    "scripts\\mt5_connector.py": "ddb2408b0ba1e1f048fd4ea8ef4e9a081f5931e542f2777d4a2821e224644157",
     "scripts\\trade_monitor.py": "7b53e14cfd9d6605a7ab7d72445587bc9520302827786000dc0f9febe412c231",
     "scripts\\send_alert.py": "1d8136639f0efef345ef99d343667ba57f1142ecca567657b38040c6fd44e232",
     "scripts\\daily_summary.py": "2ce99c681a2eb290249875c934a7bfa74e620d105c1030853a6db8fd1d7ffa04",
-    "scripts\\telegram_listener.py": "606d3353b919e33609cd53f99b18e6120cc7cd04131dd8d2a60ed63b295fafdb",
-    "scripts\\start_session.py": "5f40dc578d4beca8e355ec665d14b64a22521f127a98b89415cff20f7a9f51c1",
+    "scripts\\telegram_listener.py": "15120855a107bf1b3f84f528a9073aa15167e33b1bceb2f1fa7856484fe08ba8",
+    "scripts\\start_session.py": "92dcd31f1b843fabf3bbed49b082798f37ffa1198dbeb75b5579a0737f41fa4e",
     "docs\\01_ORGANIZATION_ROLES.md": "fa1b5fc9538f3c4ad37da1b874dc7d8da4922e55e8934e774bcb32f4be86158f",
     "docs\\02_REGIME_STRATEGY_ENGINE.md": "01c0d1572fd35d10fd7c8a97220fab93afa761f1bddc210b0b419a1606aa8c2d"
   }
