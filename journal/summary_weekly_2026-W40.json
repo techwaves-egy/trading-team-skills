@@ -1,0 +1,32 @@
+{
+  "week": "2026-W40",
+  "date_range": "Oct 05 \u2013 Oct 11, 2026",
+  "timestamp": "2026-10-11T21:55:01.389567+00:00",
+  "account_balance": 220.21,
+  "account_equity": 220.21,
+  "total_trades": 1,
+  "wins": 1,
+  "losses": 0,
+  "breakeven": 0,
+  "total_profit": 20.21,
+  "total_loss": 0.0,
+  "net_pnl": 20.21,
+  "largest_win": 20.21,
+  "largest_loss": 0.0,
+  "win_rate": 100.0,
+  "profit_factor": 999.0,
+  "trades": [
+    {
+      "position_id": 10833560131,
+      "symbol": "XAUUSD",
+      "type": "SELL",
+      "volume": 0.01,
+      "entry_price": 4170.03,
+      "exit_price": 4149.82,
+      "net_pnl": 20.21,
+      "close_time": "Tue 17:34 UTC",
+      "date": "2026-10-06"
+    }
+  ],
+  "status": "PROFIT"
+}

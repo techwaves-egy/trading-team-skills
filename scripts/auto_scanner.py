@@ -120,9 +120,10 @@ def run_scan_and_execute(symbol_override=None):
     max_trades = int(session.get("max_trades", 4))
     trades_done = int(session.get("trades_executed", 0))
     max_daily_loss = float(session.get("max_daily_loss_dollars", 50.0))
+    is_continuous = bool(session.get("is_continuous", False)) or str(session.get("daily_rounds", "")).upper() in ("ALL_WEEK", "ALLWEEK", "CONTINUOUS", "ALWAYS_ACTIVE", "UNLIMITED")
 
-    # Check trade count ceiling
-    if trades_done >= max_trades:
+    # Check trade count ceiling (bypassed in continuous all-week mode)
+    if not is_continuous and trades_done >= max_trades:
         logger.info(f"Trade ceiling reached ({trades_done}/{max_trades}). Session complete.")
         broadcast_telegram(
             f"<b>SESSION COMPLETE</b>\n"
@@ -163,29 +164,23 @@ def run_scan_and_execute(symbol_override=None):
             )
             return "MAX_DAILY_LOSS_EXCEEDED"
 
-        # === v5.0.0 GATE 0.06: Precision Institutional Killzones & Session Filter ===
+        # === v5.2.0 GATE 0.06: Institutional Liquid Window & Session Filter ===
         now_utc = datetime.now(timezone.utc)
         cur_min_of_day = now_utc.hour * 60 + now_utc.minute
         is_gold = "XAU" in symbol.upper() or "GOLD" in symbol.upper()
 
         if is_gold:
-            # London Open Killzone: 07:00 UTC (420 min) to 10:30 UTC (630 min)
-            # New York Active Killzone: 12:30 UTC (750 min) to 16:30 UTC (990 min)
-            in_london_kz = (420 <= cur_min_of_day <= 630)
-            in_ny_kz = (750 <= cur_min_of_day <= 990)
+            # Institutional Liquid Window: 07:00 UTC (420 min) to 19:00 UTC (1140 min)
+            # Covers London Open, London Midday, NY Active, and NY Afternoon.
+            # Blackout: Asian session and overnight illiquidity (19:00 - 07:00 UTC).
+            in_liquid_window = (420 <= cur_min_of_day <= 1140)
 
-            if not (in_london_kz or in_ny_kz):
-                if 630 < cur_min_of_day < 750:
-                    kz_reason = "European Midday Lunch Lull (10:30 - 12:30 UTC)"
-                elif cur_min_of_day > 990 or cur_min_of_day < 420:
-                    kz_reason = "Asian / Overnight Illiquidity & NY-Close (16:30 - 07:00 UTC)"
-                else:
-                    kz_reason = "Off-Killzone Consolidation"
-
+            if not in_liquid_window:
+                kz_reason = "Asian / Overnight Illiquidity & Spread Widening (19:00 - 07:00 UTC)"
                 logger.info(
-                    f"[PRECISION KILLZONE] Gold (XAUUSD) trading suspended outside institutional killzones "
+                    f"[SESSION FILTER] Gold (XAUUSD) trading suspended outside institutional liquid window "
                     f"(Current: {now_utc.strftime('%H:%M UTC')} | {kz_reason}). "
-                    f"Active Killzones: London Open (07:00-10:30 UTC) & New York Active (12:30-16:30 UTC). Skipping."
+                    f"Active Liquid Window: 07:00-19:00 UTC (London Open through NY Afternoon). Skipping."
                 )
                 return "OFF_SESSION_GOLD"
 
@@ -338,35 +333,43 @@ def run_scan_and_execute(symbol_override=None):
             logger.info("Market consolidating inside Bollinger Bands or awaiting closed-candle rejection — skipping")
             return "NO_TRADE_CONSOLIDATION"
 
-        # === v5.0.0 GATE 2.1: Paul Tudor Jones 4H 200 EMA Macro Bias Gate ===
+        # === v5.2.0 GATE 2.1: Strategy-Aware Paul Tudor Jones 4H 200 EMA Macro Bias Gate ===
         from mt5_connector import get_macro_trend_bias
         macro_info = get_macro_trend_bias(symbol, mt5.TIMEFRAME_H4)
         macro_bias = macro_info.get("bias", "NEUTRAL")
         logger.info(f"[PTJ MACRO GATE] {symbol} 4H Macro Bias: {macro_bias} ({macro_info.get('reason')})")
 
-        if direction == "BUY" and macro_bias == "BEARISH":
-            logger.warning(f"[PTJ MACRO REJECTION] Counter-trend BUY blocked on {symbol}: {macro_info.get('reason')}")
-            broadcast_telegram(
-                f"<b>SCAN {now_str} — {symbol}</b>\n"
-                f"VERDICT: REJECTED (PTJ 4H 200 EMA RULE)\n"
-                f"Direction: BUY (Lower Band Bounce Attempt)\n"
-                f"Status: 🔒 <b>COUNTER-TREND BUY BLOCKED</b>\n"
-                f"Reason: <i>{escape_html(macro_info.get('reason'))}</i>\n"
-                f"<i>Paul Tudor Jones Rule: Never buy in a macro 4H bear regime below 200 EMA.</i>"
-            )
-            return "PTJ_MACRO_BEAR_BUY_REJECTED"
+        # 1. Structural Trend Breakout: Strictly enforce PTJ Macro Rule (never trade against the 4H trend)
+        if strategy_active == "Structural_Trend_Breakout":
+            if direction == "BUY" and macro_bias == "BEARISH":
+                logger.warning(f"[PTJ MACRO REJECTION] Counter-trend breakout BUY blocked on {symbol}: {macro_info.get('reason')}")
+                broadcast_telegram(
+                    f"<b>SCAN {now_str} — {symbol}</b>\n"
+                    f"VERDICT: REJECTED (PTJ 4H 200 EMA RULE)\n"
+                    f"Direction: BUY (Breakout Attempt)\n"
+                    f"Status: 🔒 <b>COUNTER-TREND BREAKOUT BLOCKED</b>\n"
+                    f"Reason: <i>{escape_html(macro_info.get('reason'))}</i>\n"
+                    f"<i>Paul Tudor Jones Rule: Never buy a breakout in a macro 4H bear regime below 200 EMA.</i>"
+                )
+                return "PTJ_MACRO_BEAR_BUY_REJECTED"
 
-        if direction == "SELL" and macro_bias == "BULLISH":
-            logger.warning(f"[PTJ MACRO REJECTION] Counter-trend SELL blocked on {symbol}: {macro_info.get('reason')}")
-            broadcast_telegram(
-                f"<b>SCAN {now_str} — {symbol}</b>\n"
-                f"VERDICT: REJECTED (PTJ 4H 200 EMA RULE)\n"
-                f"Direction: SELL (Upper Band Bounce Attempt)\n"
-                f"Status: 🔒 <b>COUNTER-TREND SELL BLOCKED</b>\n"
-                f"Reason: <i>{escape_html(macro_info.get('reason'))}</i>\n"
-                f"<i>Paul Tudor Jones Rule: Never short in a macro 4H bull regime above 200 EMA.</i>"
-            )
-            return "PTJ_MACRO_BULL_SELL_REJECTED"
+            if direction == "SELL" and macro_bias == "BULLISH":
+                logger.warning(f"[PTJ MACRO REJECTION] Counter-trend breakout SELL blocked on {symbol}: {macro_info.get('reason')}")
+                broadcast_telegram(
+                    f"<b>SCAN {now_str} — {symbol}</b>\n"
+                    f"VERDICT: REJECTED (PTJ 4H 200 EMA RULE)\n"
+                    f"Direction: SELL (Breakout Attempt)\n"
+                    f"Status: 🔒 <b>COUNTER-TREND BREAKOUT BLOCKED</b>\n"
+                    f"Reason: <i>{escape_html(macro_info.get('reason'))}</i>\n"
+                    f"<i>Paul Tudor Jones Rule: Never short a breakout in a macro 4H bull regime above 200 EMA.</i>"
+                )
+                return "PTJ_MACRO_BULL_SELL_REJECTED"
+
+        # 2. Bollinger Mean Reversion: Fading statistical envelope extremes back to 20 EMA
+        elif strategy_active == "Bollinger_Mean_Reversion":
+            is_counter_trend = (direction == "BUY" and macro_bias == "BEARISH") or (direction == "SELL" and macro_bias == "BULLISH")
+            if is_counter_trend:
+                logger.info(f"[PTJ MACRO ADVISORY] Counter-trend mean reversion on {symbol} ({direction} vs {macro_bias} 4H). Gate 4 reversal confirmation & Bollinger Midline clamping enforced.")
 
         # === v3.8.7 GATE 4: Multi-Timeframe Closed-Candle Confirmation ===
         if strategy_active == "Bollinger_Mean_Reversion":
@@ -496,7 +499,10 @@ def run_scan_and_execute(symbol_override=None):
             return "LOW_RR"
 
         # === ALL GATES PASSED — PREPARE CONCURRENT BATCH ===
-        trades_to_open = max(1, min(batch_size - open_count, max_trades - trades_done))
+        if is_continuous:
+            trades_to_open = max(1, batch_size - open_count)
+        else:
+            trades_to_open = max(1, min(batch_size - open_count, max_trades - trades_done))
 
         # === v4.0.0 GATE 8: Free Margin Buffer & Projected Margin Level Check ===
         mt5_order_type = mt5.ORDER_TYPE_BUY if direction == "BUY" else mt5.ORDER_TYPE_SELL
@@ -519,15 +525,29 @@ def run_scan_and_execute(symbol_override=None):
                 logger.error(f"[MARGIN GATE REJECTION] Insufficient free margin (${acc.margin_free:.2f}) for even 1 safe trade. Aborting.")
                 return "INSUFFICIENT_MARGIN"
 
-        # Projected Margin Level Check (Minimum 400% after opening)
+        # Projected Margin Level Check (Adaptive safety buffer: >= 200% for micro-lots, >= 300% for standard)
         projected_used_margin = acc.margin + total_required_margin
         projected_margin_level = (acc.equity / projected_used_margin) * 100.0 if projected_used_margin > 0 else 9999.0
-        if projected_margin_level < 400.0:
-            logger.error(
-                f"[MARGIN LEVEL GATE] Projected margin level ({projected_margin_level:.1f}%) < 400% safety buffer "
-                f"(Equity: ${acc.equity:.2f}, Projected Margin: ${projected_used_margin:.2f}). Rejecting to prevent stop-out."
-            )
-            return "LOW_PROJECTED_MARGIN_LEVEL"
+        min_safe_ml = 200.0 if safe_lots <= 0.02 else 300.0  # 4x safety buffer above MT5 50% broker stop-out
+
+        if projected_margin_level < min_safe_ml:
+            # Check if downscaling trades_to_open satisfies the margin safety buffer
+            safe_trades = int((acc.equity / (min_safe_ml / 100.0) - acc.margin) // margin_per_trade)
+            if safe_trades >= 1 and safe_trades < trades_to_open:
+                logger.warning(
+                    f"[MARGIN LEVEL GATE] Projected margin level ({projected_margin_level:.1f}%) < {min_safe_ml}% buffer. "
+                    f"Downscaling batch from {trades_to_open} to {safe_trades} trade(s) to protect margin level."
+                )
+                trades_to_open = safe_trades
+                total_required_margin = margin_per_trade * trades_to_open
+                projected_used_margin = acc.margin + total_required_margin
+                projected_margin_level = (acc.equity / projected_used_margin) * 100.0
+            else:
+                logger.error(
+                    f"[MARGIN LEVEL GATE] Projected margin level ({projected_margin_level:.1f}%) < {min_safe_ml}% safety buffer "
+                    f"(Equity: ${acc.equity:.2f}, Projected Margin: ${projected_used_margin:.2f}). Rejecting to prevent stop-out."
+                )
+                return "LOW_PROJECTED_MARGIN_LEVEL"
 
         # Account Equity Risk Capping: Max allowed batch risk in dollars (Max 15% equity on small accounts)
         max_batch_risk_allowed = min(max_daily_loss * 0.5, acc.equity * 0.15)
@@ -571,6 +591,7 @@ def run_scan_and_execute(symbol_override=None):
                 if res.get("status") == "SUCCESS":
                     executed_orders.append((ticket_id, res, leg_name, target_tp))
                     session["trades_executed"] = int(session.get("trades_executed", 0)) + 1
+                    session["trades_today"] = int(session.get("trades_today", 0)) + 1
                     session["leverage_trades_used"] = used + len(executed_orders)
                     save_session(session)
                 else:
@@ -581,10 +602,20 @@ def run_scan_and_execute(symbol_override=None):
 
         if success:
             trades_done_now = int(session.get("trades_executed", 0))
+            trades_today_now = int(session.get("trades_today", trades_done_now))
             active_batch_size = int(session.get("concurrent_batch_size", 1))
-            daily_rounds = int(session.get("daily_rounds", (max_trades // active_batch_size) if active_batch_size > 0 else max_trades))
-            current_round = ((trades_done_now - 1) // active_batch_size) + 1 if active_batch_size > 0 else trades_done_now
-            total_rounds = max(1, daily_rounds)
+
+            if is_continuous:
+                progress_block = (
+                    f"<b>Execution Progress:</b> <b>🔄 Always Active (All-Week Continuous)</b>\n"
+                    f"<b>Batch Concurrency:</b> <code>{active_batch_size}x Concurrent</code> | <b>Today:</b> <code>{trades_today_now} Trades</code> | <b>Week Total:</b> <code>{trades_done_now} Trades</code>\n"
+                )
+            else:
+                raw_rounds = session.get("daily_rounds", (max_trades // active_batch_size) if active_batch_size > 0 else max_trades)
+                daily_rounds = int(raw_rounds) if str(raw_rounds).isdigit() else 2
+                current_round = ((trades_done_now - 1) // active_batch_size) + 1 if active_batch_size > 0 else trades_done_now
+                total_rounds = max(1, daily_rounds)
+                progress_block = f"<b>Execution Progress:</b> <b>Round {current_round}/{total_rounds}</b> ({trades_done_now}/{max_trades} Total Trades)\n"
 
             if quota > 0 and session.get("leverage_trades_used", 0) >= quota:
                 broadcast_telegram(
@@ -616,12 +647,12 @@ def run_scan_and_execute(symbol_override=None):
                 f"<b>Lots:</b> <code>{safe_lots}</code> each (Total: <code>{safe_lots * len(executed_orders):.2f}</code>) | <b>Risk:</b> <code>${actual_risk * len(executed_orders):.2f}</code>\n"
                 f"<b>4H Macro Trend:</b> <code>{macro_bias}</code>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<b>Execution Progress:</b> <b>Round {current_round}/{total_rounds}</b> ({trades_done_now}/{max_trades} Total Trades)\n"
+                f"{progress_block}"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<i>v5.0.0 Institutional Trend & Asymmetric Runner Engine</i>"
+                f"<i>v5.4.0 Institutional Trend & Asymmetric Runner Engine</i>"
             )
             broadcast_telegram(alert_msg)
-            logger.info(f"Batch executed ({len(executed_orders)} trades): {ticket_ids_str}. Round {current_round}/{total_rounds}")
+            logger.info(f"Batch executed ({len(executed_orders)} trades): {ticket_ids_str}")
             return "EXECUTED"
         else:
             logger.error(f"MT5 order execution failed for batch of {trades_to_open} trades. Reason: {last_fail_reason}")
@@ -710,13 +741,37 @@ def start_auto_scanner(interval_minutes=15):
 
             session = load_session()
             if not session.get("is_active", True):
-                logger.info("Session is marked INACTIVE. Daemon stopping.")
-                break
+                if session.get("shutdown_reason") == "WEEKEND_MARKET_CLOSE_AUTO_TERMINATION":
+                    now_utc = datetime.now(timezone.utc)
+                    is_market_open_weekday = (now_utc.weekday() in (0, 1, 2, 3)) or (now_utc.weekday() == 6 and now_utc.hour >= 22) or (now_utc.weekday() == 4 and now_utc.hour < 21)
+                    if is_market_open_weekday:
+                        logger.info("[SUNDAY RE-OPEN PROTOCOL] Markets reopened for new trading week. Reactivating session state.")
+                        session["is_active"] = True
+                        session["trades_executed"] = 0
+                        session["shutdown_reason"] = None
+                        session["start_time"] = now_utc.isoformat()
+                        save_session(session)
+                    else:
+                        logger.info("Session is marked INACTIVE (Weekend Standby). Daemon stopping.")
+                        break
+                else:
+                    logger.info("Session is marked INACTIVE. Daemon stopping.")
+                    break
 
             trades_done = int(session.get("trades_executed", 0))
             max_trades = int(session.get("max_trades", 4))
+            is_continuous = bool(session.get("is_continuous", False)) or str(session.get("daily_rounds", "")).upper() in ("ALL_WEEK", "ALLWEEK", "CONTINUOUS", "ALWAYS_ACTIVE", "UNLIMITED")
 
-            if trades_done >= max_trades:
+            # Check if new day for daily counter reset in continuous mode
+            if is_continuous:
+                now_utc_day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                if session.get("current_trade_day") != now_utc_day:
+                    logger.info(f"[CONTINUOUS ENGINE] New trading day detected ({now_utc_day}). Resetting daily trade counter.")
+                    session["current_trade_day"] = now_utc_day
+                    session["trades_today"] = 0
+                    save_session(session)
+
+            if not is_continuous and trades_done >= max_trades:
                 logger.info(f"Session complete ({trades_done}/{max_trades}). Daemon stopping.")
                 break
 
@@ -736,7 +791,8 @@ def start_auto_scanner(interval_minutes=15):
             for sym in watchlist:
                 # Re-check trade ceiling before each symbol
                 session = load_session()
-                if int(session.get("trades_executed", 0)) >= max_trades:
+                is_continuous_sub = bool(session.get("is_continuous", False)) or str(session.get("daily_rounds", "")).upper() in ("ALL_WEEK", "ALLWEEK", "CONTINUOUS", "ALWAYS_ACTIVE", "UNLIMITED")
+                if not is_continuous_sub and int(session.get("trades_executed", 0)) >= max_trades:
                     logger.info(f"Trade ceiling reached during multi-asset scan.")
                     break
 

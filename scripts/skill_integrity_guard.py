@@ -34,14 +34,24 @@ from send_alert import broadcast_telegram, send_admin_telegram
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHECKSUM_FILE = os.path.join(BASE_DIR, "config", "skill_checksums.json")
 
-# Master Primary Workstation Hardware Fingerprint (Waleed Talaat Workstation)
-MASTER_PRIMARY_NODE = {
-    "hostname": "WALEED-IT",
-    "username": "WALEED.TALAAT",
-    "machine_guid": "0e29ba84-3fba-49c9-8f41-2d25a81989b8",
-    "mac_node": "0xcc15319204d1",
-    "description": "Master Primary Workstation (Sole Authorized Modification Node)"
-}
+# Master Primary Workstations Hardware Fingerprints (Waleed Talaat Workstations)
+MASTER_PRIMARY_NODES = [
+    {
+        "hostname": "WALEED-IT",
+        "username": "WALEED.TALAAT",
+        "machine_guid": "0e29ba84-3fba-49c9-8f41-2d25a81989b8",
+        "mac_node": "0xcc15319204d1",
+        "description": "Master Primary Workstation (Waleed-IT)"
+    },
+    {
+        "hostname": "WALEED-TEMP",
+        "username": "WALEED TALAAT",
+        "machine_guid": "5c95d17c-ebbc-48cc-bfa6-37727e5b77ce",
+        "mac_node": "0xbc542f45e6c3",
+        "description": "Authorized Primary Mobile Workstation (Waleed-Temp)"
+    }
+]
+MASTER_PRIMARY_NODE = MASTER_PRIMARY_NODES[0]
 
 PROTECTED_FILES = [
     os.path.join(BASE_DIR, "SKILL.md"),
@@ -98,19 +108,17 @@ def get_current_node_fingerprint():
 
 def is_master_primary_node():
     """
-    Verify whether the current execution environment is the Master Primary Workstation.
-    Only the Master Primary Node has authority to modify or certify protected files.
+    Verify whether the current execution environment is an Authorized Master Primary Workstation.
+    Only Master Primary Nodes have authority to modify or certify protected files and push git commits.
     """
     fp = get_current_node_fingerprint()
 
-    # Hostname check
-    if fp["hostname"] == MASTER_PRIMARY_NODE["hostname"]:
-        # Verify machine GUID if on Windows
-        if fp["machine_guid"] and fp["machine_guid"] == MASTER_PRIMARY_NODE["machine_guid"].lower():
-            return True
-        # If machine GUID couldn't be read or matched, verify MAC or username
-        if fp["mac_node"] == MASTER_PRIMARY_NODE["mac_node"] or fp["username"] == MASTER_PRIMARY_NODE["username"]:
-            return True
+    for node in MASTER_PRIMARY_NODES:
+        if fp["hostname"] == node["hostname"]:
+            if fp["machine_guid"] and fp["machine_guid"] == node["machine_guid"].lower():
+                return True
+            if fp["mac_node"] == node["mac_node"] or fp["username"] == node["username"]:
+                return True
 
     return False
 

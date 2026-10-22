@@ -364,10 +364,9 @@ def check_bollinger_confirmation(symbol, direction):
     # --- 1.1 Paul Tudor Jones 4H 200 EMA Macro Bias Gate ---
     macro_info = get_macro_trend_bias(symbol, mt5.TIMEFRAME_H4)
     m_bias = macro_info.get("bias", "NEUTRAL")
-    if direction.upper() == "BUY" and m_bias == "BEARISH":
-        return False, f"PTJ 200 EMA FILTER: Counter-trend BUY blocked. 4H Macro Bias is BEARISH ({macro_info.get('reason')})."
-    elif direction.upper() == "SELL" and m_bias == "BULLISH":
-        return False, f"PTJ 200 EMA FILTER: Counter-trend SELL blocked. 4H Macro Bias is BULLISH ({macro_info.get('reason')})."
+    is_counter_trend = (direction.upper() == "BUY" and m_bias == "BEARISH") or (direction.upper() == "SELL" and m_bias == "BULLISH")
+    if is_counter_trend:
+        logger.info(f"[PTJ MACRO ADVISORY] Counter-trend mean reversion setup on {symbol} ({direction} vs {m_bias} 4H). Gate 4 reversal confirmation & Bollinger Midline clamping enforced.")
 
     # --- 2. Directional Confirmation & Multi-Candle Reversal ---
     if direction.upper() == "SELL":

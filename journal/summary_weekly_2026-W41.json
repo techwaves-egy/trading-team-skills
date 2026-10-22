@@ -1,0 +1,65 @@
+{
+  "week": "2026-W41",
+  "date_range": "Oct 12 \u2013 Oct 18, 2026",
+  "timestamp": "2026-10-18T21:55:01.513657+00:00",
+  "account_balance": 285.06,
+  "account_equity": 285.06,
+  "total_trades": 4,
+  "wins": 2,
+  "losses": 2,
+  "breakeven": 0,
+  "total_profit": 65.9,
+  "total_loss": 1.05,
+  "net_pnl": 64.85,
+  "largest_win": 55.81,
+  "largest_loss": -0.53,
+  "win_rate": 50.0,
+  "profit_factor": 62.76,
+  "trades": [
+    {
+      "position_id": 10938931725,
+      "symbol": "EURUSD",
+      "type": "SELL",
+      "volume": 0.01,
+      "entry_price": 1.12035,
+      "exit_price": 1.12088,
+      "net_pnl": -0.53,
+      "close_time": "Wed 09:33 UTC",
+      "date": "2026-10-14"
+    },
+    {
+      "position_id": 10938931764,
+      "symbol": "EURUSD",
+      "type": "SELL",
+      "volume": 0.01,
+      "entry_price": 1.12036,
+      "exit_price": 1.12088,
+      "net_pnl": -0.52,
+      "close_time": "Wed 09:33 UTC",
+      "date": "2026-10-14"
+    },
+    {
+      "position_id": 10943821054,
+      "symbol": "XAUUSD",
+      "type": "BUY",
+      "volume": 0.01,
+      "entry_price": 4139.96,
+      "exit_price": 4150.05,
+      "net_pnl": 10.09,
+      "close_time": "Wed 15:17 UTC",
+      "date": "2026-10-14"
+    },
+    {
+      "position_id": 10953154610,
+      "symbol": "XAUUSD",
+      "type": "BUY",
+      "volume": 0.01,
+      "entry_price": 4080.64,
+      "exit_price": 4136.83,
+      "net_pnl": 55.81,
+      "close_time": "Thu 03:17 UTC",
+      "date": "2026-10-15"
+    }
+  ],
+  "status": "PROFIT"
+}

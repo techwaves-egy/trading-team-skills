@@ -31,14 +31,82 @@ if hasattr(sys.stderr, "reconfigure"):
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR, "scripts"))
 
+import re
+
 CONFIG_PATH = os.path.join(BASE_DIR, "config", "alert_config.json")
 SESSION_PATH = os.path.join(BASE_DIR, "config", "session_state.json")
+LOGS_DIR = os.path.join(BASE_DIR, "logs")
+MIRROR_LOG_PATH = os.path.join(LOGS_DIR, "telegram_bot_mirror.log")
+MIRROR_JSONL_PATH = os.path.join(LOGS_DIR, "telegram_bot_mirror.jsonl")
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - TgListener - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("TgListener")
+
+
+def extract_buttons(reply_markup):
+    """Extract button labels from reply_markup dictionary."""
+    if not reply_markup or not isinstance(reply_markup, dict):
+        return None
+    labels = []
+    if "inline_keyboard" in reply_markup:
+        for row in reply_markup["inline_keyboard"]:
+            for btn in row:
+                if "text" in btn:
+                    labels.append(btn["text"])
+    elif "keyboard" in reply_markup:
+        for row in reply_markup["keyboard"]:
+            for btn in row:
+                if "text" in btn:
+                    labels.append(btn["text"])
+    return labels if labels else None
+
+
+def mirror_log_event(direction, content, user_info=None, buttons=None):
+    """
+    Log incoming and outgoing Telegram Bot events to create a real-time clone
+    of the bot conversation accessible directly in the IDE terminal.
+    direction: 'USER' or 'BOT'
+    """
+    try:
+        os.makedirs(LOGS_DIR, exist_ok=True)
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        clean_text = re.sub(r"<[^>]+>", "", content).strip() if content else ""
+
+        badge = "👤 [USER -> BOT]" if direction == "USER" else "🤖 [BOT -> USER]"
+        if user_info and direction == "USER":
+            badge += f" ({user_info})"
+
+        entry_lines = [
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            f"{badge} | {now_str}",
+            "────────────────────────────────────────────────────────────",
+            clean_text
+        ]
+        if buttons:
+            entry_lines.append(f"🔘 Interactive Buttons: {', '.join(buttons[:6])}{'...' if len(buttons) > 6 else ''}")
+        entry_lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+        entry_str = "\n".join(entry_lines)
+
+        with open(MIRROR_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(entry_str)
+
+        event_obj = {
+            "timestamp": now_str,
+            "direction": direction,
+            "user_info": user_info,
+            "text": clean_text,
+            "buttons": buttons
+        }
+        with open(MIRROR_JSONL_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(event_obj, ensure_ascii=False) + "\n")
+
+        print(f"\n[TG-CLONE] {badge} | {now_str}\n{clean_text}\n", flush=True)
+    except Exception as e:
+        logger.error(f"Error mirroring telegram event: {e}")
 
 
 def load_config():
@@ -109,6 +177,7 @@ def tg_api_request(bot_token, method, data=None):
 
 def send_tg_message(bot_token, chat_id, text, reply_markup=None):
     """Send HTML message with optional inline or reply keyboard."""
+    mirror_log_event("BOT", text, buttons=extract_buttons(reply_markup))
     payload = {
         "chat_id": chat_id,
         "text": text,
@@ -121,6 +190,7 @@ def send_tg_message(bot_token, chat_id, text, reply_markup=None):
 
 def edit_tg_message(bot_token, chat_id, message_id, text, reply_markup=None):
     """Edit existing HTML message text and inline keyboard."""
+    mirror_log_event("BOT", f"[Edit Message]: {text}", buttons=extract_buttons(reply_markup))
     payload = {
         "chat_id": chat_id,
         "message_id": message_id,
@@ -148,6 +218,10 @@ def make_reply_keyboard():
             ],
             [
                 {"text": "⚙️ Configure Session (Wizard)"}
+            ],
+            [
+                {"text": "🔄 Gold 2x (All-Week Continuous)"},
+                {"text": "🔄 Both 2x (All-Week Continuous)"}
             ],
             [
                 {"text": "🥇 Gold 5x (3 Rounds • +$375)"},
@@ -190,6 +264,10 @@ def make_main_keyboard():
             ],
             [
                 {"text": "⚙️ Configure Session (Wizard)", "callback_data": "wiz_start"}
+            ],
+            [
+                {"text": "🔄 Gold 2x (All-Week)", "callback_data": "cb_quick_gold_2x_allweek"},
+                {"text": "🔄 Both 2x (All-Week)", "callback_data": "cb_quick_both_2x_allweek"}
             ],
             [
                 {"text": "🥇 Gold 5x (3 Rnds • +$375)", "callback_data": "cb_quick_gold_5x3"},
@@ -305,17 +383,18 @@ def send_wizard_step3(chat_id, bot_token, market, batch_str, message_id=None):
     batch_goal = batch * 25.0
 
     text = (
-        f"⚙️ <b>STEP 3/3: SELECT DAILY FREQUENCY (ROUNDS)</b>\n"
+        f"⚙️ <b>STEP 3/3: SELECT EXECUTION FREQUENCY & DURATION</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"Universe: <b>{m_label}</b>\n"
         f"Batch Size: <b>{batch}x Concurrent Trades</b> (0.01L each • +${batch_goal:.2f} / round)\n\n"
-        f"How many times per day should this batch execute?\n"
+        f"Choose daily fixed rounds OR continuous all-week trading:\n"
         f"• <b>1 Round Daily:</b> {batch * 1} trades daily ➔ Daily Goal: <b>+${batch_goal * 1:.2f}</b>\n"
         f"• <b>2 Rounds Daily:</b> {batch * 2} trades daily ➔ Daily Goal: <b>+${batch_goal * 2:.2f}</b>\n"
         f"• <b>3 Rounds Daily:</b> {batch * 3} trades daily ➔ Daily Goal: <b>+${batch_goal * 3:.2f}</b>\n"
         f"• <b>5 Rounds Daily:</b> {batch * 5} trades daily ➔ Daily Goal: <b>+${batch_goal * 5:.2f}</b>\n"
+        f"• <b>🔄 Always Active:</b> Continuous {batch}x batches all week through Friday close!\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"👉 <i>Tap daily rounds to confirm and launch autonomous engine:</i>"
+        f"👉 <i>Tap an option below to launch the autonomous engine:</i>"
     )
     kb = {
         "inline_keyboard": [
@@ -326,6 +405,9 @@ def send_wizard_step3(chat_id, bot_token, market, batch_str, message_id=None):
             [
                 {"text": f"3 Rounds (+${batch_goal*3:.0f})", "callback_data": f"wiz_r_{market}_{batch}_3"},
                 {"text": f"5 Rounds (+${batch_goal*5:.0f})", "callback_data": f"wiz_r_{market}_{batch}_5"}
+            ],
+            [
+                {"text": "🔄 Always Active (All-Week Continuous)", "callback_data": f"wiz_r_{market}_{batch}_allweek"}
             ],
             [
                 {"text": "« Back to Step 2 (Batch Concurrency)", "callback_data": f"wiz_m_{market}"}
@@ -342,6 +424,7 @@ def set_bot_commands(bot_token):
     commands = [
         {"command": "wizard", "description": "⚙️ 3-Step Interactive Session Wizard"},
         {"command": "status", "description": "📊 Live balance, equity, PTJ bias & positions"},
+        {"command": "continuous", "description": "🔄 Always active all-week trading [market] [batch]"},
         {"command": "scan", "description": "🔍 Force immediate market sweep"},
         {"command": "news", "description": "📰 Macro news & CRO advisory"},
         {"command": "start_session", "description": "🚀 Launch session [market] [batch] [rounds]"},
@@ -433,10 +516,11 @@ def start_trading_session(market="BOTH", batch_size=2, daily_rounds=2, quota_tra
     if m_str.endswith("X") or m_str.isdigit():
         raw_num = m_str[:-1] if m_str.endswith("X") else m_str
         b_val = max(1, int(raw_num)) if raw_num.isdigit() else 2
-        r_val = int(batch_size) if str(batch_size).isdigit() else 1
         m_resolved = "BOTH"
         b_resolved = b_val
-        r_resolved = r_val
+        r_raw = str(batch_size).strip().upper().replace("X", "").replace("R", "")
+        is_continuous = r_raw in ("ALLWEEK", "ALL_WEEK", "CONTINUOUS", "ALWAYS", "ALWAYS_ACTIVE", "UNLIMITED", "WEEK")
+        r_resolved = "ALL_WEEK" if is_continuous else (int(r_raw) if r_raw.isdigit() else 1)
     else:
         if "GOLD" in m_str or "XAU" in m_str:
             m_resolved = "GOLD"
@@ -448,14 +532,26 @@ def start_trading_session(market="BOTH", batch_size=2, daily_rounds=2, quota_tra
         b_raw = str(batch_size).strip().upper().replace("X", "")
         b_resolved = int(b_raw) if b_raw.isdigit() else 2
         r_raw = str(daily_rounds).strip().upper().replace("X", "").replace("R", "")
-        r_resolved = int(r_raw) if r_raw.isdigit() else 2
+        is_continuous = r_raw in ("ALLWEEK", "ALL_WEEK", "CONTINUOUS", "ALWAYS", "ALWAYS_ACTIVE", "UNLIMITED", "WEEK")
+        r_resolved = "ALL_WEEK" if is_continuous else (int(r_raw) if r_raw.isdigit() else 2)
 
+    is_continuous = (r_resolved == "ALL_WEEK")
     final_batch = max(1, b_resolved)
-    final_rounds = max(1, r_resolved)
-    total_trades = final_batch * final_rounds
     target_profit_per_trade = 25.0
     batch_profit_goal = round(target_profit_per_trade * final_batch, 2)
-    session_profit_goal = round(target_profit_per_trade * total_trades, 2)
+
+    if is_continuous:
+        final_rounds = "ALL_WEEK"
+        total_trades = 9999
+        session_profit_goal = "Uncapped (All-Week Continuous)"
+        tier_label = f"{final_batch}x (Continuous All-Week)"
+        session_id = f"SES-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{m_resolved}-{final_batch}X-ALLWEEK"
+    else:
+        final_rounds = max(1, r_resolved)
+        total_trades = final_batch * final_rounds
+        session_profit_goal = round(target_profit_per_trade * total_trades, 2)
+        tier_label = f"{final_batch}x ({final_rounds}R)"
+        session_id = f"SES-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{m_resolved}-{final_batch}X-{final_rounds}R"
 
     if m_resolved == "GOLD":
         watchlist = ["XAUUSD"]
@@ -467,9 +563,7 @@ def start_trading_session(market="BOTH", batch_size=2, daily_rounds=2, quota_tra
         watchlist = ["EURUSD", "XAUUSD"]
         active_market_label = "EURUSD, XAUUSD (Both Multi-Asset)"
 
-    tier_label = f"{final_batch}x ({final_rounds}R)"
     margin_stress = f"{final_batch * 2.7:.1f}% (Institutional A+ Rating)"
-    session_id = f"SES-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{m_resolved}-{final_batch}X-{final_rounds}R"
 
     session_data = {
         "session_id": session_id,
@@ -478,6 +572,7 @@ def start_trading_session(market="BOTH", batch_size=2, daily_rounds=2, quota_tra
         "watchlist": watchlist,
         "concurrent_batch_size": final_batch,
         "daily_rounds": final_rounds,
+        "is_continuous": is_continuous,
         "target_profit_per_trade": target_profit_per_trade,
         "batch_profit_goal": batch_profit_goal,
         "session_profit_goal": session_profit_goal,
@@ -492,6 +587,8 @@ def start_trading_session(market="BOTH", batch_size=2, daily_rounds=2, quota_tra
         "gold_profit_target_base": 25.0,
         "max_trades": total_trades,
         "trades_executed": 0,
+        "trades_today": 0,
+        "current_trade_day": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "trading_mode": "D",
         "risk_manager_status": "APPROVED_BY_CRO",
         "approved_leverage_tier": tier_label,
@@ -501,16 +598,36 @@ def start_trading_session(market="BOTH", batch_size=2, daily_rounds=2, quota_tra
     }
     save_session(session_data)
 
-    # Launch background daemons
-    scanner_cmd = [sys.executable, os.path.join(BASE_DIR, "scripts", "auto_scanner.py"), "15"]
-    monitor_cmd = [sys.executable, os.path.join(BASE_DIR, "scripts", "trade_monitor.py")]
-    summary_cmd = [sys.executable, os.path.join(BASE_DIR, "scripts", "daily_summary.py"), "--daemon"]
-
+    # Launch background daemons only if not already running
     try:
-        subprocess.Popen(scanner_cmd, cwd=BASE_DIR, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
-        subprocess.Popen(monitor_cmd, cwd=BASE_DIR, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
-        subprocess.Popen(summary_cmd, cwd=BASE_DIR, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
-        logger.info(f"Spawned autonomous daemons for session {session_id}")
+        import psutil
+        running_cmd = []
+        for p in psutil.process_iter(["name", "cmdline"]):
+            try:
+                if "python" in (p.info["name"] or "").lower():
+                    running_cmd.append(" ".join(p.info["cmdline"] or []))
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+
+        scanner_running = any("auto_scanner.py" in c for c in running_cmd)
+        monitor_running = any("trade_monitor.py" in c for c in running_cmd)
+        summary_running = any("daily_summary.py" in c for c in running_cmd)
+
+        if not scanner_running:
+            scanner_cmd = [sys.executable, os.path.join(BASE_DIR, "scripts", "auto_scanner.py"), "15"]
+            subprocess.Popen(scanner_cmd, cwd=BASE_DIR, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
+            logger.info("Spawned auto_scanner.py daemon")
+
+        if not monitor_running:
+            monitor_cmd = [sys.executable, os.path.join(BASE_DIR, "scripts", "trade_monitor.py")]
+            subprocess.Popen(monitor_cmd, cwd=BASE_DIR, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
+            logger.info("Spawned trade_monitor.py daemon")
+
+        if not summary_running:
+            summary_cmd = [sys.executable, os.path.join(BASE_DIR, "scripts", "daily_summary.py"), "--daemon"]
+            subprocess.Popen(summary_cmd, cwd=BASE_DIR, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
+            logger.info("Spawned daily_summary.py daemon")
+
     except Exception as e:
         logger.error(f"Error launching daemons: {e}")
 
@@ -533,6 +650,66 @@ def is_market_closed_now():
     return False, "Market is OPEN"
 
 
+def check_sunday_market_reopen(bot_token, config):
+    """
+    Automated Sunday Market Reopen Daemon Hook (Gate 12).
+    If markets have reopened (Sunday >= 22:00 UTC or weekday) and a session was parked
+    with WEEKEND_MARKET_CLOSE_AUTO_TERMINATION, automatically reactivate it,
+    spawn auto_scanner and trade_monitor daemons, and alert Administrator @wtalaat.
+    """
+    closed, _ = is_market_closed_now()
+    if closed:
+        return
+
+    session = load_session()
+    if not session.get("is_active", True) and session.get("shutdown_reason") == "WEEKEND_MARKET_CLOSE_AUTO_TERMINATION":
+        logger.info("[SUNDAY RE-OPEN PROTOCOL] Markets reopened. Reactivating session state and launching trading daemons.")
+        now_utc = datetime.now(timezone.utc)
+        session["is_active"] = True
+        session["trades_executed"] = 0
+        session["shutdown_reason"] = None
+        session["start_time"] = now_utc.isoformat()
+        save_session(session)
+
+        # Check if daemons are already running
+        import psutil
+        running_cmd = []
+        for p in psutil.process_iter(["name", "cmdline"]):
+            if "python" in (p.info["name"] or "").lower():
+                running_cmd.append(" ".join(p.info["cmdline"] or []))
+
+        scanner_running = any("auto_scanner.py" in c for c in running_cmd)
+        monitor_running = any("trade_monitor.py" in c for c in running_cmd)
+
+        if not scanner_running:
+            scanner_cmd = [sys.executable, os.path.join(BASE_DIR, "scripts", "auto_scanner.py"), "15"]
+            subprocess.Popen(scanner_cmd, cwd=BASE_DIR, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
+            logger.info("Auto-spawned auto_scanner.py daemon for Sunday reopen.")
+
+        if not monitor_running:
+            monitor_cmd = [sys.executable, os.path.join(BASE_DIR, "scripts", "trade_monitor.py")]
+            subprocess.Popen(monitor_cmd, cwd=BASE_DIR, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
+            logger.info("Auto-spawned trade_monitor.py daemon for Sunday reopen.")
+
+        # Broadcast Sunday Re-Open alert to Admin
+        tg_cfg = config.get("telegram", {})
+        admin_chat_id = tg_cfg.get("admin_chat_id") or tg_cfg.get("chat_id")
+        if bot_token and admin_chat_id:
+            msg = (
+                "🔔 <b>SUNDAY MARKET REOPEN DETECTED (Gate 12)</b>\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "📅 <b>Global FX &amp; Metals Markets are now OPEN.</b>\n"
+                f"🆔 <b>Session Reactivated:</b> <code>{session.get('session_id')}</code>\n"
+                f"🌐 <b>Universe:</b> <b>{session.get('active_market')}</b>\n"
+                f"⚡ <b>Concurrency:</b> <b>{session.get('concurrent_batch_size')}x Batch</b>\n"
+                f"🎯 <b>Daily Rounds:</b> <b>{session.get('daily_rounds')} Rounds</b>\n"
+                "🤖 <b>Autonomous Daemons:</b> <code>auto_scanner.py</code> &amp; <code>trade_monitor.py</code> online\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "✅ <i>Execution engine is live and scanning for institutional setups!</i>"
+            )
+            send_tg_message(bot_token, admin_chat_id, msg, reply_markup=make_main_keyboard())
+
+
 def handle_start_session_cmd(args, chat_id, bot_token, message_id=None):
     """
     Parse /start_session command parameters and initiate session.
@@ -543,20 +720,6 @@ def handle_start_session_cmd(args, chat_id, bot_token, message_id=None):
       - /start_session 5x 3 -> 5 concurrent trades, 3 rounds daily
       - /start_session 1x -> 1 trade, 1 round
     """
-    # Check for market closure
-    is_closed, reason = is_market_closed_now()
-    if is_closed and "--force" not in args:
-        warning_msg = (
-            f"⚠️ <b>MARKET IS CURRENTLY CLOSED FOR THE WEEKEND</b>\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"📅 <b>Status:</b> {reason}\n"
-            f"⏰ <b>Market Reopens:</b> <b>Sunday 22:00 UTC</b> (Monday 01:00 Cairo time / UTC+3)\n\n"
-            f"💡 MT5 brokers do not accept live Forex or Gold orders on weekends.\n"
-            f"<i>Your session parameters have been prepared. Run <code>/start_session</code> when the market reopens on Sunday night!</i>"
-        )
-        send_tg_message(bot_token, chat_id, warning_msg, reply_markup=make_main_keyboard())
-        return
-
     # If no args or wizard requested, open wizard Step 1
     if not args or args[0].lower() in ("wizard", "config", "step1", "menu"):
         send_wizard_step1(chat_id, bot_token, message_id)
@@ -572,32 +735,72 @@ def handle_start_session_cmd(args, chat_id, bot_token, message_id=None):
         batch = clean_args[1]
         rounds = clean_args[2]
     elif len(clean_args) == 2:
-        if clean_args[0].upper() in ("GOLD", "FOREX", "BOTH", "EURUSD", "XAUUSD"):
+        arg0_up = clean_args[0].upper()
+        arg1_up = clean_args[1].upper()
+        if arg0_up in ("GOLD", "FOREX", "BOTH", "EURUSD", "XAUUSD"):
             market = clean_args[0]
-            batch = clean_args[1]
-            rounds = 2
+            if arg1_up in ("ALLWEEK", "ALL_WEEK", "CONTINUOUS", "ALWAYS", "UNLIMITED"):
+                batch = 2
+                rounds = "ALL_WEEK"
+            else:
+                batch = clean_args[1]
+                rounds = 2
         else:
             market = "BOTH"
             batch = clean_args[0]
             rounds = clean_args[1]
     elif len(clean_args) == 1:
-        if clean_args[0].upper() in ("GOLD", "FOREX", "BOTH", "EURUSD", "XAUUSD"):
+        arg0_up = clean_args[0].upper()
+        if arg0_up in ("GOLD", "FOREX", "BOTH", "EURUSD", "XAUUSD"):
             market = clean_args[0]
             batch = 2
             rounds = 2
+        elif arg0_up in ("ALLWEEK", "ALL_WEEK", "CONTINUOUS", "ALWAYS", "UNLIMITED"):
+            market = "BOTH"
+            batch = 2
+            rounds = "ALL_WEEK"
         else:
             market = "BOTH"
             batch = clean_args[0]
             rounds = 1
 
+    # Check for market closure
+    is_closed, reason = is_market_closed_now()
+    if is_closed and "--force" not in args:
+        session = start_trading_session(market, batch, rounds)
+        freq_label = "🔄 Continuous All-Week" if session.get("is_continuous") else f"{session.get('daily_rounds')} Daily"
+        warning_msg = (
+            f"⚠️ <b>SESSION ARMED FOR SUNDAY MARKET RE-OPEN</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📅 <b>Current Market Status:</b> {reason}\n"
+            f"⏰ <b>Market Reopens:</b> <b>Sunday 22:00 UTC</b> (Monday 01:00 Cairo time / UTC+3)\n\n"
+            f"🆔 <b>Session ID:</b> <code>{session['session_id']}</code>\n"
+            f"🌐 <b>Active Universe:</b> <b>{session.get('active_market')}</b>\n"
+            f"⚡ <b>Concurrency:</b> <b>{session.get('concurrent_batch_size')}x Orders</b>\n"
+            f"🎯 <b>Frequency:</b> <b>{freq_label}</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"✅ <i>Session parameters saved & armed! The autonomous engine will automatically commence scanning upon market reopen on Sunday at 22:00 UTC.</i>"
+        )
+        send_tg_message(bot_token, chat_id, warning_msg, reply_markup=make_main_keyboard())
+        return
+
     session = start_trading_session(market, batch, rounds)
     target_dollars = float(session.get("target_profit_per_trade", 25.0))
     batch_size = session.get("concurrent_batch_size", 1)
-    daily_rounds = session.get("daily_rounds", 1)
     batch_goal = float(session.get("batch_profit_goal", 50.0))
-    daily_goal = float(session.get("session_profit_goal", 100.0))
-    total_trades = session.get("max_trades", 2)
+    is_continuous = bool(session.get("is_continuous", False))
     market_label = session.get("active_market", "EURUSD, XAUUSD")
+
+    if is_continuous:
+        rounds_line = f"🎯 <b>Execution Mode:</b> <b>🔄 Always Active (All-Week Continuous)</b>\n"
+        goal_line = f"🌟 <b>Session Goal:</b> <b>Continuous Profit Compounding (Monday–Friday)</b>\n"
+    else:
+        daily_rounds = session.get("daily_rounds", 1)
+        raw_goal = session.get("session_profit_goal", 100.0)
+        daily_goal = float(raw_goal) if not isinstance(raw_goal, str) else 100.0
+        total_trades = session.get("max_trades", 2)
+        rounds_line = f"🎯 <b>Daily Execution:</b> <b>{daily_rounds} Round{'s' if isinstance(daily_rounds, int) and daily_rounds > 1 else ''} Daily</b> ({total_trades} Total Trades)\n"
+        goal_line = f"🌟 <b>Total Daily Goal:</b> <b>+${daily_goal:.2f} USD</b>\n"
 
     msg = (
         f"🚀 <b>AUTONOMOUS SESSION LAUNCHED VIA TELEGRAM</b>\n"
@@ -605,15 +808,15 @@ def handle_start_session_cmd(args, chat_id, bot_token, message_id=None):
         f"🆔 <b>Session ID:</b> <code>{session['session_id']}</code>\n"
         f"🌐 <b>Active Market:</b> <b>{market_label}</b>\n"
         f"⚡ <b>Batch Concurrency:</b> <b>{batch_size}x Simultaneous Orders</b> (0.01L each)\n"
-        f"🎯 <b>Daily Execution:</b> <b>{daily_rounds} Round{'s' if daily_rounds > 1 else ''} Daily</b> ({total_trades} Total Trades)\n"
+        f"{rounds_line}"
         f"💰 <b>Target Profit / Trade:</b> <code>+${target_dollars:.2f}</code>\n"
         f"🏆 <b>Batch Target / Round:</b> <b>+${batch_goal:.2f} USD</b>\n"
-        f"🌟 <b>Total Daily Goal:</b> <b>+${daily_goal:.2f} USD</b>\n"
+        f"{goal_line}"
         f"🛡️ <b>80/70 Protection:</b> Arms @ <code>+${target_dollars * 0.80:.2f}</code> | Floor @ <code>+${target_dollars * 0.70:.2f}</code> per trade\n"
         f"🛡️ <b>CRO Safety Score:</b> <b>{session.get('margin_stress_score')}</b>\n"
         f"🤖 <b>Active Daemons:</b> Scanner, Trade Monitor &amp; Daily Auditor Online\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"<i>Autonomous scanner is actively monitoring markets for Round 1 setup...</i>"
+        f"<i>Autonomous scanner is actively monitoring markets for high-probability setups...</i>"
     )
     send_tg_message(bot_token, chat_id, msg, reply_markup=make_main_keyboard())
 
@@ -672,12 +875,19 @@ def handle_status_cmd(chat_id, bot_token):
         target_per_trade = float(session.get("target_profit_per_trade", 25.0))
         batch_size = int(session.get("concurrent_batch_size", 1))
         batch_goal = float(session.get("batch_profit_goal", target_per_trade * batch_size))
-        daily_goal = float(session.get("session_profit_goal", 50.0))
         trades_done = session.get('trades_executed', 0)
+        trades_today = session.get('trades_today', trades_done)
         max_trades = session.get('max_trades', 0)
-        daily_rounds = int(session.get("daily_rounds", (max_trades // batch_size) if batch_size > 0 else max_trades))
-        current_round = ((trades_done - 1) // batch_size) + 1 if trades_done > 0 and batch_size > 0 else 0
+        is_continuous = bool(session.get("is_continuous", False)) or str(session.get("daily_rounds", "")).upper() in ("ALL_WEEK", "ALLWEEK", "CONTINUOUS", "ALWAYS_ACTIVE", "UNLIMITED")
         market_label = session.get("active_market", "EURUSD, XAUUSD")
+
+        if is_continuous:
+            rounds_display = f"🔄 <b>Mode:</b> <b>Always Active (All-Week Continuous)</b> (Today: {trades_today} | Week Total: {trades_done} Trades)"
+        else:
+            raw_rounds = session.get("daily_rounds", (max_trades // batch_size) if batch_size > 0 else max_trades)
+            daily_rounds = int(raw_rounds) if str(raw_rounds).isdigit() else 2
+            current_round = ((trades_done - 1) // batch_size) + 1 if trades_done > 0 and batch_size > 0 else 0
+            rounds_display = f"🎯 <b>Daily Rounds:</b> <b>Round {current_round}/{daily_rounds}</b> ({trades_done}/{max_trades} Total Trades)"
 
         msg = (
             f"📊 <b>FIRM LIVE TELEMETRY &amp; STATUS</b>\n"
@@ -691,12 +901,12 @@ def handle_status_cmd(chat_id, bot_token):
             f"🧭 <b>PTJ 4H 200 EMA (Gold):</b> <b>{macro_bias_gold}</b>\n"
             f"⏱️ <b>Killzone:</b> <b>{kz_status}</b>\n"
             f"⚡ <b>Concurrency:</b> <b>{batch_size}x Concurrent Trades</b> per setup\n"
-            f"🎯 <b>Daily Rounds:</b> <b>Round {current_round}/{daily_rounds}</b> ({trades_done}/{max_trades} Total Trades)\n"
+            f"{rounds_display}\n"
             f"🛡️ <b>Asymmetric Protection:</b> Banker (80/70 Server SL) | Runner (Dynamic BE+Lock & 60/50 Guard)\n\n"
             f"🛡️ <b>OPEN POSITIONS ({len(positions) if positions else 0}):</b>\n"
             f"{pos_text}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"<i>AI Autonomous Trading Firm v5.1.0</i>"
+            f"<i>AI Autonomous Trading Firm v5.4.0</i>"
         )
         send_tg_message(bot_token, chat_id, msg, reply_markup=make_main_keyboard())
     except Exception as e:
@@ -970,8 +1180,9 @@ def handle_help_cmd(chat_id, bot_token):
         f"  • Tap <b>⚙️ Configure Session (Wizard)</b> to pick market, concurrency & daily rounds via interactive buttons.\n"
         f"  • Or type <code>/wizard</code> anytime.\n\n"
         f"<b>🚀 Direct Session Launch (Market, Concurrency, Rounds):</b>\n"
+        f"  • <code>/continuous [market] [batch]</code> — 🔄 <b>Always Active All-Week Mode</b> (e.g. <code>/continuous gold 2</code>)\n"
         f"  • <code>/start_session gold 5 3</code> — Gold, 5x concurrent (15 trades, +$375 goal)\n"
-        f"  • <code>/start_session gold 2 2</code> — Gold, 2x concurrent (4 trades, +$100 goal)\n"
+        f"  • <code>/start_session gold 2 allweek</code> — Gold, 2x concurrent Always Active All Week\n"
         f"  • <code>/start_session both 2 2</code> — Both, 2x concurrent (4 trades, +$100 goal)\n"
         f"  • <code>/start_session 1x</code> — 1 Trade ($25 target, 80/70 protection)\n"
         f"  • <code>/status</code> — Live balance, equity, rounds progress & target metrics\n"
@@ -1008,6 +1219,7 @@ def process_update(update, bot_token, config):
             logger.warning(f"Unauthorized callback from user {user_id}")
             return
 
+        mirror_log_event("USER", f"[Button Click]: {data}", user_info=f"User {user_id}")
         tg_api_request(bot_token, "answerCallbackQuery", {"callback_query_id": cb.get("id")})
 
         if data == "cb_status":
@@ -1055,6 +1267,10 @@ def process_update(update, bot_token, config):
             handle_start_session_cmd(["GOLD", "3", "3"], chat_id, bot_token)
         elif data == "cb_quick_gold_2x2":
             handle_start_session_cmd(["GOLD", "2", "2"], chat_id, bot_token)
+        elif data == "cb_quick_gold_2x_allweek":
+            handle_start_session_cmd(["GOLD", "2", "allweek"], chat_id, bot_token)
+        elif data == "cb_quick_both_2x_allweek":
+            handle_start_session_cmd(["BOTH", "2", "allweek"], chat_id, bot_token)
         elif data == "cb_quick_gold_1x5":
             handle_start_session_cmd(["GOLD", "1", "5"], chat_id, bot_token)
         elif data == "cb_quick_gold_1x3":
@@ -1107,6 +1323,8 @@ def process_update(update, bot_token, config):
             send_tg_message(bot_token, chat_id, f"⛔ Unauthorized. User ID <code>{user_id}</code> is not in the approved whitelist.")
             return
 
+        mirror_log_event("USER", text, user_info=f"User {user_id}")
+
         # Map persistent button texts and common natural language to commands
         btn_map = {
             "📊 live status": "/status",
@@ -1130,6 +1348,18 @@ def process_update(update, bot_token, config):
             "🥇 gold 2x (2 rounds • +$100)": "/start_session gold 2 2",
             "gold 2x (2 rounds • +$100)": "/start_session gold 2 2",
             "gold 2x": "/start_session gold 2 2",
+            "🔄 gold 2x (all-week continuous)": "/start_session gold 2 allweek",
+            "gold 2x (all-week continuous)": "/start_session gold 2 allweek",
+            "gold 2x all-week": "/start_session gold 2 allweek",
+            "gold 2x continuous": "/start_session gold 2 allweek",
+            "🔄 both 2x (all-week continuous)": "/start_session both 2 allweek",
+            "both 2x (all-week continuous)": "/start_session both 2 allweek",
+            "both 2x all-week": "/start_session both 2 allweek",
+            "both 2x continuous": "/start_session both 2 allweek",
+            "all-week": "/start_session both 2 allweek",
+            "allweek": "/start_session both 2 allweek",
+            "continuous": "/start_session both 2 allweek",
+            "always active": "/start_session both 2 allweek",
             "🌐 both 2x (2 rounds • +$100)": "/start_session both 2 2",
             "both 2x (2 rounds • +$100)": "/start_session both 2 2",
             "both 2x": "/start_session both 2 2",
@@ -1225,6 +1455,21 @@ def process_update(update, bot_token, config):
             handle_help_cmd(chat_id, bot_token)
         elif cmd in ("/wizard", "/config", "/setup"):
             send_wizard_step1(chat_id, bot_token)
+        elif cmd in ("/continuous", "/always_active", "/allweek"):
+            # e.g. /continuous gold 2, /continuous 2, /continuous
+            m = "BOTH"
+            b = "2"
+            if len(args) >= 2:
+                m = args[0]
+                b = args[1]
+            elif len(args) == 1:
+                if args[0].upper() in ("GOLD", "FOREX", "BOTH", "EURUSD", "XAUUSD"):
+                    m = args[0]
+                    b = "2"
+                else:
+                    m = "BOTH"
+                    b = args[0]
+            handle_start_session_cmd([m, b, "allweek"], chat_id, bot_token)
         elif cmd in ("/start_session", "/run", "/launch", "/start_trading", "/start_trades", "/trade", "/trade_now"):
             handle_start_session_cmd(args, chat_id, bot_token)
         elif cmd == "/buy":
@@ -1301,9 +1546,18 @@ def run_telegram_listener():
     send_engine_restart_alert(bot_token, config)
 
     offset = None
+    last_reopen_check = 0
 
     while True:
         try:
+            now_ts = time.time()
+            if now_ts - last_reopen_check >= 30:
+                last_reopen_check = now_ts
+                try:
+                    check_sunday_market_reopen(bot_token, config)
+                except Exception as ex_reopen:
+                    logger.error(f"Error checking Sunday market reopen: {ex_reopen}")
+
             params = {"timeout": 30}
             if offset:
                 params["offset"] = offset

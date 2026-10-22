@@ -52,11 +52,24 @@ def main():
 
     target_dollars = float(session.get("target_profit_per_trade", 25.0))
     batch_size = session.get("concurrent_batch_size", 1)
-    daily_rounds = session.get("daily_rounds", 1)
     batch_goal = float(session.get("batch_profit_goal", 50.0))
-    daily_goal = float(session.get("session_profit_goal", 100.0))
-    total_trades = session.get("max_trades", 2)
+    is_continuous = bool(session.get("is_continuous", False))
     market_label = session.get("active_market", "EURUSD, XAUUSD")
+
+    if is_continuous:
+        rounds_line = f"🎯 <b>Execution Mode:</b> <b>🔄 Always Active (All-Week Continuous)</b>\n"
+        goal_line = f"🌟 <b>Session Goal:</b> <b>Continuous Profit Compounding (Monday–Friday)</b>\n"
+        summary_rounds_str = "All-Week Continuous"
+        summary_goal_str = "Uncapped"
+    else:
+        daily_rounds = session.get("daily_rounds", 1)
+        raw_goal = session.get("session_profit_goal", 100.0)
+        daily_goal = float(raw_goal) if not isinstance(raw_goal, str) else 100.0
+        total_trades = session.get("max_trades", 2)
+        rounds_line = f"🎯 <b>Daily Execution:</b> <b>{daily_rounds} Round{'s' if isinstance(daily_rounds, int) and daily_rounds > 1 else ''} Daily</b> ({total_trades} Total Trades)\n"
+        goal_line = f"🌟 <b>Total Daily Goal:</b> <b>+${daily_goal:.2f} USD</b>\n"
+        summary_rounds_str = f"{daily_rounds} rounds ({total_trades} trades total)"
+        summary_goal_str = f"${daily_goal}"
 
     msg = (
         f"🚀 <b>AUTONOMOUS TRADING SESSION LAUNCHED</b>\n"
@@ -64,21 +77,21 @@ def main():
         f"🆔 <b>Session ID:</b> <code>{session['session_id']}</code>\n"
         f"🌐 <b>Active Market:</b> <b>{market_label}</b>\n"
         f"⚡ <b>Batch Concurrency:</b> <b>{batch_size}x Simultaneous Orders</b> (0.01L each)\n"
-        f"🎯 <b>Daily Execution:</b> <b>{daily_rounds} Round{'s' if daily_rounds > 1 else ''} Daily</b> ({total_trades} Total Trades)\n"
+        f"{rounds_line}"
         f"💰 <b>Target Profit / Trade:</b> <code>+${target_dollars:.2f}</code>\n"
         f"🏆 <b>Batch Target / Round:</b> <b>+${batch_goal:.2f} USD</b>\n"
-        f"🌟 <b>Total Daily Goal:</b> <b>+${daily_goal:.2f} USD</b>\n"
+        f"{goal_line}"
         f"🛡️ <b>80/70 Protection:</b> Arms @ <code>+${target_dollars * 0.80:.2f}</code> | Floor @ <code>+${target_dollars * 0.70:.2f}</code> per trade\n"
         f"🛡️ <b>CRO Safety Score:</b> <b>{session.get('margin_stress_score')}</b>\n"
         f"🤖 <b>Active Daemons:</b> Scanner, Trade Monitor &amp; Daily Auditor Online\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"<i>Autonomous scanner is actively monitoring markets for Round 1 setup...</i>"
+        f"<i>Autonomous scanner is actively monitoring markets for setups...</i>"
     )
 
     for c in chats:
         send_tg_message(bot_token, c, msg, make_main_keyboard())
 
-    print(f"Session {session['session_id']} successfully started: {market_label} | {batch_size}x concurrency | {daily_rounds} rounds ({total_trades} trades total) @ ${target_dollars}/trade (Daily Goal: ${daily_goal}).")
+    print(f"Session {session['session_id']} successfully started: {market_label} | {batch_size}x concurrency | {summary_rounds_str} @ ${target_dollars}/trade (Goal: {summary_goal_str}).")
 
 if __name__ == "__main__":
     main()

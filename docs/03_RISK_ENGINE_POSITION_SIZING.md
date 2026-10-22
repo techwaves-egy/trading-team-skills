@@ -55,7 +55,7 @@ flowchart TD
     G005 -->|Pass| G0[Gate 0.0: Account Equity Floor $25 & Dynamic Batch Scaling]
     G0 -->|Pass| G4[Gate 4: Multi-Candle Reversal & Waterfall Cascade Filter]
     G4 -->|Pass| G7[Gate 7: Symmetrical R:R >= 1.0:1 Capping]
-    G7 -->|Pass| G8[Gate 8: Free Margin >= 3x & Projected Margin Level >= 400%]
+    G7 -->|Pass| G8[Gate 8: Free Margin >= 3x & Adaptive Margin Level >= 200%]
     G8 -->|Pass| G1[Gate 1: Persistent Batch-Aware 2-Strike Lockout]
     G1 -->|All Passed| Execute([Execute Safe Order])
 ```
@@ -74,6 +74,6 @@ flowchart TD
 5. **Gate 7 — Symmetrical Risk-to-Reward Realignment**: Pegs maximum Stop Loss distance to Take Profit distance, guaranteeing $\text{R:R} \ge 1.0:1$.
 6. **Gate 8 — Free Margin Buffer & Margin Level Pre-Execution Gate**:
    * Requires Free Margin $\ge 3\times$ total batch margin requirement.
-   * Requires Projected Margin Level $\ge 400\%$ after order placement.
+   * Requires Adaptive Projected Margin Level $\ge 200\%$ for micro-lots ($\le 0.02$) or $\ge 300\%$ for standard lots, with dynamic batch downscaling, guaranteeing a 4x safety cushion above broker stop-out (50%).
    * Caps total batch risk at $\le 15\%$ of account equity on micro accounts.
 7. **Gate 1 — Persistent & Batch-Aware 2-Strike Lockout**: Tracks all closed deal tickets in `config/loss_state.json`. Any batch stop-out immediately locks the asset for 60 minutes.
