@@ -812,7 +812,7 @@ def handle_start_session_cmd(args, chat_id, bot_token, message_id=None):
         f"💰 <b>Target Profit / Trade:</b> <code>+${target_dollars:.2f}</code>\n"
         f"🏆 <b>Batch Target / Round:</b> <b>+${batch_goal:.2f} USD</b>\n"
         f"{goal_line}"
-        f"🛡️ <b>80/70 Protection:</b> Arms @ <code>+${target_dollars * 0.80:.2f}</code> | Floor @ <code>+${target_dollars * 0.70:.2f}</code> per trade\n"
+        f"🛡️ <b>Protection:</b> Positive Income (BE+$5 Lock) | Banker 80/70 Server SL\n"
         f"🛡️ <b>CRO Safety Score:</b> <b>{session.get('margin_stress_score')}</b>\n"
         f"🤖 <b>Active Daemons:</b> Scanner, Trade Monitor &amp; Daily Auditor Online\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -902,11 +902,11 @@ def handle_status_cmd(chat_id, bot_token):
             f"⏱️ <b>Killzone:</b> <b>{kz_status}</b>\n"
             f"⚡ <b>Concurrency:</b> <b>{batch_size}x Concurrent Trades</b> per setup\n"
             f"{rounds_display}\n"
-            f"🛡️ <b>Asymmetric Protection:</b> Banker (80/70 Server SL) | Runner (Dynamic BE+Lock & 60/50 Guard)\n\n"
+            f"🛡️ <b>Asymmetric Protection:</b> Banker (80/70 Server SL) | Positive Income (BE+$5 Lock) | Runner (60/50 Guard)\n\n"
             f"🛡️ <b>OPEN POSITIONS ({len(positions) if positions else 0}):</b>\n"
             f"{pos_text}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"<i>AI Autonomous Trading Firm v5.4.0</i>"
+            f"<i>AI Autonomous Trading Firm v5.5.0</i>"
         )
         send_tg_message(bot_token, chat_id, msg, reply_markup=make_main_keyboard())
     except Exception as e:

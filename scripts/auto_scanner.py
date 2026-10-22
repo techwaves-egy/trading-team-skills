@@ -643,13 +643,13 @@ def run_scan_and_execute(symbol_override=None):
                 f"<b>Entry Price:</b> <code>${price:.2f}</code>\n"
                 f"<b>Stop Loss:</b> <code>${sl_level}</code> (${sl_distance:.2f} distance)\n"
                 f"{leg_details}"
-                f"<b>Profit Protection:</b> 80/70 Server SL Armed on Banker | BE+$2 Lock on Runner\n"
+                f"<b>Profit Protection:</b> 80/70 Server SL Armed on Banker | BE+$5 Lock on Positive Income\n"
                 f"<b>Lots:</b> <code>{safe_lots}</code> each (Total: <code>{safe_lots * len(executed_orders):.2f}</code>) | <b>Risk:</b> <code>${actual_risk * len(executed_orders):.2f}</code>\n"
                 f"<b>4H Macro Trend:</b> <code>{macro_bias}</code>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"{progress_block}"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"<i>v5.4.0 Institutional Trend & Asymmetric Runner Engine</i>"
+                f"<i>v5.5.0 Institutional Trend & Asymmetric Runner Engine</i>"
             )
             broadcast_telegram(alert_msg)
             logger.info(f"Batch executed ({len(executed_orders)} trades): {ticket_ids_str}")

@@ -1,5 +1,5 @@
 {
-  "last_updated_utc": "2026-10-22T07:10:19.190390+00:00",
+  "last_updated_utc": "2026-10-22T11:10:20.191055+00:00",
   "source": "ForexFactory",
   "event_count": 86,
   "events": [
@@ -484,7 +484,7 @@
       "title": "Foreign Direct Investment ytd/y",
       "country": "CNY",
       "impact": "Low",
-      "datetime_utc": "2026-10-22T09:10:00+00:00",
+      "datetime_utc": "2026-10-22T07:41:00+00:00",
       "forecast": "",
       "previous": "-5.3%",
       "url": ""

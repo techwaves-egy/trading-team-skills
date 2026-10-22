@@ -81,7 +81,7 @@ def main():
         f"💰 <b>Target Profit / Trade:</b> <code>+${target_dollars:.2f}</code>\n"
         f"🏆 <b>Batch Target / Round:</b> <b>+${batch_goal:.2f} USD</b>\n"
         f"{goal_line}"
-        f"🛡️ <b>80/70 Protection:</b> Arms @ <code>+${target_dollars * 0.80:.2f}</code> | Floor @ <code>+${target_dollars * 0.70:.2f}</code> per trade\n"
+        f"🛡️ <b>Protection Architecture:</b> Positive Income (BE+$5 Lock) | Banker 80/70 Server SL\n"
         f"🛡️ <b>CRO Safety Score:</b> <b>{session.get('margin_stress_score')}</b>\n"
         f"🤖 <b>Active Daemons:</b> Scanner, Trade Monitor &amp; Daily Auditor Online\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"

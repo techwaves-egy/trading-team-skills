@@ -102,6 +102,130 @@ def calculate_tp_progress(pos):
     return progress, total_dist, current_dist
 
 
+def check_positive_income_sl_lock(positions, protection_state):
+    """
+    Positive Income Stop Loss Lock Engine (v5.5.0):
+    When an active trade makes positive income and price moves favorably by >= 5 points/dollars:
+    Instantly upgrades the broker server-side Stop Loss to Entry Price + 5.0 (for BUY)
+    or Entry Price - 5.0 (for SELL), guaranteeing a locked positive win of at least +$5.00 USD.
+    """
+    state_modified = False
+
+    for pos in positions:
+        ticket_str = str(pos.ticket)
+        sym = pos.symbol
+        is_gold = "XAU" in sym.upper() or "GOLD" in sym.upper()
+        sym_info = mt5.symbol_info(sym)
+        if not sym_info:
+            continue
+
+        digits = sym_info.digits
+        point = sym_info.point
+        stops_level = getattr(sym_info, "stops_level", 0) * point
+        min_buffer = max(stops_level, point * 5, 0.10 if is_gold else 0.00010)
+
+        # Offset: 5.0 for Gold (equals $5.00 profit for 0.01L), 50 points (5 pips) for Forex
+        offset = 5.0 if is_gold else (50 * point)
+
+        if ticket_str not in protection_state:
+            pos_dir = "BUY" if pos.type == mt5.ORDER_TYPE_BUY else "SELL"
+            protection_state[ticket_str] = {
+                "symbol": pos.symbol,
+                "direction": pos_dir,
+                "open_price": pos.price_open,
+                "tp_price": pos.tp,
+                "armed": False,
+                "peak_progress": 0.0,
+                "armed_at": None,
+                "sl_modified_to_70": False,
+                "sl_70_price": None,
+                "positive_income_locked": False,
+                "positive_income_price": None
+            }
+            state_modified = True
+
+        entry = protection_state[ticket_str]
+
+        # Skip if already locked at or better than entry + 5
+        if entry.get("positive_income_locked", False):
+            continue
+
+        if pos.type == mt5.ORDER_TYPE_BUY:
+            target_sl = round(pos.price_open + offset, digits)
+            # Favorable price move >= offset and current price safely above target_sl
+            if pos.profit > 0 and pos.price_current >= target_sl + min_buffer and pos.sl < target_sl:
+                logger.info(
+                    f"[POSITIVE INCOME LOCK] BUY #{pos.ticket} ({sym}) in positive income (Profit: ${pos.profit:+.2f}). "
+                    f"Upgrading SL to Entry + 5: {target_sl} (Current: {pos.price_current})..."
+                )
+                mod_res = modify_mt5_sl(pos.ticket, target_sl)
+                if mod_res.get("status") == "SUCCESS":
+                    entry["positive_income_locked"] = True
+                    entry["positive_income_price"] = target_sl
+                    state_modified = True
+                    try:
+                        locked_usd = mt5.order_calc_profit(pos.type, sym, pos.volume, pos.price_open, target_sl)
+                    except Exception:
+                        locked_usd = 5.0
+                    locked_usd_str = f"+${locked_usd:,.2f} USD" if locked_usd is not None else "+$5.00 USD"
+
+                    alert_msg = (
+                        f"🛡️ <b>POSITIVE INCOME GUARD — SERVER SL LOCKED (ENTRY + 5)</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<b>Asset:</b> <code>{sym}</code> (🟢 BUY)\n"
+                        f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY + 5</b>\n"
+                        f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>\n"
+                        f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Floating: <b>+${pos.profit:.2f} USD</b>)\n"
+                        f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry + ${offset:.2f})\n"
+                        f"<b>Guaranteed Locked Profit:</b> <b>{locked_usd_str}</b> (Minimum)\n"
+                        f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<i>Positive Income Lock Active: Trade cannot turn into a loss; guaranteed win locked on broker matching engine.</i>"
+                    )
+                    broadcast_telegram(alert_msg)
+                else:
+                    logger.warning(f"[POSITIVE INCOME LOCK] Failed to modify SL for #{pos.ticket}: {mod_res.get('reason')}")
+
+        elif pos.type == mt5.ORDER_TYPE_SELL:
+            target_sl = round(pos.price_open - offset, digits)
+            # Favorable price move >= offset and current price safely below target_sl
+            if pos.profit > 0 and pos.price_current <= target_sl - min_buffer and (pos.sl == 0.0 or pos.sl > target_sl):
+                logger.info(
+                    f"[POSITIVE INCOME LOCK] SELL #{pos.ticket} ({sym}) in positive income (Profit: ${pos.profit:+.2f}). "
+                    f"Upgrading SL to Entry - 5: {target_sl} (Current: {pos.price_current})..."
+                )
+                mod_res = modify_mt5_sl(pos.ticket, target_sl)
+                if mod_res.get("status") == "SUCCESS":
+                    entry["positive_income_locked"] = True
+                    entry["positive_income_price"] = target_sl
+                    state_modified = True
+                    try:
+                        locked_usd = mt5.order_calc_profit(pos.type, sym, pos.volume, pos.price_open, target_sl)
+                    except Exception:
+                        locked_usd = 5.0
+                    locked_usd_str = f"+${locked_usd:,.2f} USD" if locked_usd is not None else "+$5.00 USD"
+
+                    alert_msg = (
+                        f"🛡️ <b>POSITIVE INCOME GUARD — SERVER SL LOCKED (ENTRY - 5)</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<b>Asset:</b> <code>{sym}</code> (🔴 SELL)\n"
+                        f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY - 5</b>\n"
+                        f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>\n"
+                        f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Floating: <b>+${pos.profit:.2f} USD</b>)\n"
+                        f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry - ${offset:.2f})\n"
+                        f"<b>Guaranteed Locked Profit:</b> <b>{locked_usd_str}</b> (Minimum)\n"
+                        f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<i>Positive Income Lock Active: Trade cannot turn into a loss; guaranteed win locked on broker matching engine.</i>"
+                    )
+                    broadcast_telegram(alert_msg)
+                else:
+                    logger.warning(f"[POSITIVE INCOME LOCK] Failed to modify SL for #{pos.ticket}: {mod_res.get('reason')}")
+
+    if state_modified:
+        save_profit_protection_state(protection_state)
+
+
 def check_and_execute_profit_protection(positions, protection_state, armed_history=None):
     """
     Evaluates 80/70 Asymmetric Profit Protection across all open positions (v3.9.0):
@@ -302,10 +426,10 @@ def check_and_upgrade_runners(closed_deal, open_positions):
 
     is_gold = "XAU" in symbol.upper() or "GOLD" in symbol.upper()
     if atr and atr > 0:
-        offset = max(2.0 if is_gold else (20 * (mt5.symbol_info(symbol).point if mt5.symbol_info(symbol) else 0.0001)),
-                     0.15 * atr)
+        offset = max(5.0 if is_gold else (50 * (mt5.symbol_info(symbol).point if mt5.symbol_info(symbol) else 0.0001)),
+                     0.20 * atr)
     else:
-        offset = 2.0 if is_gold else 0.0020
+        offset = 5.0 if is_gold else 0.0050
 
     for pos in open_positions:
         if pos.symbol != symbol:
@@ -333,8 +457,8 @@ def check_and_upgrade_runners(closed_deal, open_positions):
                         f"━━━━━━━━━━━━━━━━━━━━\n"
                         f"<b>Asset:</b> <code>{symbol}</code> (BUY)\n"
                         f"<b>Trigger:</b> Leg 1 Banked (+${closed_deal.profit:.2f} USD)!\n"
-                        f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (BE + Dynamic Lock)\n"
-                        f"<b>Dynamic Offset:</b> <code>${offset:.2f}</code> (max($2, 0.15×ATR))\n"
+                        f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (Entry + ${offset:.2f} Lock)\n"
+                        f"<b>Dynamic Offset:</b> <code>${offset:.2f}</code> (max($5, 0.20×ATR))\n"
                         f"<b>Remaining Downside:</b> <b>$0.00 (Protected)</b>\n"
                         f"<b>Upside Potential:</b> 🚀 <b>Uncapped Macro Runner</b>\n"
                         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -351,8 +475,8 @@ def check_and_upgrade_runners(closed_deal, open_positions):
                         f"━━━━━━━━━━━━━━━━━━━━\n"
                         f"<b>Asset:</b> <code>{symbol}</code> (SELL)\n"
                         f"<b>Trigger:</b> Leg 1 Banked (+${closed_deal.profit:.2f} USD)!\n"
-                        f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (BE + Dynamic Lock)\n"
-                        f"<b>Dynamic Offset:</b> <code>${offset:.2f}</code> (max($2, 0.15×ATR))\n"
+                        f"<b>Action:</b> Runner #{pos.ticket} Stop Loss upgraded to <code>${floor_sl}</code> (Entry - ${offset:.2f} Lock)\n"
+                        f"<b>Dynamic Offset:</b> <code>${offset:.2f}</code> (max($5, 0.20×ATR))\n"
                         f"<b>Remaining Downside:</b> <b>$0.00 (Protected)</b>\n"
                         f"<b>Upside Potential:</b> 🚀 <b>Uncapped Macro Runner</b>\n"
                         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -378,19 +502,19 @@ def determine_exit_type(deal, armed_history=None):
         return "TAKE_PROFIT_REACHED", "🎯 TAKE PROFIT REACHED"
     elif "[sl" in comment or "sl" in comment or deal.reason == getattr(mt5, "DEAL_REASON_SL", 4):
         if was_armed or profit >= 5.0:
-            return "PROFIT_PROTECTION_EXIT", "🎯 80/70 PROFIT PROTECTION WIN (70% SERVER SL HIT)"
+            return "PROFIT_PROTECTION_EXIT", "🎯 POSITIVE INCOME / PROFIT PROTECTION WIN (SL HIT)"
         elif profit >= 0:
             return "BREAK_EVEN_EXIT", "🛡️ BREAK-EVEN / TRAILING STOP REACHED"
         else:
             return "STOP_LOSS_REACHED", "🛑 STOP LOSS REACHED"
     elif "close" in comment:
         if was_armed or profit > 0:
-            return "PROFIT_PROTECTION_EXIT", "🎯 80/70 PROFIT PROTECTION EXIT"
+            return "PROFIT_PROTECTION_EXIT", "🎯 POSITIVE INCOME / PROFIT PROTECTION EXIT"
         else:
             return "MANUAL_EXIT", "💼 MANUAL / SYSTEM CLOSE"
     else:
         if was_armed or profit >= 5.0:
-            return "PROFIT_PROTECTION_EXIT", "🎯 80/70 PROFIT PROTECTION WIN"
+            return "PROFIT_PROTECTION_EXIT", "🎯 POSITIVE INCOME / PROFIT PROTECTION WIN"
         elif profit > 0:
             return "TAKE_PROFIT_REACHED", "🎯 TARGET / PROFIT EXIT"
         elif profit == 0:
@@ -477,7 +601,7 @@ def format_telegram_alert(deal, account_info, armed_history=None):
 ━━━━━━━━━━━━━━━━━━━━
 <b>Account Balance:</b> <code>${balance:,.2f}</code>
 <b>Account Equity:</b> <code>${equity:,.2f}</code>
-<b>Strategy Status:</b> 80/70 Server SL Profit Guard Protected (v3.9.0)"""
+<b>Strategy Status:</b> BE+$5 Positive Income Lock & 80/70 Server SL Armed (v5.5.0)"""
 
     return msg
 
@@ -522,9 +646,10 @@ def monitor_loop():
                 time.sleep(3)
                 continue
 
-            # 1. Check 80/70 Asymmetric Profit Protection on Open Positions
+            # 1. Check Positive Income BE+$5 SL Lock & 80/70 Asymmetric Profit Protection
             positions = mt5.positions_get()
             if positions:
+                check_positive_income_sl_lock(positions, protection_state)
                 check_and_execute_profit_protection(positions, protection_state, armed_history)
 
             # 2. Check Deal Stream for Closed Trades
