@@ -107,6 +107,7 @@ def get_daily_deals():
                     order_type = "BUY" if d.type == 1 else "SELL"
 
                 net = round(d.profit + d.commission + d.swap, 2)
+                comm = str(getattr(d, "comment", "") or "")
 
                 if "[tp" in comm.lower():
                     reason = "Take Profit Hit"
