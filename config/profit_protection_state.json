@@ -11,6 +11,8 @@
     "sl_70_price": null,
     "tier1_locked": false,
     "tier2_locked": false,
+    "be_locked": false,
+    "be_price": null,
     "arm_threshold": 0.8,
     "lock_threshold": 0.7
   },
@@ -26,6 +28,8 @@
     "sl_70_price": null,
     "tier1_locked": false,
     "tier2_locked": false,
+    "be_locked": false,
+    "be_price": null,
     "arm_threshold": 0.8,
     "lock_threshold": 0.7
   }
