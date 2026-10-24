@@ -379,25 +379,37 @@ def check_bollinger_confirmation(symbol, direction):
         if not band_tested:
             return False, f"Upper Bollinger Band ({bb_upper:.2f}) not tested by recent closed candles"
 
+        # Mo3ty Re-Entry Gate: 15M candle must close back inside the Bollinger Band range
+        if last_closed_m15['close'] > bb_upper:
+            return False, f"Awaiting Bollinger Re-Entry: 15M candle closed above upper band ({last_closed_m15['close']:.2f} > {bb_upper:.2f}). Walking the band — re-entry not confirmed."
+
         # Completed 15M candle MUST be bearish (red)
         if last_closed_m15['close'] >= last_closed_m15['open']:
             return False, f"Awaiting closed-candle confirmation: Last 15M candle closed bullish (O:{last_closed_m15['open']:.2f}, C:{last_closed_m15['close']:.2f}). Sellers not confirmed."
 
-        # Multi-candle structure requirement:
+        # Multi-candle structure & Mo3ty metrics:
         candle_range = last_closed_m15['high'] - last_closed_m15['low']
+        candle_body = abs(last_closed_m15['close'] - last_closed_m15['open'])
+        body_strength = (candle_body / candle_range * 100.0) if candle_range > 0 else 0.0
+        close_position = ((last_closed_m15['close'] - last_closed_m15['low']) / candle_range * 100.0) if candle_range > 0 else 50.0
+
         upper_wick = last_closed_m15['high'] - max(last_closed_m15['open'], last_closed_m15['close'])
         is_rejection_wick = (upper_wick >= 0.35 * candle_range) if candle_range > 0 else False
         is_engulfing = last_closed_m15['close'] < prev_closed_m15['open']
         two_red = (last_closed_m15['close'] < last_closed_m15['open']) and (prev_closed_m15['close'] < prev_closed_m15['open'])
 
-        if not (is_rejection_wick or is_engulfing or two_red):
-            return False, f"Awaiting structural reversal confirmation: M15 candle lacks upper rejection wick (<35%), engulfing, or 2nd red bar."
+        # Mo3ty Confirmation: Solid bearish body (>=50%) with close in lower half (<=50%)
+        mo3ty_solid_bear = (body_strength >= 50.0 and close_position <= 50.0)
+
+        if not (is_rejection_wick or is_engulfing or two_red or mo3ty_solid_bear):
+            return False, f"Awaiting structural reversal confirmation: M15 candle lacks upper rejection wick (<35%), engulfing, 2nd red bar, or Mo3ty solid body/close position."
 
         # Live price must not be spiking above rejection candle high
         if price > last_closed_m15['high']:
             return False, f"Price breakout detected: live price ({price:.2f}) broke above rejection high ({last_closed_m15['high']:.2f}). Mean reversion aborted."
 
-        return True, f"Multi-Candle Reversal Confirmed (15M Bearish Close {last_closed_m15['close']:.2f}, Live {price:.2f})"
+        conf_details = f"(15M Bearish Close {last_closed_m15['close']:.2f}, Body:{body_strength:.0f}%, Pos:{close_position:.0f}%, Live {price:.2f})"
+        return True, f"Multi-Candle & Mo3ty Reversal Confirmed {conf_details}"
 
     elif direction.upper() == "BUY":
         band_tested = (
@@ -409,25 +421,37 @@ def check_bollinger_confirmation(symbol, direction):
         if not band_tested:
             return False, f"Lower Bollinger Band ({bb_lower:.2f}) not tested by recent closed candles"
 
+        # Mo3ty Re-Entry Gate: 15M candle must close back inside the Bollinger Band range
+        if last_closed_m15['close'] < bb_lower:
+            return False, f"Awaiting Bollinger Re-Entry: 15M candle closed below lower band ({last_closed_m15['close']:.2f} < {bb_lower:.2f}). Walking the band — re-entry not confirmed."
+
         # Completed 15M candle MUST be bullish (green)
         if last_closed_m15['close'] <= last_closed_m15['open']:
             return False, f"Awaiting closed-candle confirmation: Last 15M candle closed bearish (O:{last_closed_m15['open']:.2f}, C:{last_closed_m15['close']:.2f}). Buyers not confirmed."
 
-        # Multi-candle structure requirement:
+        # Multi-candle structure & Mo3ty metrics:
         candle_range = last_closed_m15['high'] - last_closed_m15['low']
+        candle_body = abs(last_closed_m15['close'] - last_closed_m15['open'])
+        body_strength = (candle_body / candle_range * 100.0) if candle_range > 0 else 0.0
+        close_position = ((last_closed_m15['close'] - last_closed_m15['low']) / candle_range * 100.0) if candle_range > 0 else 50.0
+
         lower_wick = min(last_closed_m15['open'], last_closed_m15['close']) - last_closed_m15['low']
         is_rejection_wick = (lower_wick >= 0.35 * candle_range) if candle_range > 0 else False
         is_engulfing = last_closed_m15['close'] > prev_closed_m15['open']
         two_green = (last_closed_m15['close'] > last_closed_m15['open']) and (prev_closed_m15['close'] > prev_closed_m15['open'])
 
-        if not (is_rejection_wick or is_engulfing or two_green):
-            return False, f"Awaiting structural reversal confirmation: M15 candle lacks lower rejection wick (<35%), engulfing, or 2nd green bar."
+        # Mo3ty Confirmation: Solid bullish body (>=50%) with close in upper half (>=50%)
+        mo3ty_solid_bull = (body_strength >= 50.0 and close_position >= 50.0)
+
+        if not (is_rejection_wick or is_engulfing or two_green or mo3ty_solid_bull):
+            return False, f"Awaiting structural reversal confirmation: M15 candle lacks lower rejection wick (<35%), engulfing, 2nd green bar, or Mo3ty solid body/close position."
 
         # Live price must not be falling below rejection candle low
         if price < last_closed_m15['low']:
             return False, f"Price drop detected: live price ({price:.2f}) broke below rejection low ({last_closed_m15['low']:.2f}). Mean reversion aborted."
 
-        return True, f"Multi-Candle Reversal Confirmed (15M Bullish Close {last_closed_m15['close']:.2f}, Live {price:.2f})"
+        conf_details = f"(15M Bullish Close {last_closed_m15['close']:.2f}, Body:{body_strength:.0f}%, Pos:{close_position:.0f}%, Live {price:.2f})"
+        return True, f"Multi-Candle & Mo3ty Reversal Confirmed {conf_details}"
 
     return False, "Invalid direction"
 

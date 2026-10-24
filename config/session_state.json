@@ -28,8 +28,6 @@
   "risk_manager_status": "APPROVED_BY_CRO",
   "approved_leverage_tier": "2x (Continuous All-Week)",
   "margin_stress_score": "5.4% (Institutional A+ Rating)",
-  "start_time": "2026-10-22T16:51:46.745025+00:00",
-  "is_active": false,
-  "shutdown_reason": "WEEKEND_MARKET_CLOSE_AUTO_TERMINATION",
-  "shutdown_time": "2026-10-23T21:55:00.629683+00:00"
+  "start_time": "2026-10-22T16:51:44.688939+00:00",
+  "is_active": true
 }

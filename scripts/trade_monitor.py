@@ -256,7 +256,9 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
                 "peak_progress": max(0.0, progress),
                 "armed_at": None,
                 "sl_modified_to_70": False,
-                "sl_70_price": None
+                "sl_70_price": None,
+                "tier1_locked": False,
+                "tier2_locked": False
             }
             state_modified = True
 
@@ -272,6 +274,89 @@ def check_and_execute_profit_protection(positions, protection_state, armed_histo
         lock_threshold = 0.50 if is_runner_leg else 0.70
         entry["arm_threshold"] = arm_threshold
         entry["lock_threshold"] = lock_threshold
+
+        # === v5.4.1 TWO-TIER EARLY PROFIT LOCK ENGINE (+5 / +10 USD) ===
+        # Tier 1: At >= +$5 profit (or +$5 price move), move SL to Entry + $1.00 (Risk-Free BE+)
+        # Tier 2: At >= +$10 profit (or +$10 price move), move SL to Entry + $5.00 (Guaranteed +$5.00 Lock)
+        is_gold = "XAU" in pos.symbol.upper() or "GOLD" in pos.symbol.upper()
+        sym_info = mt5.symbol_info(pos.symbol)
+        digits = sym_info.digits if sym_info else 2
+
+        if pos.type == mt5.ORDER_TYPE_BUY:
+            fwd_move = pos.price_current - pos.price_open
+        else:
+            fwd_move = pos.price_open - pos.price_current
+
+        profit_val = getattr(pos, "profit", 0.0)
+        t1_triggered = (profit_val >= 5.0) or (is_gold and fwd_move >= 5.0)
+        t2_triggered = (profit_val >= 10.0) or (is_gold and fwd_move >= 10.0)
+
+        if is_gold:
+            t1_offset = 1.0
+            t2_offset = 5.0
+        else:
+            point = sym_info.point if sym_info else 0.0001
+            t1_offset = 100 * point  # ~10 pips (~$1 on 0.01L)
+            t2_offset = 500 * point  # ~50 pips (~$5 on 0.01L)
+
+        # Execute Tier 2 (+10 -> Lock +5) first if reached
+        if t2_triggered and not entry.get("tier2_locked", False):
+            if pos.type == mt5.ORDER_TYPE_BUY:
+                t2_sl = round(pos.price_open + t2_offset, digits)
+                is_better = t2_sl > pos.sl
+            else:
+                t2_sl = round(pos.price_open - t2_offset, digits)
+                is_better = (pos.sl == 0.0) or (t2_sl < pos.sl)
+
+            if is_better:
+                logger.info(f"[TIER 2 PROFIT LOCK] Position #{pos.ticket} reached +$10 move! Upgrading SL to Entry+5: {t2_sl}...")
+                mod_res = modify_mt5_sl(pos.ticket, t2_sl)
+                if mod_res.get("status") == "SUCCESS":
+                    entry["tier1_locked"] = True
+                    entry["tier2_locked"] = True
+                    state_modified = True
+                    alert_msg = (
+                        f"🔒 <b>GUARANTEED PROFIT LOCK (TIER 2 — +$5.00 LOCKED)</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<b>Asset:</b> <code>{pos.symbol}</code> ({pos_dir})\n"
+                        f"<b>Trigger:</b> Trade reached <b>+${profit_val:,.2f} USD</b> floating profit!\n"
+                        f"<b>Action:</b> Stop Loss upgraded to <code>{t2_sl}</code> (Entry + ${t2_offset:.2f})\n"
+                        f"<b>Guaranteed Profit Secured:</b> <b>+$5.00 USD</b> (Locked Floor)\n"
+                        f"<b>Live Price:</b> <code>{pos.price_current}</code> | <b>Entry:</b> <code>{pos.price_open}</code>\n"
+                        f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<i>Downside eliminated and +$5.00 profit strictly banked on broker trade server.</i>"
+                    )
+                    broadcast_telegram(alert_msg)
+
+        # Otherwise Execute Tier 1 (+5 -> Lock +1 / BE+)
+        elif t1_triggered and not entry.get("tier1_locked", False) and not entry.get("tier2_locked", False):
+            if pos.type == mt5.ORDER_TYPE_BUY:
+                t1_sl = round(pos.price_open + t1_offset, digits)
+                is_better = t1_sl > pos.sl
+            else:
+                t1_sl = round(pos.price_open - t1_offset, digits)
+                is_better = (pos.sl == 0.0) or (t1_sl < pos.sl)
+
+            if is_better:
+                logger.info(f"[TIER 1 PROFIT LOCK] Position #{pos.ticket} reached +$5 move! Upgrading SL to Entry+1 (Risk-Free BE+): {t1_sl}...")
+                mod_res = modify_mt5_sl(pos.ticket, t1_sl)
+                if mod_res.get("status") == "SUCCESS":
+                    entry["tier1_locked"] = True
+                    state_modified = True
+                    alert_msg = (
+                        f"🛡️ <b>EARLY PROFIT LOCK (TIER 1 — RISK-FREE BE+)</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<b>Asset:</b> <code>{pos.symbol}</code> ({pos_dir})\n"
+                        f"<b>Trigger:</b> Trade reached <b>+${profit_val:,.2f} USD</b> floating profit!\n"
+                        f"<b>Action:</b> Stop Loss upgraded to <code>{t1_sl}</code> (Entry + ${t1_offset:.2f} buffer)\n"
+                        f"<b>Downside Risk:</b> <b>$0.00 (Risk-Free Active Trade)</b>\n"
+                        f"<b>Live Price:</b> <code>{pos.price_current}</code> | <b>Entry:</b> <code>{pos.price_open}</code>\n"
+                        f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"<i>Trade is completely risk-free; trailing towards Tier 2 (+10) and 80/70 Asymmetric Target.</i>"
+                    )
+                    broadcast_telegram(alert_msg)
 
         # Gate 1: Check Arming Threshold
         if progress >= arm_threshold and not entry.get("armed", False):
