@@ -446,6 +446,14 @@ def run_scan_and_execute(symbol_override=None):
                 sl_level = round(price + min_stop, digits)
                 sl_distance = min_stop
 
+            # Small-Account Volatility Risk Cap:
+            if is_gold and acc.equity < 250.0:
+                max_sl_cap = 12.00
+                if sl_distance > max_sl_cap:
+                    logger.info(f"[RISK CAP] Gold SELL SL distance (${sl_distance:.2f}) capped at ${max_sl_cap:.2f} for micro-account preservation.")
+                    sl_distance = max_sl_cap
+                    sl_level = round(price + sl_distance, digits)
+
             # Engine-Decided Dynamic Targets:
             # Banker Leg (TP1): Minimum 1.2R or distance to Bollinger midline
             bb_target_dist = abs(price - bb_mid) if (strategy_active == "Bollinger_Mean_Reversion" and bb_mid < price) else (sl_distance * 1.2)
@@ -471,6 +479,14 @@ def run_scan_and_execute(symbol_override=None):
             if sl_distance < min_stop:
                 sl_level = round(price - min_stop, digits)
                 sl_distance = min_stop
+
+            # Small-Account Volatility Risk Cap:
+            if is_gold and acc.equity < 250.0:
+                max_sl_cap = 12.00
+                if sl_distance > max_sl_cap:
+                    logger.info(f"[RISK CAP] Gold BUY SL distance (${sl_distance:.2f}) capped at ${max_sl_cap:.2f} for micro-account preservation.")
+                    sl_distance = max_sl_cap
+                    sl_level = round(price - sl_distance, digits)
 
             # Engine-Decided Dynamic Targets:
             # Banker Leg (TP1): Minimum 1.2R or distance to Bollinger midline

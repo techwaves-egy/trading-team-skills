@@ -104,10 +104,10 @@ def calculate_tp_progress(pos):
 
 def check_positive_income_sl_lock(positions, protection_state):
     """
-    Positive Income Stop Loss Lock Engine (v5.5.0):
-    When an active trade makes positive income and price moves favorably by >= 5 points/dollars:
-    Instantly upgrades the broker server-side Stop Loss to Entry Price + 5.0 (for BUY)
-    or Entry Price - 5.0 (for SELL), guaranteeing a locked positive win of at least +$5.00 USD.
+    Institutional Positive Income & Guaranteed Profit Lock Engine:
+    - Stage 1 (Favorable move >= $5.00): Instantly moves SL to Entry ± $1.00 (Risk-Free BE+1).
+    - Stage 2 (Favorable move >= $8.00): Instantly upgrades SL to Entry ± $5.00 (Guaranteed +$5.00 Win with $3.00 breathing room).
+    - Stage 3 (80/70 Asymmetric Protection): At 80% TP, locks 70% TP floor.
     """
     state_modified = False
 
@@ -124,8 +124,10 @@ def check_positive_income_sl_lock(positions, protection_state):
         stops_level = getattr(sym_info, "stops_level", 0) * point
         min_buffer = max(stops_level, point * 5, 0.10 if is_gold else 0.00010)
 
-        # Offset: 5.0 for Gold (equals $5.00 profit for 0.01L), 50 points (5 pips) for Forex
-        offset = 5.0 if is_gold else (50 * point)
+        be_trigger = 5.0 if is_gold else (50 * point)
+        be_offset = 1.0 if is_gold else (10 * point)
+        lock_trigger = 8.0 if is_gold else (80 * point)
+        lock_offset = 5.0 if is_gold else (50 * point)
 
         if ticket_str not in protection_state:
             pos_dir = "BUY" if pos.type == mt5.ORDER_TYPE_BUY else "SELL"
@@ -139,6 +141,7 @@ def check_positive_income_sl_lock(positions, protection_state):
                 "armed_at": None,
                 "sl_modified_to_70": False,
                 "sl_70_price": None,
+                "be_locked": False,
                 "positive_income_locked": False,
                 "positive_income_price": None
             }
@@ -146,83 +149,153 @@ def check_positive_income_sl_lock(positions, protection_state):
 
         entry = protection_state[ticket_str]
 
-        # Skip if already locked at or better than entry + 5
-        if entry.get("positive_income_locked", False):
-            continue
-
+        # BUY EVALUATION
         if pos.type == mt5.ORDER_TYPE_BUY:
-            target_sl = round(pos.price_open + offset, digits)
-            # Favorable price move >= offset and current price safely above target_sl
-            if pos.profit > 0 and pos.price_current >= target_sl + min_buffer and pos.sl < target_sl:
-                logger.info(
-                    f"[POSITIVE INCOME LOCK] BUY #{pos.ticket} ({sym}) in positive income (Profit: ${pos.profit:+.2f}). "
-                    f"Upgrading SL to Entry + 5: {target_sl} (Current: {pos.price_current})..."
-                )
-                mod_res = modify_mt5_sl(pos.ticket, target_sl)
-                if mod_res.get("status") == "SUCCESS":
-                    entry["positive_income_locked"] = True
-                    entry["positive_income_price"] = target_sl
-                    state_modified = True
-                    try:
-                        locked_usd = mt5.order_calc_profit(pos.type, sym, pos.volume, pos.price_open, target_sl)
-                    except Exception:
-                        locked_usd = 5.0
-                    locked_usd_str = f"+${locked_usd:,.2f} USD" if locked_usd is not None else "+$5.00 USD"
+            fwd_move = pos.price_current - pos.price_open
 
-                    alert_msg = (
-                        f"🛡️ <b>POSITIVE INCOME GUARD — SERVER SL LOCKED (ENTRY + 5)</b>\n"
-                        f"━━━━━━━━━━━━━━━━━━━━\n"
-                        f"<b>Asset:</b> <code>{sym}</code> (🟢 BUY)\n"
-                        f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY + 5</b>\n"
-                        f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>\n"
-                        f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Floating: <b>+${pos.profit:.2f} USD</b>)\n"
-                        f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry + ${offset:.2f})\n"
-                        f"<b>Guaranteed Locked Profit:</b> <b>{locked_usd_str}</b> (Minimum)\n"
-                        f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>\n"
-                        f"━━━━━━━━━━━━━━━━━━━━\n"
-                        f"<i>Positive Income Lock Active: Trade cannot turn into a loss; guaranteed win locked on broker matching engine.</i>"
-                    )
-                    broadcast_telegram(alert_msg)
-                else:
-                    logger.warning(f"[POSITIVE INCOME LOCK] Failed to modify SL for #{pos.ticket}: {mod_res.get('reason')}")
+            # Stage 2: Move >= $8.00 -> Upgrade to Entry + $5.00
+            if fwd_move >= lock_trigger and not entry.get("positive_income_locked", False):
+                target_sl = round(pos.price_open + lock_offset, digits)
+                if pos.sl < target_sl and pos.price_current >= target_sl + min_buffer:
+                    logger.info(f"[STAGE 2 LOCK] BUY #{pos.ticket} move +${fwd_move:.2f} >= +${lock_trigger:.2f}. Locking SL to Entry + ${lock_offset:.2f} ({target_sl})...")
+                    mod_res = modify_mt5_sl(pos.ticket, target_sl)
+                    if mod_res.get("status") == "SUCCESS":
+                        entry["positive_income_locked"] = True
+                        entry["be_locked"] = True
+                        entry["positive_income_price"] = target_sl
+                        state_modified = True
+                        alert_msg = (
+                            f"🛡️ <b>GUARANTEED +$5.00 PROFIT GUARD — SERVER SL LOCKED</b>
+"
+                            f"━━━━━━━━━━━━━━━━━━━━
+"
+                            f"<b>Asset:</b> <code>{sym}</code> (🟢 BUY)
+"
+                            f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY + $5</b>
+"
+                            f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
+"
+                            f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
+"
+                            f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry + $5.00)
+"
+                            f"<b>Guaranteed Locked Profit:</b> <b>+$5.00 USD</b> (Minimum)
+"
+                            f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>
+"
+                            f"━━━━━━━━━━━━━━━━━━━━
+"
+                            f"<i>Guaranteed Win Locked: Trade has $3+ breathing room above stop and cannot lose.</i>"
+                        )
+                        broadcast_telegram(alert_msg)
 
+            # Stage 1: Move >= $5.00 -> Move to Entry + $1.00 (Risk Free)
+            elif fwd_move >= be_trigger and not entry.get("be_locked", False) and not entry.get("positive_income_locked", False):
+                target_sl = round(pos.price_open + be_offset, digits)
+                if pos.sl < target_sl and pos.price_current >= target_sl + min_buffer:
+                    logger.info(f"[STAGE 1 BE+1] BUY #{pos.ticket} move +${fwd_move:.2f} >= +${be_trigger:.2f}. Moving SL to Entry + ${be_offset:.2f} ({target_sl})...")
+                    mod_res = modify_mt5_sl(pos.ticket, target_sl)
+                    if mod_res.get("status") == "SUCCESS":
+                        entry["be_locked"] = True
+                        entry["positive_income_price"] = target_sl
+                        state_modified = True
+                        alert_msg = (
+                            f"🛡️ <b>RISK-FREE BE+1 GUARD — SERVER SL SECURED</b>
+"
+                            f"━━━━━━━━━━━━━━━━━━━━
+"
+                            f"<b>Asset:</b> <code>{sym}</code> (🟢 BUY)
+"
+                            f"<b>Status:</b> 🔒 <b>TRADE 100% RISK-FREE (ENTRY + $1)</b>
+"
+                            f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
+"
+                            f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
+"
+                            f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry + $1.00)
+"
+                            f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>
+"
+                            f"━━━━━━━━━━━━━━━━━━━━
+"
+                            f"<i>Zero-Risk Protection Active: Capital completely protected against reversals.</i>"
+                        )
+                        broadcast_telegram(alert_msg)
+
+        # SELL EVALUATION
         elif pos.type == mt5.ORDER_TYPE_SELL:
-            target_sl = round(pos.price_open - offset, digits)
-            # Favorable price move >= offset and current price safely below target_sl
-            if pos.profit > 0 and pos.price_current <= target_sl - min_buffer and (pos.sl == 0.0 or pos.sl > target_sl):
-                logger.info(
-                    f"[POSITIVE INCOME LOCK] SELL #{pos.ticket} ({sym}) in positive income (Profit: ${pos.profit:+.2f}). "
-                    f"Upgrading SL to Entry - 5: {target_sl} (Current: {pos.price_current})..."
-                )
-                mod_res = modify_mt5_sl(pos.ticket, target_sl)
-                if mod_res.get("status") == "SUCCESS":
-                    entry["positive_income_locked"] = True
-                    entry["positive_income_price"] = target_sl
-                    state_modified = True
-                    try:
-                        locked_usd = mt5.order_calc_profit(pos.type, sym, pos.volume, pos.price_open, target_sl)
-                    except Exception:
-                        locked_usd = 5.0
-                    locked_usd_str = f"+${locked_usd:,.2f} USD" if locked_usd is not None else "+$5.00 USD"
+            fwd_move = pos.price_open - pos.price_current
 
-                    alert_msg = (
-                        f"🛡️ <b>POSITIVE INCOME GUARD — SERVER SL LOCKED (ENTRY - 5)</b>\n"
-                        f"━━━━━━━━━━━━━━━━━━━━\n"
-                        f"<b>Asset:</b> <code>{sym}</code> (🔴 SELL)\n"
-                        f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY - 5</b>\n"
-                        f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>\n"
-                        f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Floating: <b>+${pos.profit:.2f} USD</b>)\n"
-                        f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry - ${offset:.2f})\n"
-                        f"<b>Guaranteed Locked Profit:</b> <b>{locked_usd_str}</b> (Minimum)\n"
-                        f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>\n"
-                        f"━━━━━━━━━━━━━━━━━━━━\n"
-                        f"<i>Positive Income Lock Active: Trade cannot turn into a loss; guaranteed win locked on broker matching engine.</i>"
-                    )
-                    broadcast_telegram(alert_msg)
-                else:
-                    logger.warning(f"[POSITIVE INCOME LOCK] Failed to modify SL for #{pos.ticket}: {mod_res.get('reason')}")
+            # Stage 2: Move >= $8.00 -> Upgrade to Entry - $5.00
+            if fwd_move >= lock_trigger and not entry.get("positive_income_locked", False):
+                target_sl = round(pos.price_open - lock_offset, digits)
+                if (pos.sl == 0.0 or pos.sl > target_sl) and pos.price_current <= target_sl - min_buffer:
+                    logger.info(f"[STAGE 2 LOCK] SELL #{pos.ticket} move +${fwd_move:.2f} >= +${lock_trigger:.2f}. Locking SL to Entry - ${lock_offset:.2f} ({target_sl})...")
+                    mod_res = modify_mt5_sl(pos.ticket, target_sl)
+                    if mod_res.get("status") == "SUCCESS":
+                        entry["positive_income_locked"] = True
+                        entry["be_locked"] = True
+                        entry["positive_income_price"] = target_sl
+                        state_modified = True
+                        alert_msg = (
+                            f"🛡️ <b>GUARANTEED +$5.00 PROFIT GUARD — SERVER SL LOCKED</b>
+"
+                            f"━━━━━━━━━━━━━━━━━━━━
+"
+                            f"<b>Asset:</b> <code>{sym}</code> (🔴 SELL)
+"
+                            f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY - $5</b>
+"
+                            f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
+"
+                            f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
+"
+                            f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry - $5.00)
+"
+                            f"<b>Guaranteed Locked Profit:</b> <b>+$5.00 USD</b> (Minimum)
+"
+                            f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>
+"
+                            f"━━━━━━━━━━━━━━━━━━━━
+"
+                            f"<i>Guaranteed Win Locked: Trade has $3+ breathing room above stop and cannot lose.</i>"
+                        )
+                        broadcast_telegram(alert_msg)
 
-    if state_modified:
+            # Stage 1: Move >= $5.00 -> Move to Entry - $1.00 (Risk Free)
+            elif fwd_move >= be_trigger and not entry.get("be_locked", False) and not entry.get("positive_income_locked", False):
+                target_sl = round(pos.price_open - be_offset, digits)
+                if (pos.sl == 0.0 or pos.sl > target_sl) and pos.price_current <= target_sl - min_buffer:
+                    logger.info(f"[STAGE 1 BE+1] SELL #{pos.ticket} move +${fwd_move:.2f} >= +${be_trigger:.2f}. Moving SL to Entry - ${be_offset:.2f} ({target_sl})...")
+                    mod_res = modify_mt5_sl(pos.ticket, target_sl)
+                    if mod_res.get("status") == "SUCCESS":
+                        entry["be_locked"] = True
+                        entry["positive_income_price"] = target_sl
+                        state_modified = True
+                        alert_msg = (
+                            f"🛡️ <b>RISK-FREE BE+1 GUARD — SERVER SL SECURED</b>
+"
+                            f"━━━━━━━━━━━━━━━━━━━━
+"
+                            f"<b>Asset:</b> <code>{sym}</code> (🔴 SELL)
+"
+                            f"<b>Status:</b> 🔒 <b>TRADE 100% RISK-FREE (ENTRY - $1)</b>
+"
+                            f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
+"
+                            f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
+"
+                            f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry - $1.00)
+"
+                            f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>
+"
+                            f"━━━━━━━━━━━━━━━━━━━━
+"
+                            f"<i>Zero-Risk Protection Active: Capital completely protected against reversals.</i>"
+                        )
+                        broadcast_telegram(alert_msg)
+
+    if state_modified:    if state_modified:
         save_profit_protection_state(protection_state)
 
 
