@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Trading Firm — Performance Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-jZvDSsmGB9oGGT/4l9bHXGoAv1OxvG/cFmSo0dZaSqmBgvQTKDBFAMftlXTmMbNW" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #333; }
+    .header { background: #2c3e50; color: #ecf0f1; padding: 1rem 1.5rem; border-radius: 8px 8px 0 0; }
+    .header h1 { margin: 0; font-size: 1.25rem; }
+    .header p { margin: 0.5rem 0 0; opacity: 0.8; }
+    .container { padding: 1.5rem; }
+    .card { background: #fff; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h3 { margin Top: 0; margin Bottom: 1rem; font-size: 0.875rem; color: #555; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+    .card pre { font-size: 0.75rem; overflow-x: auto; }
+    .status-active { color: #27ae60; font-weight: bold; }
+    .status-inactive { color: #e74c3c; font-weight: bold; }
+    .grid { min-height: 400px; }
+    @media (max-width: 600px) { .card pre { font-size: 0.65rem; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏛️ AI Autonomous Trading Firm — Performance Dashboard</h1>
+    <p>v5.6.0 — Institutional Monitoring & Live Telemetry</p>
+  </div>
+  <div class="container">
+    <!-- Session State Card -->
+    <div class="card">
+      <h3>📋 Current Session State</h3>
+      <pre id="sessionState">Loading...</pre>
+    </div>
+
+    <!-- Journal Summary Card -->
+    <div class="card">
+      <h3>📊 Recent Daily Performance (Last 7 Days)</h3>
+      <canvas id="dailyPerformance" width="400" height="200"></canvas>
+    </div>
+
+    <!-- Trade Monitor State Card -->
+    <div class="card">
+      <h3>🛡️ Profit Protection Status</h3>
+      <pre id="protectionState">Loading...</pre>
+    </div>
+
+    <!-- Loss State Card -->
+    <div class="card">
+      <h3>🔒 2-Strike Lockout Status</h3>
+      <pre id="lossState">Loading...</pre>
+    </div>
+
+    <!-- Processed Tickets Summary -->
+    <div class="card">
+      <h3>📥 Processed Deal Tickets Count</h3>
+      <pre id="processedTickets">Loading...</pre>
+    </div>
+
+    <!-- Performance Chart Card -->
+    <div class="card">
+      <h3>📈 Equity Curve (Last 7 Days)</h3>
+      <canvas id="equityCurve" width="400" height="200"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Grid.js for data tables
+    const grid = new gridjs.Grid({
+      column: ['Metric', 'Value'],
+      data: [],
+      style: {
+        cell: { fontFamily: 'inherit', fontSize: '0.875rem' }
+      }
+    }).render(document.body);
+
+    // Fetch session state
+    async function fetchSessionState() {
+      try {
+        const resp = await fetch('config/session_state.json');
+        const data = await resp.json();
+        document.getElementById('sessionState').textContent = JSON.stringify(data, null, 2);
+
+        // Update grid with key metrics
+        const isActive = data.is_active ? 'ACTIVE' : 'INACTIVE';
+        const statusClass = isActive === 'ACTIVE' ? 'status-active' : 'status-inactive';
+        grid.update({
+          column: ['Metric', 'Value'],
+          data: [
+            ['Session ID', data.session_id],
+            ['Active Market', data.active_market],
+            ['Concurrency Batch', `${data.concurrent_batch_size}x`],
+            ['Daily Rounds', data.daily_rounds],
+            ['Continuous Mode', data.is_continuous ? 'Yes (All-Week)' : 'No'],
+            ['Trades Executed', data.trades_executed],
+            ['Max Trades', data.max_trades],
+            ['Trading Mode', data.trading_mode],
+            ['Risk Manager Status', data.risk_manager_status],
+            ['Session Status', isActive]
+          ]
+        });
+      } catch (e) {
+        document.getElementById('sessionState').textContent = `Error: ${e.message}`;
+      }
+    }
+
+    // Fetch profit protection state
+    async function fetchProtectionState() {
+      try {
+        const resp = await fetch('config/profit_protection_state.json');
+        const data = await resp.json();
+        const ticket = Object.keys(data)[0] || 'none';
+        document.getElementById('protectionState').textContent = `
+Ticket: ${ticket}
+Direction: ${data[ticket].direction}
+Armed: ${data[ticket].armed ? 'Yes' : 'No'}
+Progress: ${(data[ticker].peak_progress * 100).toFixed(1)}% of TP
+Be Locked: ${data[ticket].be_locked ? 'Yes' : 'No'}
+SL Modified to 70: ${data[ticket].sl_modified_to_70 ? 'Yes' : 'No'}
+`;
+      } catch (e) {
+        document.getElementById('protectionState').textContent = `Error: ${e.message}`;
+      }
+    }
+
+    // Fetch loss state
+    async function fetchLossState() {
+      try {
+        const resp = await fetch('config/loss_state.json');
+        const data = await resp.json();
+        document.getElementById('lossState').textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById('lossState').textContent = `Error: ${e.message}`;
+      }
+    }
+
+    // Fetch processed tickets
+    async function fetchProcessedTickets() {
+      try {
+        const resp = await fetch('config/processed_deal_tickets.json');
+        const data = await resp.json();
+        const count = data.tickets ? data.tickets.length : 0;
+        document.getElementById('processedTickets').textContent = `${count} tickets processed`;
+      } catch (e) {
+        document.getElementById('processedTickets').textContent = `Error: ${e.message}`;
+      }
+    }
+
+    // Load recent journal summaries and build charts
+    async function loadJournalData() {
+      try {
+        const weekPromises = [];
+        for (let i = 0; i < 7; i++) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          const weekId = `W${Math.ceil((date.getDay() + 6) / 7)}`;
+          const filename = `summary_${y}-${m}-${d}.json`;
+          weekPromises.push(fetch(`journal/${filename}`).then(r => r.json().catch(() => null)));
+        }
+        const results = await Promise.all(weekPromises);
+
+        const valid = results.filter(r => r && r.net_pnl !== undefined && r.total_trades > 0);
+
+        if (valid.length > 0) {
+          // Daily PnL chart
+          const pnlData = valid.map(r => ({
+            date: r.date,
+            net_pnl: r.net_pnl,
+            win_rate: r.win_rate,
+            status: r.net_pnl >= 0 ? 'profit' : 'loss'
+          }));
+
+          const ctx1 = document.getElementById('dailyPerformance').getContext('2d');
+          new Chart(ctx1, {
+            type: 'bar',
+            data: {
+              labels: pnlData.map(d => d.date.split('T')[0]),
+              datasets: [
+                {
+                  label: 'Net PnL ($)',
+                  data: pnlData.map(d => d.net_pnl),
+                  backgroundColor: pnlData.map(d => d.net_pnl >= 0 ? '#27ae60' : '#e74c3c')
+                },
+                {
+                  label: 'Win Rate (%)',
+                  type: 'line',
+                  data: pnlData.map(d => d.win_rate),
+                  borderColor: '#3498db',
+                  fill: false,
+                  yAxisID: 'winrate'
+                }
+              ]
+            },
+            options: {
+              scales: {
+                y: { title: { display: true, text: 'Net PnL ($)' } },
+                winrate: { type: 'linear', position: 'right', title: { display: true, text: 'Win Rate (%)' }, ticks: { min: 0, max: 100 } }
+              }
+            }
+          });
+
+          // Equity curve
+          const equityData = valid.map(r => ({
+            date: r.date,
+            equity: r.account_equity || 0
+          }));
+
+          const ctx2 = document.getElementById('equityCurve').getContext('2d');
+          new Chart(ctx2, {
+            type: 'line',
+            data: {
+              labels: equityData.map(d => d.date.split('T')[0]),
+              datasets: [{
+                label: 'Account Equity ($)',
+                data: equityData.map(d => d.equity),
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                tension: 0.1,
+                fill: true
+              }]
+            },
+            options: {
+              scales: {
+                y: { title: { display: true, text: 'Equity ($)' } }
+              }
+            }
+          });
+        } else {
+          document.getElementById('dailyPerformance').parentElement.innerHTML = '<p>No journal data available for the last 7 days.</p>';
+        }
+      } catch (e) {
+        console.error('Journal data error:', e);
+      }
+    }
+
+    // Initialize
+    fetchSessionState();
+    fetchProtectionState();
+    fetchLossState();
+    fetchProcessedTickets();
+    loadJournalData();
+  </script>
+</body>
+</html>

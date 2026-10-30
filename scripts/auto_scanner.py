@@ -417,27 +417,12 @@ def run_scan_and_execute(symbol_override=None):
         target_dollars = float(session.get("target_profit_per_trade", 25.0))
         dollar_risk = float(session.get("risk_per_trade_dollars", 25.0)) * active_lev
 
-        # === v5.6.0 DYNAMIC CAPITAL-PROPORTIONAL AUTO-SCALING ENGINE ===
-        # Automatically scales lot sizing with account equity growth (compounding):
-        # Base scale: 0.01 lots per $250.00 of equity (minimum 0.01 lot)
-        # Clamped by symbol_info volume_min, volume_max, and volume_step.
-        auto_scale_enabled = session.get("auto_scale_lots", True)
-        scale_unit = float(session.get("equity_scale_step_dollars", 250.0))
-
-        if auto_scale_enabled and acc and getattr(acc, "equity", 0.0) > 0:
-            scaled_steps = max(1, int(acc.equity // scale_unit))
-            base_lots = round(scaled_steps * 0.01, 2)
-            logger.info(
-                f"[AUTO-SCALE LOTS] Dynamic lot scaling active: Equity=${acc.equity:,.2f} -> "
-                f"Base Lots={base_lots:.2f} (Formula: floor(Equity / ${scale_unit:.0f}) * 0.01)"
-            )
-        else:
-            base_lots = float(session.get("default_lots", 0.01))
-
         if is_gold:
-            safe_lots = round(base_lots * active_lev, 2)
+            base_gold_lots = float(session.get("default_lots", 0.01))
+            safe_lots = round(base_gold_lots * active_lev, 2)
             safe_lots = max(symbol_info.volume_min, min(symbol_info.volume_max, safe_lots))
         else:
+            base_lots = float(session.get("default_lots", 0.01))
             safe_lots = round(base_lots * active_lev, 2)
             safe_lots = max(symbol_info.volume_min, min(symbol_info.volume_max, safe_lots))
             step = symbol_info.volume_step

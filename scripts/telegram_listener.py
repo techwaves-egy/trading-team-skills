@@ -881,15 +881,6 @@ def handle_status_cmd(chat_id, bot_token):
         is_continuous = bool(session.get("is_continuous", False)) or str(session.get("daily_rounds", "")).upper() in ("ALL_WEEK", "ALLWEEK", "CONTINUOUS", "ALWAYS_ACTIVE", "UNLIMITED")
         market_label = session.get("active_market", "EURUSD, XAUUSD")
 
-        scale_unit = float(session.get("equity_scale_step_dollars", 250.0))
-        auto_scale_on = session.get("auto_scale_lots", True)
-        if auto_scale_on and acc and getattr(acc, "equity", 0.0) > 0:
-            current_lots = max(0.01, round(max(1, int(acc.equity // scale_unit)) * 0.01, 2))
-            lot_mode_str = f"Dynamic Auto-Scale ({current_lots:.2f}L • 0.01L / ${scale_unit:.0f} Eq)"
-        else:
-            current_lots = float(session.get("default_lots", 0.01))
-            lot_mode_str = f"Fixed ({current_lots:.2f}L)"
-
         if is_continuous:
             rounds_display = f"🔄 <b>Mode:</b> <b>Always Active (All-Week Continuous)</b> (Today: {trades_today} | Week Total: {trades_done} Trades)"
         else:
@@ -910,13 +901,12 @@ def handle_status_cmd(chat_id, bot_token):
             f"🧭 <b>PTJ 4H 200 EMA (Gold):</b> <b>{macro_bias_gold}</b>\n"
             f"⏱️ <b>Killzone:</b> <b>{kz_status}</b>\n"
             f"⚡ <b>Concurrency:</b> <b>{batch_size}x Concurrent Trades</b> per setup\n"
-            f"⚖️ <b>Lot Sizing Engine:</b> <b>{lot_mode_str}</b>\n"
             f"{rounds_display}\n"
-            f"🛡️ <b>Asymmetric Protection:</b> Banker (80/70 Server SL) | Institutional BE (50% TP Floor) | Runner (60/50 Guard)\n\n"
+            f"🛡️ <b>Asymmetric Protection:</b> Banker (80/70 Server SL) | Positive Income (BE+$5 Lock) | Runner (60/50 Guard)\n\n"
             f"🛡️ <b>OPEN POSITIONS ({len(positions) if positions else 0}):</b>\n"
             f"{pos_text}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"<i>AI Autonomous Trading Firm v5.6.0</i>"
+            f"<i>AI Autonomous Trading Firm v5.5.0</i>"
         )
         send_tg_message(bot_token, chat_id, msg, reply_markup=make_main_keyboard())
     except Exception as e:
