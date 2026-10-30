@@ -164,29 +164,17 @@ def check_positive_income_sl_lock(positions, protection_state):
                         entry["be_locked"] = True
                         entry["positive_income_price"] = target_sl
                         state_modified = True
-                        alert_msg = (
-                            f"🛡️ <b>GUARANTEED +$5.00 PROFIT GUARD — SERVER SL LOCKED</b>
-"
-                            f"━━━━━━━━━━━━━━━━━━━━
-"
-                            f"<b>Asset:</b> <code>{sym}</code> (🟢 BUY)
-"
-                            f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY + $5</b>
-"
-                            f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
-"
-                            f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
-"
-                            f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry + $5.00)
-"
-                            f"<b>Guaranteed Locked Profit:</b> <b>+$5.00 USD</b> (Minimum)
-"
-                            f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>
-"
-                            f"━━━━━━━━━━━━━━━━━━━━
-"
-                            f"<i>Guaranteed Win Locked: Trade has $3+ breathing room above stop and cannot lose.</i>"
-                        )
+                        alert_msg = f"""🛡️ <b>GUARANTEED +$5.00 PROFIT GUARD — SERVER SL LOCKED</b>
+━━━━━━━━━━━━━━━━━━━━
+<b>Asset:</b> <code>{sym}</code> (🟢 BUY)
+<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY + $5</b>
+<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
+<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
+<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry + $5.00)
+<b>Guaranteed Locked Profit:</b> <b>+$5.00 USD</b> (Minimum)
+<b>Position Ticket:</b> <code>#{pos.ticket}</code>
+━━━━━━━━━━━━━━━━━━━━
+<i>Guaranteed Win Locked: Trade has $3+ breathing room above stop and cannot lose.</i>"""
                         broadcast_telegram(alert_msg)
 
             # Stage 1: Move >= $5.00 -> Move to Entry + $1.00 (Risk Free)
@@ -199,27 +187,16 @@ def check_positive_income_sl_lock(positions, protection_state):
                         entry["be_locked"] = True
                         entry["positive_income_price"] = target_sl
                         state_modified = True
-                        alert_msg = (
-                            f"🛡️ <b>RISK-FREE BE+1 GUARD — SERVER SL SECURED</b>
-"
-                            f"━━━━━━━━━━━━━━━━━━━━
-"
-                            f"<b>Asset:</b> <code>{sym}</code> (🟢 BUY)
-"
-                            f"<b>Status:</b> 🔒 <b>TRADE 100% RISK-FREE (ENTRY + $1)</b>
-"
-                            f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
-"
-                            f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
-"
-                            f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry + $1.00)
-"
-                            f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>
-"
-                            f"━━━━━━━━━━━━━━━━━━━━
-"
-                            f"<i>Zero-Risk Protection Active: Capital completely protected against reversals.</i>"
-                        )
+                        alert_msg = f"""🛡️ <b>RISK-FREE BE+1 GUARD — SERVER SL SECURED</b>
+━━━━━━━━━━━━━━━━━━━━
+<b>Asset:</b> <code>{sym}</code> (🟢 BUY)
+<b>Status:</b> 🔒 <b>TRADE 100% RISK-FREE (ENTRY + $1)</b>
+<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
+<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
+<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry + $1.00)
+<b>Position Ticket:</b> <code>#{pos.ticket}</code>
+━━━━━━━━━━━━━━━━━━━━
+<i>Zero-Risk Protection Active: Capital completely protected against reversals.</i>"""
                         broadcast_telegram(alert_msg)
 
         # SELL EVALUATION
@@ -237,29 +214,17 @@ def check_positive_income_sl_lock(positions, protection_state):
                         entry["be_locked"] = True
                         entry["positive_income_price"] = target_sl
                         state_modified = True
-                        alert_msg = (
-                            f"🛡️ <b>GUARANTEED +$5.00 PROFIT GUARD — SERVER SL LOCKED</b>
-"
-                            f"━━━━━━━━━━━━━━━━━━━━
-"
-                            f"<b>Asset:</b> <code>{sym}</code> (🔴 SELL)
-"
-                            f"<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY - $5</b>
-"
-                            f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
-"
-                            f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
-"
-                            f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry - $5.00)
-"
-                            f"<b>Guaranteed Locked Profit:</b> <b>+$5.00 USD</b> (Minimum)
-"
-                            f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>
-"
-                            f"━━━━━━━━━━━━━━━━━━━━
-"
-                            f"<i>Guaranteed Win Locked: Trade has $3+ breathing room above stop and cannot lose.</i>"
-                        )
+                        alert_msg = f"""🛡️ <b>GUARANTEED +$5.00 PROFIT GUARD — SERVER SL LOCKED</b>
+━━━━━━━━━━━━━━━━━━━━
+<b>Asset:</b> <code>{sym}</code> (🔴 SELL)
+<b>Status:</b> 🔒 <b>SERVER-SIDE STOP LOSS SECURED AT ENTRY - $5</b>
+<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
+<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
+<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry - $5.00)
+<b>Guaranteed Locked Profit:</b> <b>+$5.00 USD</b> (Minimum)
+<b>Position Ticket:</b> <code>#{pos.ticket}</code>
+━━━━━━━━━━━━━━━━━━━━
+<i>Guaranteed Win Locked: Trade has $3+ breathing room above stop and cannot lose.</i>"""
                         broadcast_telegram(alert_msg)
 
             # Stage 1: Move >= $5.00 -> Move to Entry - $1.00 (Risk Free)
@@ -272,30 +237,19 @@ def check_positive_income_sl_lock(positions, protection_state):
                         entry["be_locked"] = True
                         entry["positive_income_price"] = target_sl
                         state_modified = True
-                        alert_msg = (
-                            f"🛡️ <b>RISK-FREE BE+1 GUARD — SERVER SL SECURED</b>
-"
-                            f"━━━━━━━━━━━━━━━━━━━━
-"
-                            f"<b>Asset:</b> <code>{sym}</code> (🔴 SELL)
-"
-                            f"<b>Status:</b> 🔒 <b>TRADE 100% RISK-FREE (ENTRY - $1)</b>
-"
-                            f"<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
-"
-                            f"<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
-"
-                            f"<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry - $1.00)
-"
-                            f"<b>Position Ticket:</b> <code>#{pos.ticket}</code>
-"
-                            f"━━━━━━━━━━━━━━━━━━━━
-"
-                            f"<i>Zero-Risk Protection Active: Capital completely protected against reversals.</i>"
-                        )
+                        alert_msg = f"""🛡️ <b>RISK-FREE BE+1 GUARD — SERVER SL SECURED</b>
+━━━━━━━━━━━━━━━━━━━━
+<b>Asset:</b> <code>{sym}</code> (🔴 SELL)
+<b>Status:</b> 🔒 <b>TRADE 100% RISK-FREE (ENTRY - $1)</b>
+<b>Entry Price:</b> <code>${pos.price_open:.2f}</code>
+<b>Current Price:</b> <code>${pos.price_current:.2f}</code> (Gain: <b>+${fwd_move:.2f}</b>)
+<b>New Server SL:</b> <code>${target_sl:.2f}</code> (Entry - $1.00)
+<b>Position Ticket:</b> <code>#{pos.ticket}</code>
+━━━━━━━━━━━━━━━━━━━━
+<i>Zero-Risk Protection Active: Capital completely protected against reversals.</i>"""
                         broadcast_telegram(alert_msg)
 
-    if state_modified:    if state_modified:
+    if state_modified:
         save_profit_protection_state(protection_state)
 
 
