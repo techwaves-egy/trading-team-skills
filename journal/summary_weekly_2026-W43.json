@@ -1,0 +1,43 @@
+{
+  "week": "2026-W43",
+  "date_range": "Oct 26 \u2013 Oct 30, 2026",
+  "timestamp": "2026-10-30T21:59:23.310589+00:00",
+  "account_balance": 148.21,
+  "account_equity": 148.21,
+  "total_trades": 2,
+  "wins": 0,
+  "losses": 2,
+  "breakeven": 0,
+  "total_profit": 0.0,
+  "total_loss": 28.88,
+  "net_pnl": -28.88,
+  "largest_win": 0.0,
+  "largest_loss": -20.82,
+  "win_rate": 0.0,
+  "profit_factor": 0.0,
+  "trades": [
+    {
+      "position_id": 11090871774,
+      "symbol": "XAUUSD",
+      "type": "SELL",
+      "volume": 0.01,
+      "entry_price": 3981.12,
+      "exit_price": 3981.12,
+      "net_pnl": -20.82,
+      "close_time": "Mon 03:01 UTC",
+      "date": "2026-10-26"
+    },
+    {
+      "position_id": 11092303297,
+      "symbol": "XAUUSD",
+      "type": "SELL",
+      "volume": 0.01,
+      "entry_price": 3996.24,
+      "exit_price": 3996.24,
+      "net_pnl": -8.06,
+      "close_time": "Mon 00:00 UTC",
+      "date": "2026-10-26"
+    }
+  ],
+  "status": "LOSS"
+}

@@ -29,5 +29,7 @@
   "approved_leverage_tier": "1x (Continuous All-Week)",
   "margin_stress_score": "2.7% (Institutional A+ Rating)",
   "start_time": "2026-10-30T13:51:12.118121+00:00",
-  "is_active": true
+  "is_active": false,
+  "shutdown_reason": "WEEKEND_MARKET_CLOSE_AUTO_TERMINATION",
+  "shutdown_time": "2026-10-30T21:59:24.205898+00:00"
 }
